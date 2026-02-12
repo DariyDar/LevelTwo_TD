@@ -396,8 +396,7 @@ function drawBuildingHighlights() {
     ctx.stroke();
     _drawHighlightLabel(pos.x, pos.y - size.h / 2 - 16,
       'Hepatocytes (GLUT2)',
-      hovered === 'metformin' ? 'Suppresses hepatic glucose output' : 'Intercepts glucose for liver storage',
-      pulse);
+      hovered === 'metformin' ? 'Suppresses hepatic glucose output' : 'Intercepts glucose for liver storage');
   }
 
   if (hovered === 'spawnPriest') {
@@ -415,7 +414,7 @@ function drawBuildingHighlights() {
     ctx.fill();
     ctx.stroke();
     _drawHighlightLabel(pos.x, pos.y - size.h / 2 - 16,
-      'Beta Cells (Insulin)', 'Releases insulin to convert free glucose', pulse);
+      'Beta Cells (Insulin)', 'Releases insulin to convert free glucose');
   }
 
   if (hovered === 'kidneyVortex' || hovered === 'dapagliflozin') {
@@ -430,8 +429,7 @@ function drawBuildingHighlights() {
     ctx.stroke();
     _drawHighlightLabel(pos.x, pos.y - r - 18,
       'Nephrons (Filtration)',
-      hovered === 'dapagliflozin' ? 'SGLT2 inhibitor blocks glucose reabsorption' : 'Increases glomerular filtration rate',
-      pulse);
+      hovered === 'dapagliflozin' ? 'SGLT2 inhibitor blocks glucose reabsorption' : 'Increases glomerular filtration rate');
   }
 
   if (hovered === 'walk' || hovered === 'exercise' || hovered === 'physicalActivity') {
@@ -444,7 +442,7 @@ function drawBuildingHighlights() {
     ctx.fill();
     ctx.stroke();
     _drawHighlightLabel((zone.x1 + zone.x2) / 2, zone.y1 - 16,
-      'Myocytes (GLUT4)', 'Muscle cells absorb glucose via GLUT4 translocation', pulse);
+      'Myocytes (GLUT4)', 'Muscle cells absorb glucose via GLUT4 translocation');
   }
 
   if (hovered === 'semaglutide') {
@@ -462,28 +460,41 @@ function drawBuildingHighlights() {
     ctx.stroke();
     ctx.setLineDash([]);
     _drawHighlightLabel((xMin + xMax) / 2, roadY - ySpread - 16,
-      'GI Tract (GLP-1)', 'Slows gastric emptying, reduces appetite', pulse);
+      'GI Tract (GLP-1)', 'Slows gastric emptying, reduces appetite');
   }
 }
 
-function _drawHighlightLabel(x, y, title, desc, pulse) {
+function _drawHighlightLabel(x, y, title, desc) {
   ctx.save();
   ctx.textAlign = 'center';
-
-  // Title
   ctx.font = 'bold 13px Arial';
-  ctx.fillStyle = `rgba(241, 196, 15, ${pulse})`;
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.lineWidth = 3;
-  ctx.strokeText(title, x, y);
+
+  // Measure text for background box
+  const titleW = ctx.measureText(title).width;
+  ctx.font = '11px Arial';
+  const descW = ctx.measureText(desc).width;
+  const boxW = Math.max(titleW, descW) + 20;
+  const boxH = 34;
+  const boxX = x - boxW / 2;
+  const boxY = y - 14;
+
+  // Solid dark background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 5);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(241, 196, 15, 0.6)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Title — always fully visible
+  ctx.font = 'bold 13px Arial';
+  ctx.fillStyle = '#F1C40F';
   ctx.fillText(title, x, y);
 
   // Description
   ctx.font = '11px Arial';
-  ctx.fillStyle = `rgba(255, 255, 255, ${pulse * 0.9})`;
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.lineWidth = 3;
-  ctx.strokeText(desc, x, y + 15);
+  ctx.fillStyle = '#FFFFFF';
   ctx.fillText(desc, x, y + 15);
 
   ctx.restore();
