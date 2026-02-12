@@ -61,7 +61,7 @@ export const CONFIG = {
   MINE_MAX_WORKERS: 8,
   MINE_HP: 80,
   MINE_REPAIR_TIME: 12,
-  MINE_ENERGY_PER_WORKER: 0.55,
+  MINE_ENERGY_PER_WORKER: 0.50,
 
   // Worker positions (arc below mine, up to 8)
   WORKER_OFFSETS: [
@@ -87,13 +87,13 @@ export const CONFIG = {
   REBEL_HP: 80,
   REBEL_HP_DECAY: 1.0,
   REBEL_BUILDING_DPS: 5,
-  WORKER_LIFETIME: 40,
+  WORKER_LIFETIME: 30,
 
   // Priest
   PRIEST_CAST_TIME: 2,
   PRIEST_CAST_RADIUS: 50,
   PRIEST_RADIUS: 5,
-  PRIEST_WAIT_TIMEOUT: 12,
+  PRIEST_WAIT_TIMEOUT: 24,
 
   // Resistance by degradation level (0-4)
   RESISTANCE_BY_DEGRADATION: [0.80, 0.55, 0.40, 0.30, 0.20],
@@ -157,15 +157,15 @@ export const CONFIG = {
 
   // Energy
   ENERGY_MAX: 300,
-  ENERGY_START: 150,
-  STARTING_WORKERS: 140,
+  ENERGY_START: 130,
+  STARTING_WORKERS: 80,
 
   // Degradation thresholds
   REBELS_ATTACK_MINES: 20,
   REBELS_ATTACK_PANCREAS: 80,
 
   // Basal energy drain (metabolism uses energy even without rebels)
-  ENERGY_BASAL_DRAIN: 11,
+  ENERGY_BASAL_DRAIN: 10,
 
   // Interventions
   FAST_INSULIN_COST: 60,
@@ -173,7 +173,7 @@ export const CONFIG = {
   FAST_INSULIN_PRIESTS: 15,
   FAST_INSULIN_DURATION: 20,
 
-  EXERCISE_COST: 40,
+  EXERCISE_COST: 70,
   EXERCISE_COOLDOWN: 60,
   EXERCISE_DURATION: 25,
 
@@ -191,7 +191,7 @@ export const CONFIG = {
   METFORMIN_DURATION: 40,
   METFORMIN_SPEED_BOOST: 0.3,
 
-  WALK_COST: 10,
+  WALK_COST: 20,
   WALK_COOLDOWN: 25,
   WALK_REBELS_MIN: 15,
   WALK_REBELS_MAX: 40,
@@ -219,7 +219,7 @@ export const CONFIG = {
   // Day cycle: 6:00 to 24:00 (18 virtual hours)
   DAY_START_HOUR: 6,  // 6:00 AM
   DAY_END_HOUR: 24,   // midnight
-  DAY_SPEED: 3,       // virtual minutes per real second (18h = 360min / 3 = 120s real)
+  DAY_SPEED: 3.5,     // virtual minutes per real second (18h = 360min / 3.5 ≈ 103s real)
 
   // Boat unload times (longer for bigger loads)
   UNLOAD_TIME_S: 5,

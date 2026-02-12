@@ -325,12 +325,31 @@ function drawTooltip() {
   const btn = buttonRects.find(b => b.intervention.key === hovered);
   if (!btn) return;
 
-  const tipW = 280;
-  const tipH = 32;
+  ctx.font = '11px Arial';
+  const tipW = 300;
+  const padding = 8;
+  const lineH = 14;
+
+  // Word-wrap text into lines
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = words[0];
+  for (let i = 1; i < words.length; i++) {
+    const test = currentLine + ' ' + words[i];
+    if (ctx.measureText(test).width < tipW - padding * 2) {
+      currentLine = test;
+    } else {
+      lines.push(currentLine);
+      currentLine = words[i];
+    }
+  }
+  lines.push(currentLine);
+
+  const tipH = padding * 2 + lines.length * lineH;
   const tipX = Math.max(5, Math.min(btn.x + btn.w / 2 - tipW / 2, CONFIG.CANVAS_WIDTH - tipW - 5));
   const tipY = btn.y - tipH - 6;
 
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
   ctx.beginPath();
   ctx.roundRect(tipX, tipY, tipW, tipH, 5);
   ctx.fill();
@@ -339,9 +358,10 @@ function drawTooltip() {
   ctx.stroke();
 
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = '11px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText(text, tipX + tipW / 2, tipY + 20);
+  ctx.textAlign = 'left';
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], tipX + padding, tipY + padding + (i + 1) * lineH);
+  }
 }
 
 function handleMouseMove(e) {

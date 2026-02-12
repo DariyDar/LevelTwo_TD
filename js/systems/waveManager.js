@@ -105,17 +105,8 @@ export function triggerEarlyWave() {
   if (gameState.allWavesSent) return false;
   if (gameState.currentWaveIndex >= gameState.waves.length) return false;
 
-  // Fast-forward clock to the next wave's time
-  const nextWave = gameState.waves[gameState.currentWaveIndex];
-  const waveHour = parseTimeToHour(nextWave.time);
-  const currentHour = getVirtualHour();
-
-  if (currentHour >= waveHour) return false; // already past
-
-  // Set clock to wave time
-  const targetMinutes = (waveHour - CONFIG.DAY_START_HOUR) * 60;
-  gameState.dayClock = targetMinutes / CONFIG.DAY_SPEED;
-
+  // Send the meal NOW — don't fast-forward clock
+  // Simulates eating early; day continues normally
   sendNextWave();
   return true;
 }

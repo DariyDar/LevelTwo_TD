@@ -378,76 +378,115 @@ function drawBuildingHighlights() {
   const hovered = gameState.hoveredAction;
   if (!hovered) return;
 
-  const pulse = 0.4 + 0.6 * Math.sin(Date.now() / 300);
+  const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 250);
 
-  // Map action keys to buildings
   if (hovered === 'spawnKnight' || hovered === 'metformin') {
-    // Liver pulse with fill glow
     const pos = CONFIG.LIVER_POS;
     const size = CONFIG.LIVER_SIZE;
-    ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.15})`;
+    const x = pos.x - size.w / 2 - 8;
+    const y = pos.y - size.h / 2 - 8;
+    const w = size.w + 16;
+    const h = size.h + 16;
+    ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.35})`;
     ctx.strokeStyle = `rgba(241, 196, 15, ${pulse})`;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.roundRect(pos.x - size.w / 2 - 4, pos.y - size.h / 2 - 4, size.w + 8, size.h + 8, 10);
+    ctx.roundRect(x, y, w, h, 12);
     ctx.fill();
     ctx.stroke();
+    _drawHighlightLabel(pos.x, pos.y - size.h / 2 - 16,
+      'Hepatocytes (GLUT2)',
+      hovered === 'metformin' ? 'Suppresses hepatic glucose output' : 'Intercepts glucose for liver storage',
+      pulse);
   }
 
   if (hovered === 'spawnPriest') {
-    // Pancreas pulse with fill glow
     const pos = CONFIG.PANCREAS_POS;
     const size = CONFIG.PANCREAS_SIZE;
-    ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.15})`;
+    const x = pos.x - size.w / 2 - 8;
+    const y = pos.y - size.h / 2 - 8;
+    const w = size.w + 16;
+    const h = size.h + 16;
+    ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.35})`;
     ctx.strokeStyle = `rgba(241, 196, 15, ${pulse})`;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.roundRect(pos.x - size.w / 2 - 4, pos.y - size.h / 2 - 4, size.w + 8, size.h + 8, 10);
+    ctx.roundRect(x, y, w, h, 12);
     ctx.fill();
     ctx.stroke();
+    _drawHighlightLabel(pos.x, pos.y - size.h / 2 - 16,
+      'Beta Cells (Insulin)', 'Releases insulin to convert free glucose', pulse);
   }
 
   if (hovered === 'kidneyVortex' || hovered === 'dapagliflozin') {
-    // Kidneys pulse with fill glow
     const pos = CONFIG.KIDNEYS_POS;
     const r = CONFIG.KIDNEYS_RADIUS;
-    ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.15})`;
+    ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.35})`;
     ctx.strokeStyle = `rgba(241, 196, 15, ${pulse})`;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r + 6, 0, Math.PI * 2);
+    ctx.arc(pos.x, pos.y, r + 10, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+    _drawHighlightLabel(pos.x, pos.y - r - 18,
+      'Nephrons (Filtration)',
+      hovered === 'dapagliflozin' ? 'SGLT2 inhibitor blocks glucose reabsorption' : 'Increases glomerular filtration rate',
+      pulse);
   }
 
   if (hovered === 'walk' || hovered === 'exercise' || hovered === 'physicalActivity') {
-    // Muscle zone (mines) pulse with fill glow
     const zone = CONFIG.MUSCLE_ZONE;
-    ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.08})`;
-    ctx.strokeStyle = `rgba(241, 196, 15, ${pulse * 0.7})`;
-    ctx.lineWidth = 3;
+    ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.25})`;
+    ctx.strokeStyle = `rgba(241, 196, 15, ${pulse})`;
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.roundRect(zone.x1 - 5, zone.y1 - 5, zone.x2 - zone.x1 + 10, zone.y2 - zone.y1 + 10, 8);
+    ctx.roundRect(zone.x1 - 8, zone.y1 - 8, zone.x2 - zone.x1 + 16, zone.y2 - zone.y1 + 16, 10);
     ctx.fill();
     ctx.stroke();
+    _drawHighlightLabel((zone.x1 + zone.x2) / 2, zone.y1 - 16,
+      'Myocytes (GLUT4)', 'Muscle cells absorb glucose via GLUT4 translocation', pulse);
   }
 
   if (hovered === 'semaglutide') {
-    // Road zone pulse
     const roadY = CONFIG.ROAD_Y_CENTER;
     const xMin = CONFIG.SEMAGLUTIDE_MINE_X_MIN;
     const xMax = CONFIG.SEMAGLUTIDE_MINE_X_MAX;
     const ySpread = CONFIG.SEMAGLUTIDE_MINE_Y_SPREAD;
-    ctx.fillStyle = `rgba(230, 126, 34, ${pulse * 0.1})`;
-    ctx.strokeStyle = `rgba(230, 126, 34, ${pulse * 0.7})`;
-    ctx.lineWidth = 2;
+    ctx.fillStyle = `rgba(230, 126, 34, ${pulse * 0.25})`;
+    ctx.strokeStyle = `rgba(230, 126, 34, ${pulse})`;
+    ctx.lineWidth = 3;
     ctx.setLineDash([6, 4]);
     ctx.beginPath();
-    ctx.roundRect(xMin - 5, roadY - ySpread - 5, xMax - xMin + 10, ySpread * 2 + 10, 6);
+    ctx.roundRect(xMin - 8, roadY - ySpread - 8, xMax - xMin + 16, ySpread * 2 + 16, 8);
     ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]);
+    _drawHighlightLabel((xMin + xMax) / 2, roadY - ySpread - 16,
+      'GI Tract (GLP-1)', 'Slows gastric emptying, reduces appetite', pulse);
   }
+}
+
+function _drawHighlightLabel(x, y, title, desc, pulse) {
+  ctx.save();
+  ctx.textAlign = 'center';
+
+  // Title
+  ctx.font = 'bold 13px Arial';
+  ctx.fillStyle = `rgba(241, 196, 15, ${pulse})`;
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.lineWidth = 3;
+  ctx.strokeText(title, x, y);
+  ctx.fillText(title, x, y);
+
+  // Description
+  ctx.font = '11px Arial';
+  ctx.fillStyle = `rgba(255, 255, 255, ${pulse * 0.9})`;
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.lineWidth = 3;
+  ctx.strokeText(desc, x, y + 15);
+  ctx.fillText(desc, x, y + 15);
+
+  ctx.restore();
 }
 
 // Training visual feedback (exercise active)

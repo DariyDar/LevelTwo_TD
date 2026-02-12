@@ -135,6 +135,12 @@ const BALANCE_PARAMS = [
     desc: 'ATP spent for intense exercise (doubles worker output)',
     min: 0, max: 100, step: 5,
   },
+  {
+    key: 'PRIEST_WAIT_TIMEOUT',
+    label: 'Glucose Aggro Timer',
+    desc: 'Base seconds before free glucose becomes hostile (\u00B150% random)',
+    min: 5, max: 60, step: 1,
+  },
 ];
 
 // Store defaults once on load

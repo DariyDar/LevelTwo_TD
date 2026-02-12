@@ -396,6 +396,6 @@ export function getInterventionStatus() {
     });
   }
 
-  // Core actions first, then level interventions
-  return [...coreActions, ...filtered];
+  // Level interventions (medications) first, then core actions
+  return [...filtered, ...coreActions];
 }

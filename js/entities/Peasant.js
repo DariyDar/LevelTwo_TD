@@ -43,6 +43,7 @@ export class Peasant {
 
     // Timers
     this.waitTimer = 0;
+    this.rebelThreshold = 0; // set when entering WAITING_FOR_PRIEST
 
     // Attack
     this.attackTarget = null;
@@ -109,13 +110,15 @@ export class Peasant {
         // Arrived at village square
         this.state = PeasantState.WAITING_FOR_PRIEST;
         this.waitTimer = 0;
+        this.rebelThreshold = CONFIG.PRIEST_WAIT_TIMEOUT * (0.5 + Math.random());
       }
     }
   }
 
   _updateWaiting(dt) {
     this.waitTimer += dt;
-    if (this.waitTimer >= CONFIG.PRIEST_WAIT_TIMEOUT) {
+    const threshold = this.rebelThreshold || CONFIG.PRIEST_WAIT_TIMEOUT;
+    if (this.waitTimer >= threshold) {
       this.becomeRebel();
       return;
     }
