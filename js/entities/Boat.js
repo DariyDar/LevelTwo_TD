@@ -43,9 +43,8 @@ export class Boat {
   }
 
   _getSpeedCategory(speedKey) {
-    if (speedKey === 'very_fast' || speedKey === 'fast') return 'fast';
     if (speedKey === 'slow') return 'slow';
-    return 'medium';
+    return 'fast';
   }
 
   _getBoatSize(count) {

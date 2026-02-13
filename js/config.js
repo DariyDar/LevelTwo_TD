@@ -96,12 +96,12 @@ export const CONFIG = {
   PRIEST_WAIT_TIMEOUT: 24,
 
   // Resistance by degradation level (0-4)
-  RESISTANCE_BY_DEGRADATION: [0.80, 0.55, 0.40, 0.30, 0.20],
+  RESISTANCE_BY_DEGRADATION: [0.95, 0.55, 0.40, 0.30, 0.20],
 
   // Pancreas (insulin — consumed on successful merge with glucose)
   PANCREAS_HP: 600,
   PANCREAS_AUTO_SPAWN_INTERVAL: [1.5, 2, 3, 5, 10],
-  PANCREAS_MAX_PRIESTS: [25, 20, 12, 6, 3],
+  PANCREAS_MAX_PRIESTS: [35, 20, 12, 6, 3],
   PANCREAS_BONUS_COST: 20,
   PANCREAS_BONUS_COUNT: 8,
 

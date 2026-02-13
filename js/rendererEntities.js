@@ -87,15 +87,11 @@ function drawPeasant(p) {
       ctx.fill();
       ctx.strokeStyle = C.PURPLE_DARK;
     } else if (p.color === 'red') {
-      // Speed-based coloring: fast=orange, medium=red, slow=dark red
-      if (p.speedCategory === 'fast') {
+      // Speed-based coloring: fast=red (dangerous), slow=orange (safe)
+      if (p.speedCategory === 'slow') {
         ctx.fillStyle = C.ORANGE;
         ctx.fill();
         ctx.strokeStyle = '#D68910';
-      } else if (p.speedCategory === 'slow') {
-        ctx.fillStyle = '#A93226';
-        ctx.fill();
-        ctx.strokeStyle = '#7B241C';
       } else {
         ctx.fillStyle = C.RED;
         ctx.fill();

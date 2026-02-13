@@ -22,7 +22,7 @@ export class Peasant {
     this.speed = speed;
     this.state = PeasantState.WALKING_TO_VILLAGE;
     this.color = 'red';
-    this.speedCategory = 'medium'; // 'fast', 'medium', 'slow' — visual hint
+    this.speedCategory = 'fast'; // 'fast' (red) or 'slow' (orange)
     this.alive = true;
 
     // Rebel stats
