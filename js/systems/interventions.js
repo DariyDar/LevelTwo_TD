@@ -6,6 +6,7 @@ import { Priest } from '../entities/Priest.js';
 import { PeasantState } from '../entities/Peasant.js';
 import { spendEnergy } from './energySystem.js';
 import { findLeastFilledMine } from '../buildings/Mine.js';
+import { recordEvent } from './bgHistory.js';
 
 export function updateInterventions(dt) {
   const iv = gameState.interventions;
@@ -88,12 +89,23 @@ function updateSemaglutideMines(dt) {
 
 // Spawn Bonus Priests — extra insulin burst (dose = number of units)
 // Pancreas secretion is autonomous — no ATP cost to the player
+// Type 1 patients: limited insulin charges (injections)
 export function activateSpawnPriest(dose = CONFIG.PANCREAS_BONUS_COUNT) {
   const cd = gameState.manualCooldowns;
   if (cd.priest > 0) return false;
 
+  // Validate insulin charges available (don't spend yet)
+  if (gameState._insulinCharges != null) {
+    if (gameState._insulinCharges <= 0) return false;
+  }
+
   if (!gameState.pancreas) return false;
   if (!gameState.pancreas.spawnBonusPriests(dose)) return false;
+
+  // Spend charge only after successful spawn
+  if (gameState._insulinCharges != null) {
+    gameState._insulinCharges--;
+  }
 
   cd.priest = CONFIG.MANUAL_PRIEST_COOLDOWN;
   return true;
@@ -149,6 +161,7 @@ export function activateWalk() {
   if (!spendEnergy(CONFIG.WALK_COST)) return false;
 
   iv.cooldown = CONFIG.WALK_COOLDOWN;
+  recordEvent('intervention', '\u{1F6B6} Walk');
 
   // Collect convertible glucose: waiting, rebels, walking
   const targets = gameState.peasants.filter(
@@ -213,6 +226,7 @@ export function activateExercise() {
   iv.active = true;
   iv.timer = CONFIG.EXERCISE_DURATION;
   iv.cooldown = CONFIG.EXERCISE_COOLDOWN;
+  recordEvent('intervention', '\u{1F3CB} Exercise');
 
   return true;
 }
@@ -223,6 +237,7 @@ export function activateSemaglutide() {
   if (iv.charges <= 0) return false;
 
   iv.charges--;
+  recordEvent('intervention', '\u{1F48A} Semaglutide');
 
   const roadY = CONFIG.ROAD_Y_CENTER;
   const xMin = CONFIG.SEMAGLUTIDE_MINE_X_MIN;
@@ -257,6 +272,7 @@ export function activateDapagliflozin() {
   if (!filterable) return false;
 
   iv.charges--;
+  recordEvent('intervention', '\u{1F9EA} SGLT2');
 
   if (gameState.kidneys) {
     gameState.kidneys.castVortex([], true);
@@ -273,6 +289,7 @@ export function activateMetformin() {
   iv.charges--;
   iv.active = true;
   iv.timer = CONFIG.METFORMIN_DURATION;
+  recordEvent('intervention', '\u{1F48A} Metformin');
 
   return true;
 }
@@ -321,11 +338,11 @@ export function getInterventionStatus() {
       name: 'Insulin',
       emoji: '\u{1F489}',
       cost: 0,
-      charges: null,
+      charges: gameState._insulinCharges,
       cooldown: Math.max(0, cd.priest),
       maxCooldown: CONFIG.MANUAL_PRIEST_COOLDOWN,
       active: false,
-      hasCharges: false,
+      hasCharges: gameState._insulinCharges != null,
       isCoreAction: true,
       activate: () => {}, // handled by sub-menu in bottomBar
     },

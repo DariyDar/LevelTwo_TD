@@ -23,7 +23,9 @@ export class LiverTower {
   }
 
   get maxStorage() {
-    return CONFIG.LIVER_STORAGE[Math.min(gameState.degradation, 5)];
+    const base = CONFIG.LIVER_STORAGE[Math.min(gameState.degradation, 5)];
+    const mult = gameState._liverStorageMultiplier ?? 1.0;
+    return Math.round(base * mult);
   }
 
   update(dt) {
@@ -76,8 +78,7 @@ export class LiverTower {
     const activeKnights = gameState.knights.filter(k => k.alive).length;
     if (activeKnights >= CONFIG.LIVER_MAX_KNIGHTS) return;
 
-    const maxStorage = CONFIG.LIVER_STORAGE[Math.min(gameState.degradation, 5)];
-    if (this.storage >= maxStorage * CONFIG.LIVER_OVERFLOW_THRESHOLD) return;
+    if (this.storage >= this.maxStorage * CONFIG.LIVER_OVERFLOW_THRESHOLD) return;
 
     const pos = CONFIG.KNIGHT_POSITIONS[activeKnights % CONFIG.KNIGHT_POSITIONS.length];
     const knight = new Knight(pos.x, pos.y);

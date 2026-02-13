@@ -1,149 +1,45 @@
-// GlucoDefense — Balance Settings Panel (adjustable gameplay variables)
+// GlucoDefense — Balance Settings Panel (tabbed: Global, Patient tabs, Day tabs)
 
 import { CONFIG } from '../config.js';
+import { PATIENTS } from '../patients/index.js';
+import { LEVELS } from '../levels/index.js';
+import {
+  PATIENT_PARAMS, getPatientParamValue, setPatientParamValue,
+  getPatientDefault, savePatientBalance, resetPatientBalance, copyPatientBalance,
+  initPatientBalances,
+} from './balancePanelPatient.js';
+import {
+  DAY_PARAMS, getDayParamValue, setDayParamValue,
+  getDayDefault, saveDayBalance, resetDayBalance, copyDayBalance,
+  initDayBalances,
+} from './balancePanelDay.js';
 
 const STORAGE_KEY = 'glucodefense_balance';
 
-// Define all adjustable parameters with medical names
+// Global params (CONFIG-level)
 const BALANCE_PARAMS = [
-  {
-    key: 'STARTING_WORKERS',
-    label: 'Starting Glycogen Pool',
-    desc: 'Initial glucose stored in muscle cells',
-    min: 10, max: 200, step: 5,
-  },
-  {
-    key: 'ENERGY_START',
-    label: 'Starting ATP',
-    desc: 'Initial energy reserves',
-    min: 50, max: 500, step: 10,
-  },
-  {
-    key: 'ENERGY_BASAL_DRAIN',
-    label: 'Basal Metabolic Rate',
-    desc: 'Resting energy consumption per second',
-    min: 4, max: 30, step: 1,
-  },
-  {
-    key: 'WORKER_LIFETIME',
-    label: 'Cellular Glucose Uptake Duration',
-    desc: 'Seconds before a muscle cell consumes its glucose',
-    min: 3, max: 60, step: 1,
-  },
-  {
-    key: 'MINE_ENERGY_PER_WORKER',
-    label: 'ATP per Glycolysis',
-    desc: 'Energy produced per active muscle cell per second',
-    min: 0.1, max: 1.0, step: 0.05,
-  },
-  {
-    key: 'KNIGHT_SPEED',
-    label: 'GLUT Transporter Speed',
-    desc: 'Movement speed of liver GLUT2 transporters (px/s)',
-    min: 10, max: 150, step: 5,
-  },
-  {
-    key: 'LIVER_MAX_KNIGHTS',
-    label: 'Max GLUT Transporters',
-    desc: 'Maximum number of liver GLUT2 transporters',
-    min: 3, max: 30, step: 1,
-  },
-  {
-    key: 'LIVER_AUTO_SPAWN_INTERVAL',
-    label: 'GLUT Transporter Synthesis Rate',
-    desc: 'Seconds between auto-spawning new transporters',
-    min: 1, max: 15, step: 0.5,
-  },
-  {
-    key: 'LIVER_BONUS_KNIGHT_COUNT',
-    label: 'Metformin GLUT Boost Count',
-    desc: 'Extra transporters spawned by Metformin activation',
-    min: 1, max: 20, step: 1,
-  },
-  {
-    key: 'KNIGHT_INTERCEPT_CHANCE',
-    label: 'GLUT Intercept Probability',
-    desc: 'Chance a transporter successfully captures glucose',
-    min: 0.1, max: 1.0, step: 0.05,
-  },
-  {
-    key: 'PANCREAS_AUTO_SPAWN_INTERVAL_0',
-    label: 'Insulin Secretion Rate (IR 0)',
-    desc: 'Seconds between insulin auto-release at degradation 0',
-    min: 0.5, max: 10, step: 0.25,
-    configPath: ['PANCREAS_AUTO_SPAWN_INTERVAL', 0],
-  },
-  {
-    key: 'PANCREAS_MAX_PRIESTS_0',
-    label: 'Max Insulin Units (IR 0)',
-    desc: 'Maximum circulating insulin at degradation 0',
-    min: 3, max: 50, step: 1,
-    configPath: ['PANCREAS_MAX_PRIESTS', 0],
-  },
-  {
-    key: 'RESISTANCE_0',
-    label: 'Insulin Sensitivity (IR 0)',
-    desc: 'Probability of successful glucose uptake at degradation 0',
-    min: 0.1, max: 1.0, step: 0.05,
-    configPath: ['RESISTANCE_BY_DEGRADATION', 0],
-  },
-  {
-    key: 'REBEL_HP',
-    label: 'Free Glucose HP',
-    desc: 'Health of unconverted glucose (rebel durability)',
-    min: 20, max: 200, step: 10,
-  },
-  {
-    key: 'REBEL_HP_DECAY',
-    label: 'Free Glucose Decay Rate',
-    desc: 'HP lost per second by unconverted glucose',
-    min: 0.2, max: 5.0, step: 0.2,
-  },
-  {
-    key: 'REBEL_BUILDING_DPS',
-    label: 'Hyperglycemia Organ Damage',
-    desc: 'Damage per second dealt by free glucose to organs',
-    min: 1, max: 20, step: 1,
-  },
-  {
-    key: 'REBELS_ATTACK_MINES',
-    label: 'Organ Damage Threshold',
-    desc: 'Free glucose count needed to start attacking organs',
-    min: 5, max: 50, step: 5,
-  },
-  {
-    key: 'DAY_SPEED',
-    label: 'Day Speed',
-    desc: 'Virtual minutes per real second (higher = faster day)',
-    min: 1, max: 10, step: 0.5,
-  },
-  {
-    key: 'LIVER_RELEASE_THRESHOLD_BG',
-    label: 'Liver Auto-Release BG',
-    desc: 'BG below this triggers hepatic glycogenolysis',
-    min: 60, max: 150, step: 5,
-  },
-  {
-    key: 'WALK_COST',
-    label: 'Walk Energy Cost',
-    desc: 'ATP spent for light walk (non-insulin glucose uptake)',
-    min: 0, max: 50, step: 5,
-  },
-  {
-    key: 'EXERCISE_COST',
-    label: 'Training Energy Cost',
-    desc: 'ATP spent for intense exercise (doubles worker output)',
-    min: 0, max: 100, step: 5,
-  },
-  {
-    key: 'PRIEST_WAIT_TIMEOUT',
-    label: 'Glucose Aggro Timer',
-    desc: 'Base seconds before free glucose becomes hostile (\u00B150% random)',
-    min: 5, max: 60, step: 1,
-  },
+  { key: 'STARTING_WORKERS', label: 'Starting Glycogen Pool', desc: 'Initial glucose stored in muscle cells', min: 10, max: 200, step: 5 },
+  { key: 'ENERGY_START', label: 'Starting ATP', desc: 'Initial energy reserves', min: 50, max: 500, step: 10 },
+  { key: 'ENERGY_BASAL_DRAIN', label: 'Basal Metabolic Rate', desc: 'Resting energy consumption per second', min: 4, max: 30, step: 1 },
+  { key: 'WORKER_LIFETIME', label: 'Cellular Glucose Uptake Duration', desc: 'Seconds before a muscle cell consumes its glucose', min: 3, max: 60, step: 1 },
+  { key: 'MINE_ENERGY_PER_WORKER', label: 'ATP per Glycolysis', desc: 'Energy produced per active muscle cell per second', min: 0.1, max: 1.0, step: 0.05 },
+  { key: 'KNIGHT_SPEED', label: 'GLUT Transporter Speed', desc: 'Movement speed of liver GLUT2 transporters (px/s)', min: 10, max: 150, step: 5 },
+  { key: 'LIVER_MAX_KNIGHTS', label: 'Max GLUT Transporters', desc: 'Maximum number of liver GLUT2 transporters', min: 3, max: 30, step: 1 },
+  { key: 'LIVER_AUTO_SPAWN_INTERVAL', label: 'GLUT Synthesis Rate', desc: 'Seconds between auto-spawning new transporters', min: 1, max: 15, step: 0.5 },
+  { key: 'LIVER_BONUS_KNIGHT_COUNT', label: 'Metformin GLUT Boost', desc: 'Extra transporters spawned by Metformin', min: 1, max: 20, step: 1 },
+  { key: 'KNIGHT_INTERCEPT_CHANCE', label: 'GLUT Intercept Probability', desc: 'Chance a transporter successfully captures glucose', min: 0.1, max: 1.0, step: 0.05 },
+  { key: 'PANCREAS_AUTO_SPAWN_INTERVAL_0', label: 'Insulin Secretion Rate (IR 0)', desc: 'Seconds between insulin auto-release at IR 0', min: 0.5, max: 10, step: 0.25, configPath: ['PANCREAS_AUTO_SPAWN_INTERVAL', 0] },
+  { key: 'PANCREAS_MAX_PRIESTS_0', label: 'Max Insulin Units (IR 0)', desc: 'Maximum circulating insulin at IR 0', min: 3, max: 50, step: 1, configPath: ['PANCREAS_MAX_PRIESTS', 0] },
+  { key: 'RESISTANCE_0', label: 'Insulin Sensitivity (IR 0)', desc: 'Probability of successful glucose uptake at IR 0', min: 0.1, max: 1.0, step: 0.05, configPath: ['RESISTANCE_BY_DEGRADATION', 0] },
+  { key: 'REBEL_HP', label: 'Free Glucose HP', desc: 'Health of unconverted glucose', min: 20, max: 200, step: 10 },
+  { key: 'REBEL_BUILDING_DPS', label: 'Hyperglycemia Organ Damage', desc: 'DPS dealt by free glucose to organs', min: 1, max: 20, step: 1 },
+  { key: 'DAY_SPEED', label: 'Day Speed', desc: 'Virtual minutes per real second', min: 1, max: 10, step: 0.5 },
+  { key: 'WALK_COST', label: 'Walk Energy Cost', desc: 'ATP spent for light walk', min: 0, max: 50, step: 5 },
+  { key: 'EXERCISE_COST', label: 'Training Energy Cost', desc: 'ATP spent for exercise', min: 0, max: 100, step: 5 },
+  { key: 'PRIEST_WAIT_TIMEOUT', label: 'Glucose Aggro Timer', desc: 'Seconds before free glucose becomes hostile', min: 5, max: 60, step: 1 },
 ];
 
-// Store defaults once on load
+// Store global defaults
 const DEFAULTS = {};
 function captureDefaults() {
   for (const param of BALANCE_PARAMS) {
@@ -156,7 +52,7 @@ function captureDefaults() {
   }
 }
 
-function getValue(param) {
+function getGlobalValue(param) {
   if (param.configPath) {
     const [arr, idx] = param.configPath;
     return CONFIG[arr][idx];
@@ -164,7 +60,7 @@ function getValue(param) {
   return CONFIG[param.key];
 }
 
-function setValue(param, val) {
+function setGlobalValue(param, val) {
   if (param.configPath) {
     const [arr, idx] = param.configPath;
     CONFIG[arr][idx] = val;
@@ -173,54 +69,144 @@ function setValue(param, val) {
   }
 }
 
-// Persistence
-function saveBalance() {
+function saveGlobalBalance() {
   const data = {};
   for (const param of BALANCE_PARAMS) {
-    data[param.key] = getValue(param);
+    data[param.key] = getGlobalValue(param);
   }
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (_) { /* ignore */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (_) { /* ignore */ }
 }
 
-function loadBalance() {
+function loadGlobalBalance() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const data = JSON.parse(raw);
     for (const param of BALANCE_PARAMS) {
       const val = data[param.key];
-      if (typeof val === 'number' && !isNaN(val) &&
-          val >= param.min && val <= param.max) {
-        setValue(param, val);
+      if (typeof val === 'number' && !isNaN(val) && val >= param.min && val <= param.max) {
+        setGlobalValue(param, val);
       }
     }
   } catch (_) { /* ignore */ }
 }
 
-function resetToDefaults() {
+function resetGlobalBalance() {
   for (const param of BALANCE_PARAMS) {
-    setValue(param, DEFAULTS[param.key]);
+    setGlobalValue(param, DEFAULTS[param.key]);
   }
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (_) { /* ignore */ }
+  try { localStorage.removeItem(STORAGE_KEY); } catch (_) { /* ignore */ }
 }
 
-function copyBalance() {
+function copyGlobalBalance() {
   const lines = BALANCE_PARAMS.map(param => {
-    const val = getValue(param);
-    const def = DEFAULTS[param.key];
-    const marker = val !== def ? ' *' : '';
-    return `${param.label}: ${param.step < 1 ? val.toFixed(2) : val}${marker}`;
+    const val = getGlobalValue(param);
+    return `${param.label}: ${param.step < 1 ? val.toFixed(2) : val}`;
   });
-  const text = 'GlucoDefense Balance:\n' + lines.join('\n');
+  return 'GlucoDefense Balance \u2014 Global:\n' + lines.join('\n');
+}
+
+// --- Tab system ---
+
+// Tab IDs: 'global', 'patient_healthy', 'patient_type1', ..., 'day_1', 'day_2', ...
+const TABS = [
+  { id: 'global', label: 'Global' },
+  ...PATIENTS.map(p => ({ id: `patient_${p.id}`, label: p.emoji + ' ' + p.name.split(' ')[0] })),
+  ...LEVELS.map((l, i) => ({ id: `day_${l.id}`, label: `Day ${l.id}` })),
+];
+
+let currentTab = 'global';
+
+function getActiveParams() {
+  if (currentTab === 'global') return BALANCE_PARAMS;
+  if (currentTab.startsWith('patient_')) return PATIENT_PARAMS;
+  if (currentTab.startsWith('day_')) return DAY_PARAMS;
+  return [];
+}
+
+function getActiveParamValue(param) {
+  if (currentTab === 'global') return getGlobalValue(param);
+  if (currentTab.startsWith('patient_')) {
+    const patientId = currentTab.replace('patient_', '');
+    return getPatientParamValue(patientId, param.key);
+  }
+  if (currentTab.startsWith('day_')) {
+    const dayId = parseInt(currentTab.replace('day_', ''));
+    return getDayParamValue(dayId, param.key);
+  }
+  return 0;
+}
+
+function setActiveParamValue(param, val) {
+  if (currentTab === 'global') { setGlobalValue(param, val); return; }
+  if (currentTab.startsWith('patient_')) {
+    const patientId = currentTab.replace('patient_', '');
+    setPatientParamValue(patientId, param.key, val);
+    return;
+  }
+  if (currentTab.startsWith('day_')) {
+    const dayId = parseInt(currentTab.replace('day_', ''));
+    setDayParamValue(dayId, param.key, val);
+    return;
+  }
+}
+
+function getActiveDefault(param) {
+  if (currentTab === 'global') return DEFAULTS[param.key];
+  if (currentTab.startsWith('patient_')) {
+    const patientId = currentTab.replace('patient_', '');
+    return getPatientDefault(patientId, param.key);
+  }
+  if (currentTab.startsWith('day_')) {
+    const dayId = parseInt(currentTab.replace('day_', ''));
+    return getDayDefault(dayId, param.key);
+  }
+  return 0;
+}
+
+function saveActiveBalance() {
+  if (currentTab === 'global') { saveGlobalBalance(); return; }
+  if (currentTab.startsWith('patient_')) {
+    const patientId = currentTab.replace('patient_', '');
+    savePatientBalance(patientId);
+    return;
+  }
+  if (currentTab.startsWith('day_')) {
+    const dayId = parseInt(currentTab.replace('day_', ''));
+    saveDayBalance(dayId);
+    return;
+  }
+}
+
+function resetActiveBalance() {
+  if (currentTab === 'global') { resetGlobalBalance(); return; }
+  if (currentTab.startsWith('patient_')) {
+    const patientId = currentTab.replace('patient_', '');
+    resetPatientBalance(patientId);
+    return;
+  }
+  if (currentTab.startsWith('day_')) {
+    const dayId = parseInt(currentTab.replace('day_', ''));
+    resetDayBalance(dayId);
+    return;
+  }
+}
+
+function copyActiveBalance() {
+  let text = '';
+  if (currentTab === 'global') text = copyGlobalBalance();
+  else if (currentTab.startsWith('patient_')) {
+    const patientId = currentTab.replace('patient_', '');
+    text = copyPatientBalance(patientId);
+  } else if (currentTab.startsWith('day_')) {
+    const dayId = parseInt(currentTab.replace('day_', ''));
+    text = copyDayBalance(dayId);
+  }
   navigator.clipboard.writeText(text).catch(() => {});
   copyFlashTimer = 1.5;
 }
 
-// --- UI rendering and interaction ---
+// --- UI rendering ---
 
 let ctx = null;
 let canvas = null;
@@ -228,19 +214,20 @@ let visible = false;
 let scrollY = 0;
 let draggingSlider = null;
 let sliderRects = [];
+let tabRects = [];
 
-const PANEL_X = 140;
-const PANEL_Y = 40;
-const PANEL_W = 1000;
-const PANEL_H = 640;
+const PANEL_X = 100;
+const PANEL_Y = 20;
+const PANEL_W = 1080;
+const PANEL_H = 680;
+const TAB_H = 30;
 const ROW_H = 48;
 const SLIDER_W = 280;
 const SLIDER_H = 8;
 const HEADER_H = 60;
 const FOOTER_H = 50;
-const CONTENT_H = PANEL_H - HEADER_H - FOOTER_H;
+const CONTENT_H = PANEL_H - HEADER_H - TAB_H - FOOTER_H;
 
-// Buttons
 let resetBtnRect = { x: 0, y: 0, w: 0, h: 0 };
 let copyBtnRect = { x: 0, y: 0, w: 0, h: 0 };
 let closeBtnRect = { x: 0, y: 0, w: 0, h: 0 };
@@ -250,7 +237,9 @@ export function initBalancePanel(canvasEl, context) {
   canvas = canvasEl;
   ctx = context;
   captureDefaults();
-  loadBalance();
+  loadGlobalBalance();
+  initPatientBalances();
+  initDayBalances();
 
   canvas.addEventListener('mousedown', handleMouseDown);
   canvas.addEventListener('mousemove', handleMouseMove);
@@ -258,9 +247,7 @@ export function initBalancePanel(canvasEl, context) {
   canvas.addEventListener('wheel', handleWheel, { passive: false });
 }
 
-export function isBalancePanelVisible() {
-  return visible;
-}
+export function isBalancePanelVisible() { return visible; }
 
 export function showBalancePanel() {
   visible = true;
@@ -271,7 +258,7 @@ export function showBalancePanel() {
 export function hideBalancePanel() {
   visible = false;
   draggingSlider = null;
-  saveBalance();
+  saveActiveBalance();
 }
 
 export function renderBalancePanel() {
@@ -295,13 +282,12 @@ export function renderBalancePanel() {
   // Header
   ctx.fillStyle = '#2C3E50';
   ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, HEADER_H);
-
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 22px Arial';
   ctx.textAlign = 'center';
   ctx.fillText('Balance Settings', PANEL_X + PANEL_W / 2, PANEL_Y + 38);
 
-  // Close button (top-right)
+  // Close button
   closeBtnRect = { x: PANEL_X + PANEL_W - 50, y: PANEL_Y + 10, w: 36, h: 36 };
   ctx.fillStyle = '#4A6274';
   ctx.beginPath();
@@ -312,21 +298,25 @@ export function renderBalancePanel() {
   ctx.textAlign = 'center';
   ctx.fillText('\u2715', closeBtnRect.x + closeBtnRect.w / 2, closeBtnRect.y + 26);
 
+  // Tabs
+  drawTabs(C);
+
   // Content area with clipping
+  const contentY = PANEL_Y + HEADER_H + TAB_H;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(PANEL_X, PANEL_Y + HEADER_H, PANEL_W, CONTENT_H);
+  ctx.rect(PANEL_X, contentY, PANEL_W, CONTENT_H);
   ctx.clip();
 
+  const params = getActiveParams();
   sliderRects = [];
-  const contentStartY = PANEL_Y + HEADER_H + 10 - scrollY;
+  const contentStartY = contentY + 10 - scrollY;
 
-  for (let i = 0; i < BALANCE_PARAMS.length; i++) {
-    const param = BALANCE_PARAMS[i];
+  for (let i = 0; i < params.length; i++) {
+    const param = params[i];
     const rowY = contentStartY + i * ROW_H;
 
-    // Skip if outside visible area
-    if (rowY + ROW_H < PANEL_Y + HEADER_H || rowY > PANEL_Y + HEADER_H + CONTENT_H) {
+    if (rowY + ROW_H < contentY || rowY > contentY + CONTENT_H) {
       sliderRects.push(null);
       continue;
     }
@@ -343,25 +333,26 @@ export function renderBalancePanel() {
     ctx.textAlign = 'left';
     ctx.fillText(param.label, PANEL_X + 20, rowY + 18);
 
-    // Description
-    ctx.fillStyle = '#7F8C8D';
-    ctx.font = '10px Arial';
-    ctx.fillText(param.desc, PANEL_X + 20, rowY + 34);
+    // Description (only for global params)
+    if (param.desc) {
+      ctx.fillStyle = '#7F8C8D';
+      ctx.font = '10px Arial';
+      ctx.fillText(param.desc, PANEL_X + 20, rowY + 34);
+    }
 
-    // Slider track
+    // Slider
     const sliderX = PANEL_X + PANEL_W - SLIDER_W - 100;
     const sliderCenterY = rowY + ROW_H / 2;
 
     ctx.fillStyle = '#4A6274';
     ctx.fillRect(sliderX, sliderCenterY - SLIDER_H / 2, SLIDER_W, SLIDER_H);
 
-    // Slider fill
-    const currentVal = getValue(param);
+    const currentVal = getActiveParamValue(param);
     const pct = (currentVal - param.min) / (param.max - param.min);
     ctx.fillStyle = '#F1C40F';
     ctx.fillRect(sliderX, sliderCenterY - SLIDER_H / 2, SLIDER_W * pct, SLIDER_H);
 
-    // Slider thumb
+    // Thumb
     const thumbX = sliderX + SLIDER_W * pct;
     ctx.beginPath();
     ctx.arc(thumbX, sliderCenterY, 8, 0, Math.PI * 2);
@@ -373,7 +364,8 @@ export function renderBalancePanel() {
 
     // Value display
     const displayVal = param.step < 1 ? currentVal.toFixed(2) : String(currentVal);
-    const isDefault = currentVal === DEFAULTS[param.key];
+    const defaultVal = getActiveDefault(param);
+    const isDefault = currentVal === defaultVal;
     ctx.fillStyle = isDefault ? C.WHITE : '#F1C40F';
     ctx.font = 'bold 13px Arial';
     ctx.textAlign = 'center';
@@ -393,7 +385,6 @@ export function renderBalancePanel() {
   ctx.fillStyle = '#2C3E50';
   ctx.fillRect(PANEL_X, footerY, PANEL_W, FOOTER_H);
 
-  // Reset to Defaults button (left side of footer)
   resetBtnRect = { x: PANEL_X + PANEL_W / 2 - 200, y: footerY + 10, w: 180, h: 30 };
   ctx.fillStyle = '#7D3C98';
   ctx.beginPath();
@@ -404,7 +395,6 @@ export function renderBalancePanel() {
   ctx.textAlign = 'center';
   ctx.fillText('Reset to Defaults', resetBtnRect.x + resetBtnRect.w / 2, resetBtnRect.y + 20);
 
-  // Copy Settings button (right side of footer)
   copyBtnRect = { x: PANEL_X + PANEL_W / 2 + 20, y: footerY + 10, w: 180, h: 30 };
   ctx.fillStyle = copyFlashTimer > 0 ? '#27AE60' : '#2C6E8C';
   ctx.beginPath();
@@ -417,16 +407,57 @@ export function renderBalancePanel() {
   if (copyFlashTimer > 0) copyFlashTimer -= 0.016;
 
   // Scrollbar
-  const totalContentH = BALANCE_PARAMS.length * ROW_H + 20;
+  const totalContentH = params.length * ROW_H + 20;
   if (totalContentH > CONTENT_H) {
     const scrollPct = scrollY / (totalContentH - CONTENT_H);
     const scrollbarH = Math.max(30, CONTENT_H * (CONTENT_H / totalContentH));
-    const scrollbarY = PANEL_Y + HEADER_H + scrollPct * (CONTENT_H - scrollbarH);
-
+    const scrollbarY = PANEL_Y + HEADER_H + TAB_H + scrollPct * (CONTENT_H - scrollbarH);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.fillRect(PANEL_X + PANEL_W - 8, scrollbarY, 4, scrollbarH);
   }
 }
+
+function drawTabs(C) {
+  tabRects = [];
+  const tabY = PANEL_Y + HEADER_H;
+  let tx = PANEL_X + 5;
+  const tabH = TAB_H - 2;
+
+  // Background strip
+  ctx.fillStyle = '#1A2530';
+  ctx.fillRect(PANEL_X, tabY, PANEL_W, TAB_H);
+
+  for (const tab of TABS) {
+    ctx.font = '10px Arial';
+    const textW = ctx.measureText(tab.label).width;
+    const tabW = Math.max(textW + 16, 50);
+
+    const isActive = currentTab === tab.id;
+    ctx.fillStyle = isActive ? '#2C3E50' : '#1C2833';
+    ctx.beginPath();
+    ctx.roundRect(tx, tabY + 1, tabW, tabH, [4, 4, 0, 0]);
+    ctx.fill();
+
+    if (isActive) {
+      ctx.strokeStyle = '#F1C40F';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(tx, tabY + tabH);
+      ctx.lineTo(tx + tabW, tabY + tabH);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = isActive ? C.WHITE : '#7F8C8D';
+    ctx.font = isActive ? 'bold 10px Arial' : '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(tab.label, tx + tabW / 2, tabY + tabH / 2 + 4);
+
+    tabRects.push({ x: tx, y: tabY, w: tabW, h: TAB_H, id: tab.id });
+    tx += tabW + 3;
+  }
+}
+
+// --- Interaction ---
 
 function getMousePos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -446,25 +477,21 @@ function handleMouseDown(e) {
   if (!visible) return;
   const { x: mx, y: my } = getMousePos(e);
 
-  // Close button
-  if (isInsideRect(mx, my, closeBtnRect)) {
-    hideBalancePanel();
-    return;
+  if (isInsideRect(mx, my, closeBtnRect)) { hideBalancePanel(); return; }
+  if (isInsideRect(mx, my, resetBtnRect)) { resetActiveBalance(); return; }
+  if (isInsideRect(mx, my, copyBtnRect)) { copyActiveBalance(); return; }
+
+  // Tab clicks
+  for (const tr of tabRects) {
+    if (isInsideRect(mx, my, tr)) {
+      saveActiveBalance();
+      currentTab = tr.id;
+      scrollY = 0;
+      return;
+    }
   }
 
-  // Reset button
-  if (isInsideRect(mx, my, resetBtnRect)) {
-    resetToDefaults();
-    return;
-  }
-
-  // Copy button
-  if (isInsideRect(mx, my, copyBtnRect)) {
-    copyBalance();
-    return;
-  }
-
-  // Check sliders
+  // Sliders
   for (const sr of sliderRects) {
     if (!sr) continue;
     if (isInsideRect(mx, my, sr)) {
@@ -476,49 +503,46 @@ function handleMouseDown(e) {
 }
 
 function handleMouseMove(e) {
-  if (!visible) return;
-  if (draggingSlider === null) return;
-
+  if (!visible || draggingSlider === null) return;
   const { x: mx } = getMousePos(e);
   const sr = sliderRects[draggingSlider];
-  if (sr) {
-    updateSliderValue(mx, sr);
-  }
+  if (sr) updateSliderValue(mx, sr);
 }
 
 function handleMouseUp() {
   if (draggingSlider !== null) {
     draggingSlider = null;
-    saveBalance();
+    saveActiveBalance();
   }
 }
 
 function handleWheel(e) {
   if (!visible) return;
-
   const { x: mx, y: my } = getMousePos(e);
   if (mx >= PANEL_X && mx <= PANEL_X + PANEL_W &&
       my >= PANEL_Y && my <= PANEL_Y + PANEL_H) {
     e.preventDefault();
-    const totalContentH = BALANCE_PARAMS.length * ROW_H + 20;
+    const params = getActiveParams();
+    const totalContentH = params.length * ROW_H + 20;
     const maxScroll = Math.max(0, totalContentH - CONTENT_H);
     scrollY = Math.max(0, Math.min(maxScroll, scrollY + e.deltaY * 0.5));
   }
 }
 
 function updateSliderValue(mx, sr) {
-  const param = BALANCE_PARAMS[sr.paramIndex];
+  const params = getActiveParams();
+  const param = params[sr.paramIndex];
+  if (!param) return;
+
   const pct = Math.max(0, Math.min(1, (mx - sr.x) / sr.w));
   let val = param.min + pct * (param.max - param.min);
 
-  // Snap to step
   val = Math.round(val / param.step) * param.step;
   val = Math.max(param.min, Math.min(param.max, val));
 
-  // Round to avoid floating point noise
   if (param.step < 1) {
     val = parseFloat(val.toFixed(2));
   }
 
-  setValue(param, val);
+  setActiveParamValue(param, val);
 }

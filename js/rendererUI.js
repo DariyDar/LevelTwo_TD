@@ -12,6 +12,10 @@ let ctx = null;
 // Restart button rect for click detection
 export const restartButtonRect = { x: 1180, y: 8, w: 80, h: 36 };
 
+// Speed control button rects for click detection
+// Populated each frame by drawSpeedControls()
+export const speedButtonRects = [];
+
 export function initUIRenderer(context) {
   ctx = context;
 }
@@ -19,6 +23,25 @@ export function initUIRenderer(context) {
 export function renderUI() {
   drawTopBar();
   drawHypoglycemiaOverlay();
+}
+
+// Exported separately so main.js can call it AFTER all other rendering
+export function renderPausedOverlay() {
+  if (!gameState.paused) return;
+
+  // Semi-transparent overlay
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.fillRect(0, 55, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT - 55);
+
+  // "PAUSED" text
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.font = 'bold 48px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('PAUSED', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+
+  ctx.font = '16px Arial';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.fillText('Press Space to resume', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 35);
 }
 
 function drawTopBar() {
@@ -203,8 +226,26 @@ function drawTopBar() {
   ctx.font = '9px Arial';
   ctx.fillText(`Meals: ${gameState.currentWaveIndex}/${gameState.waves.length}`, 200, waveY);
 
-  // Restart button (top-right)
+  // Patient + day label
+  if (gameState.currentPatientId) {
+    ctx.font = '9px Arial';
+    ctx.fillStyle = '#7F8C8D';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Patient: ${gameState.currentPatientId} \u00B7 Day ${gameState.currentDay}`, 300, waveY);
+  }
+
+  // Insulin charges (Type 1)
+  if (gameState._insulinCharges != null) {
+    ctx.font = '9px Arial';
+    ctx.fillStyle = gameState._insulinCharges > 0 ? '#3498DB' : '#E74C3C';
+    ctx.textAlign = 'left';
+    ctx.fillText(`\u{1F489} ${gameState._insulinCharges}/${gameState._insulinChargesMax || '?'}`, 480, waveY);
+  }
+
+  // Speed controls + Restart button (top-right)
   if (gameState.phase === GamePhase.PLAYING || gameState.phase === GamePhase.BETWEEN_WAVES) {
+    drawSpeedControls(C);
+
     const btn = restartButtonRect;
     ctx.fillStyle = '#4A6274';
     ctx.strokeStyle = '#5D7A8C';
@@ -218,6 +259,237 @@ function drawTopBar() {
     ctx.font = 'bold 11px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Restart \u21BB', btn.x + btn.w / 2, btn.y + btn.h / 2 + 4);
+  }
+}
+
+const SPEED_BUTTONS = [
+  { label: '0.25x', speed: 0.25 },
+  { label: '0.5x', speed: 0.5 },
+  { label: '1x', speed: 1.0 },
+  { label: '2x', speed: 2.0 },
+];
+
+function drawSpeedControls(C) {
+  // Clear previous rects
+  speedButtonRects.length = 0;
+
+  const btnW = 36;
+  const btnH = 28;
+  const gap = 3;
+  const pauseW = 30;
+  // Position: left of Restart button
+  const totalW = SPEED_BUTTONS.length * (btnW + gap) + pauseW + gap;
+  const startX = restartButtonRect.x - totalW - 8;
+  const startY = 12;
+
+  let cx = startX;
+
+  // Speed buttons
+  for (const sb of SPEED_BUTTONS) {
+    const isActive = !gameState.paused && gameState.speedMultiplier === sb.speed;
+
+    ctx.fillStyle = isActive ? '#D4A017' : '#3A5068';
+    ctx.strokeStyle = isActive ? '#F1C40F' : '#5D7A8C';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(cx, startY, btnW, btnH, 3);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = isActive ? '#1a1a2e' : C.WHITE;
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(sb.label, cx + btnW / 2, startY + btnH / 2 + 4);
+
+    speedButtonRects.push({ x: cx, y: startY, w: btnW, h: btnH, speed: sb.speed, action: 'speed' });
+    cx += btnW + gap;
+  }
+
+  // Pause button
+  const isPaused = gameState.paused;
+  ctx.fillStyle = isPaused ? '#C0392B' : '#3A5068';
+  ctx.strokeStyle = isPaused ? '#E74C3C' : '#5D7A8C';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(cx, startY, pauseW, btnH, 3);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = C.WHITE;
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(isPaused ? '\u25B6' : '\u23F8', cx + pauseW / 2, startY + btnH / 2 + 4);
+
+  speedButtonRects.push({ x: cx, y: startY, w: pauseW, h: btnH, speed: 0, action: 'pause' });
+}
+
+// Bottom panel: BG graph (40px) + plan timeline (40px) = 80px total
+export function renderBottomPanel() {
+  if (gameState.phase !== GamePhase.PLAYING &&
+      gameState.phase !== GamePhase.BETWEEN_WAVES &&
+      gameState.phase !== GamePhase.GAME_OVER) return;
+
+  const C = CONFIG.COLORS;
+  const panelH = 80;
+  const panelY = CONFIG.CANVAS_HEIGHT - panelH;
+  const graphH = 40;
+  const timelineH = 40;
+  const margin = 50; // left margin for hour labels
+  const rightMargin = 10;
+  const graphW = CONFIG.CANVAS_WIDTH - margin - rightMargin;
+
+  // Panel background
+  ctx.fillStyle = 'rgba(30, 30, 50, 0.92)';
+  ctx.fillRect(0, panelY, CONFIG.CANVAS_WIDTH, panelH);
+
+  // Separator line
+  ctx.strokeStyle = '#3D5A6E';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, panelY);
+  ctx.lineTo(CONFIG.CANVAS_WIDTH, panelY);
+  ctx.stroke();
+
+  const startHour = CONFIG.DAY_START_HOUR;
+  const endHour = CONFIG.DAY_END_HOUR;
+  const hourRange = endHour - startHour;
+
+  // Helper: hour → X pixel
+  const hourToX = (h) => margin + ((h - startHour) / hourRange) * graphW;
+
+  // === BG GRAPH (upper 40px) ===
+  const gY = panelY;
+  const bgMin = 0;
+  const bgMax = CONFIG.BG_VERY_HIGH;
+
+  // Zone color backgrounds (horizontal bands)
+  const zones = [
+    { from: bgMax,              to: CONFIG.BG_HIGH,       color: 'rgba(231,76,60,0.15)' },
+    { from: CONFIG.BG_HIGH,     to: CONFIG.BG_ELEVATED,   color: 'rgba(230,126,34,0.12)' },
+    { from: CONFIG.BG_ELEVATED, to: CONFIG.BG_NORMAL_HIGH, color: 'rgba(241,196,15,0.10)' },
+    { from: CONFIG.BG_NORMAL_HIGH, to: CONFIG.BG_NORMAL_LOW, color: 'rgba(46,204,113,0.15)' },
+    { from: CONFIG.BG_NORMAL_LOW, to: CONFIG.BG_HYPO,     color: 'rgba(241,196,15,0.10)' },
+    { from: CONFIG.BG_HYPO,    to: bgMin,                 color: 'rgba(231,76,60,0.15)' },
+  ];
+
+  for (const zone of zones) {
+    const yTop = gY + (1 - zone.from / bgMax) * graphH;
+    const yBot = gY + (1 - zone.to / bgMax) * graphH;
+    ctx.fillStyle = zone.color;
+    ctx.fillRect(margin, yTop, graphW, yBot - yTop);
+  }
+
+  // Normal range horizontal guide lines
+  ctx.strokeStyle = 'rgba(46, 204, 113, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  const normalLowY = gY + (1 - CONFIG.BG_NORMAL_LOW / bgMax) * graphH;
+  const normalHighY = gY + (1 - CONFIG.BG_NORMAL_HIGH / bgMax) * graphH;
+  ctx.beginPath();
+  ctx.moveTo(margin, normalLowY);
+  ctx.lineTo(margin + graphW, normalLowY);
+  ctx.moveTo(margin, normalHighY);
+  ctx.lineTo(margin + graphW, normalHighY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Helper: clamp BG to valid graph range
+  const bgToY = (bg) => {
+    const clamped = Math.max(0, Math.min(bg, bgMax));
+    return gY + (1 - clamped / bgMax) * graphH;
+  };
+
+  // BG trace polyline
+  const history = gameState.bgHistory;
+  if (history.length >= 1) {
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < history.length; i++) {
+      const px = hourToX(history[i].hour);
+      const py = bgToY(history[i].bg);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    if (history.length > 1) {
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.stroke();
+    }
+  }
+
+  // Current BG dot
+  if (history.length > 0) {
+    const last = history[history.length - 1];
+    const dotX = hourToX(last.hour);
+    const dotY = bgToY(last.bg);
+    ctx.fillStyle = getBGColor(last.bg);
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // BG scale labels (left margin)
+  ctx.font = '8px Arial';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#7F8C8D';
+  ctx.fillText('400', margin - 4, gY + 8);
+  ctx.fillText('140', margin - 4, normalHighY + 3);
+  ctx.fillText('80', margin - 4, normalLowY + 3);
+
+  // === TIMELINE (lower 40px) ===
+  const tY = panelY + graphH;
+
+  // Separator between graph and timeline
+  ctx.strokeStyle = '#3D5A6E';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin, tY);
+  ctx.lineTo(margin + graphW, tY);
+  ctx.stroke();
+
+  // Hour tick marks + labels (shared X-axis)
+  ctx.font = '9px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#95A5A6';
+  for (let h = startHour; h <= endHour; h += 2) {
+    const tx = hourToX(h);
+    // Tick mark
+    ctx.strokeStyle = '#4A5568';
+    ctx.beginPath();
+    ctx.moveTo(tx, tY);
+    ctx.lineTo(tx, tY + 6);
+    ctx.stroke();
+    // Label
+    ctx.fillStyle = '#95A5A6';
+    ctx.fillText(`${h}:00`, tx, tY + 15);
+  }
+
+  // Food event markers on timeline
+  for (const evt of gameState.bgEventLog) {
+    const ex = hourToX(evt.hour);
+    if (evt.type === 'food') {
+      ctx.font = '11px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(evt.label, ex, tY + 30);
+    } else if (evt.type === 'intervention') {
+      ctx.font = '9px Arial';
+      ctx.fillStyle = '#3498DB';
+      ctx.textAlign = 'center';
+      ctx.fillText(evt.label, ex, tY + 38);
+    }
+  }
+
+  // Current time indicator (vertical gold dashed line spanning both graph + timeline)
+  const currentHour = getVirtualHour();
+  if (currentHour >= startHour && currentHour <= endHour) {
+    const nowX = hourToX(currentHour);
+    ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(nowX, panelY);
+    ctx.lineTo(nowX, panelY + panelH);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 }
 

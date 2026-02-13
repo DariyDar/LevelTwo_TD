@@ -1,8 +1,8 @@
-// GlucoDefense — Main menu UI
+// GlucoDefense — Main menu UI (patient rows × day buttons)
 
 import { CONFIG } from '../config.js';
 import { gameState, GamePhase } from '../gameState.js';
-import { LEVELS } from '../levels/index.js';
+import { PATIENTS } from '../patients/index.js';
 import {
   initBalancePanel,
   isBalancePanelVisible,
@@ -12,17 +12,38 @@ import {
 
 let ctx = null;
 let canvas = null;
-let onStartLevel = null;
-let buttonRects = [];
+let onStartDay = null;
+let dayButtonRects = [];
 let balanceBtnRect = { x: 0, y: 0, w: 0, h: 0 };
 
-// Load progress from localStorage
+// Per-patient progress: { patientId: { unlockedDay: number, stars: number[] } }
+let progress = {};
+
 function loadProgress() {
   try {
-    const saved = localStorage.getItem('glucodefense_progress');
+    const saved = localStorage.getItem('glucodefense_progress_v2');
     if (saved) {
-      const data = JSON.parse(saved);
-      gameState.unlockedLevel = data.unlockedLevel || 1;
+      progress = JSON.parse(saved);
+    }
+  } catch (_) {
+    // ignore
+  }
+  // Ensure all patients have progress entries
+  for (const patient of PATIENTS) {
+    if (!progress[patient.id]) {
+      progress[patient.id] = { unlockedDay: 1, stars: [0, 0, 0, 0, 0] };
+    }
+  }
+  // Migrate legacy progress (old single-patient system)
+  try {
+    const legacy = localStorage.getItem('glucodefense_progress');
+    if (legacy && !localStorage.getItem('glucodefense_progress_v2_migrated')) {
+      const data = JSON.parse(legacy);
+      if (data.unlockedLevel && progress.type2) {
+        progress.type2.unlockedDay = Math.max(progress.type2.unlockedDay, data.unlockedLevel);
+      }
+      localStorage.setItem('glucodefense_progress_v2_migrated', '1');
+      saveProgress();
     }
   } catch (_) {
     // ignore
@@ -31,21 +52,38 @@ function loadProgress() {
 
 export function saveProgress() {
   try {
-    localStorage.setItem('glucodefense_progress', JSON.stringify({
-      unlockedLevel: gameState.unlockedLevel,
-    }));
+    localStorage.setItem('glucodefense_progress_v2', JSON.stringify(progress));
   } catch (_) {
     // ignore
   }
 }
 
-export function initMenu(canvasEl, context, startLevelCallback) {
+export function getPatientProgress(patientId) {
+  if (!progress[patientId]) {
+    progress[patientId] = { unlockedDay: 1, stars: [0, 0, 0, 0, 0] };
+  }
+  return progress[patientId];
+}
+
+export function unlockNextDay(patientId, dayId, stars) {
+  const p = getPatientProgress(patientId);
+  // Update stars for completed day (keep best)
+  if (dayId >= 1 && dayId <= 5) {
+    p.stars[dayId - 1] = Math.max(p.stars[dayId - 1], stars);
+  }
+  // Unlock next day
+  if (dayId < 5) {
+    p.unlockedDay = Math.max(p.unlockedDay, dayId + 1);
+  }
+  saveProgress();
+}
+
+export function initMenu(canvasEl, context, startDayCallback) {
   canvas = canvasEl;
   ctx = context;
-  onStartLevel = startLevelCallback;
+  onStartDay = startDayCallback;
   loadProgress();
   initBalancePanel(canvasEl, context);
-
   canvas.addEventListener('click', handleClick);
 }
 
@@ -62,46 +100,40 @@ export function renderMenu() {
 
   // Title
   ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 48px Arial';
+  ctx.font = 'bold 42px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('GlucoDefense', W / 2, 120);
+  ctx.fillText('GlucoDefense', W / 2, 70);
 
   // Subtitle
-  ctx.font = '18px Arial';
+  ctx.font = '16px Arial';
   ctx.fillStyle = '#95A5A6';
-  ctx.fillText('A tower defense game about Type 2 Diabetes', W / 2, 155);
+  ctx.fillText('A tower defense game about glucose metabolism', W / 2, 95);
 
-  // Level buttons
-  buttonRects = [];
-  const btnW = 200;
-  const btnH = 100;
-  const btnGap = 20;
-  const totalW = LEVELS.length * btnW + (LEVELS.length - 1) * btnGap;
-  const startX = (W - totalW) / 2;
-  const btnY = 250;
+  // Patient rows
+  dayButtonRects = [];
+  const rowH = 120;
+  const startY = 130;
+  const cardX = 60;
+  const cardW = 280;
+  const dayBtnW = 110;
+  const dayBtnH = 40;
+  const dayBtnGap = 12;
+  const dayBtnStartX = cardX + cardW + 30;
 
-  for (let i = 0; i < LEVELS.length; i++) {
-    const level = LEVELS[i];
-    const x = startX + i * (btnW + btnGap);
-    const unlocked = level.id <= gameState.unlockedLevel;
+  for (let pi = 0; pi < PATIENTS.length; pi++) {
+    const patient = PATIENTS[pi];
+    const rowY = startY + pi * rowH;
+    const prog = getPatientProgress(patient.id);
 
-    drawLevelButton(level, x, btnY, btnW, btnH, unlocked);
-
-    buttonRects.push({
-      x, y: btnY, w: btnW, h: btnH,
-      levelId: level.id,
-      unlocked,
-    });
+    drawPatientCard(patient, cardX, rowY, cardW, rowH - 10);
+    drawDayButtons(patient, prog, dayBtnStartX, rowY, dayBtnW, dayBtnH, dayBtnGap);
   }
 
   // Instructions
-  ctx.font = '14px Arial';
+  ctx.font = '13px Arial';
   ctx.fillStyle = '#7F8C8D';
   ctx.textAlign = 'center';
-  ctx.fillText('Click a level to start. Degradation carries between levels!', W / 2, 420);
-
-  // Legend
-  drawLegend(W / 2, 470);
+  ctx.fillText('Select a patient and day to begin. Each patient has unique physiology and challenges.', W / 2, startY + PATIENTS.length * rowH + 10);
 
   // Balance button (bottom-right)
   const balBtnW = 140;
@@ -129,66 +161,132 @@ export function renderMenu() {
   renderBalancePanel();
 }
 
-function drawLevelButton(level, x, y, w, h, unlocked) {
+function drawPatientCard(patient, x, y, w, h) {
   const C = CONFIG.COLORS;
 
-  // Background
-  ctx.fillStyle = unlocked ? '#4A6274' : '#2C3E50';
-  ctx.strokeStyle = unlocked ? '#5D7A8C' : '#3D5060';
+  // Card background
+  ctx.fillStyle = 'rgba(30, 40, 55, 0.8)';
+  ctx.strokeStyle = patient.color;
   ctx.lineWidth = 2;
-
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, 8);
   ctx.fill();
   ctx.stroke();
 
-  // Lock overlay
-  if (!unlocked) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 8);
-    ctx.fill();
-  }
+  // Emoji + name
+  ctx.textAlign = 'left';
+  ctx.font = '28px serif';
+  ctx.fillText(patient.emoji, x + 15, y + 38);
 
-  // Level number
-  ctx.fillStyle = unlocked ? C.GOLD : C.GRAY;
-  ctx.font = 'bold 28px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText(`Level ${level.id}`, x + w / 2, y + 35);
+  ctx.font = 'bold 18px Arial';
+  ctx.fillStyle = patient.color;
+  ctx.fillText(patient.name, x + 55, y + 35);
 
-  // Level name
-  ctx.fillStyle = unlocked ? C.WHITE : C.GRAY;
-  ctx.font = '14px Arial';
-  ctx.fillText(level.name, x + w / 2, y + 58);
-
-  // Mine count
-  ctx.font = '11px Arial';
+  // Description
+  ctx.font = '12px Arial';
   ctx.fillStyle = '#95A5A6';
-  ctx.fillText(`${level.mineCount} mines \u00B7 ${level.waves.length} meals`, x + w / 2, y + 80);
+  ctx.fillText(patient.description, x + 55, y + 55);
 
-  // Lock icon
-  if (!unlocked) {
-    ctx.font = '24px serif';
-    ctx.fillText('\u{1F512}', x + w / 2, y + h / 2 + 8);
+  // Key physiology info
+  ctx.font = '11px Arial';
+  ctx.fillStyle = '#6B7C8A';
+  const phys = patient.physiology;
+  const infoItems = [];
+  if (phys.insulinCharges !== null) {
+    infoItems.push(`Insulin: ${phys.insulinCharges} charges`);
+  } else if (phys.insulinProductionRate < 1.0) {
+    infoItems.push(`Insulin: ${Math.round(phys.insulinProductionRate * 100)}%`);
   }
+  if (phys.degradationEnabled) {
+    infoItems.push('IR: active');
+  }
+  if (phys.startingDegradation > 0) {
+    infoItems.push(`Start IR: ${phys.startingDegradation}`);
+  }
+  if (infoItems.length > 0) {
+    ctx.fillText(infoItems.join('  \u00B7  '), x + 55, y + 75);
+  }
+
+  // Available interventions (icons)
+  ctx.font = '11px Arial';
+  ctx.fillStyle = '#5D7A8C';
+  const ivText = patient.availableInterventions.join(', ');
+  ctx.fillText(ivText, x + 15, y + 98);
 }
 
-function drawLegend(cx, y) {
-  ctx.font = '12px Arial';
-  ctx.textAlign = 'center';
+function drawDayButtons(patient, prog, startX, rowY, btnW, btnH, gap) {
+  const C = CONFIG.COLORS;
+  const days = patient.days;
+  const btnY = rowY + 20;
 
-  const items = [
-    { color: '#E74C3C', label: '\u{1F534} Fast/Unhealthy' },
-    { color: '#F1C40F', label: '\u{1F7E1} Medium/Neutral' },
-    { color: '#2ECC71', label: '\u{1F7E2} Slow/Healthy' },
-  ];
+  for (let di = 0; di < days.length; di++) {
+    const day = days[di];
+    const x = startX + di * (btnW + gap);
+    const unlocked = day.dayId <= prog.unlockedDay;
+    const stars = prog.stars[di] || 0;
 
-  const gap = 180;
-  const startX = cx - gap;
+    // Button background
+    if (unlocked) {
+      ctx.fillStyle = stars > 0 ? '#3A5A4A' : '#4A6274';
+      ctx.strokeStyle = stars > 0 ? '#4CAF50' : '#5D7A8C';
+    } else {
+      ctx.fillStyle = '#2C3E50';
+      ctx.strokeStyle = '#3D5060';
+    }
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x, btnY, btnW, btnH, 6);
+    ctx.fill();
+    ctx.stroke();
 
-  for (let i = 0; i < items.length; i++) {
-    ctx.fillStyle = items[i].color;
-    ctx.fillText(items[i].label, startX + i * gap, y);
+    // Lock overlay
+    if (!unlocked) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.beginPath();
+      ctx.roundRect(x, btnY, btnW, btnH, 6);
+      ctx.fill();
+    }
+
+    ctx.textAlign = 'center';
+
+    if (unlocked) {
+      // Day label
+      ctx.font = 'bold 13px Arial';
+      ctx.fillStyle = C.WHITE;
+      ctx.fillText(`Day ${day.dayId}`, x + btnW / 2, btnY + 16);
+
+      // Stars
+      if (stars > 0) {
+        ctx.font = '13px serif';
+        const starStr = '\u2B50'.repeat(stars) + '\u2606'.repeat(3 - stars);
+        ctx.fillText(starStr, x + btnW / 2, btnY + 33);
+      } else {
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#7F8C8D';
+        ctx.fillText('Not played', x + btnW / 2, btnY + 33);
+      }
+    } else {
+      // Lock icon
+      ctx.font = '18px serif';
+      ctx.fillStyle = '#7F8C8D';
+      ctx.fillText('\u{1F512}', x + btnW / 2, btnY + 20);
+      ctx.font = '10px Arial';
+      ctx.fillText(`Day ${day.dayId}`, x + btnW / 2, btnY + 35);
+    }
+
+    // Second row: day name
+    ctx.font = '9px Arial';
+    ctx.fillStyle = unlocked ? '#7F8C8D' : '#4A5568';
+    const shortName = day.name.replace(/^Day \d+: /, '');
+    ctx.fillText(shortName, x + btnW / 2, btnY + btnH + 12);
+
+    dayButtonRects.push({
+      x, y: btnY, w: btnW, h: btnH,
+      patientId: patient.id,
+      dayId: day.dayId,
+      levelRef: day.levelRef,
+      unlocked,
+    });
   }
 }
 
@@ -211,12 +309,12 @@ function handleClick(e) {
     return;
   }
 
-  // Level buttons
-  for (const btn of buttonRects) {
+  // Day buttons
+  for (const btn of dayButtonRects) {
     if (btn.unlocked &&
         mx >= btn.x && mx <= btn.x + btn.w &&
         my >= btn.y && my <= btn.y + btn.h) {
-      onStartLevel(btn.levelId);
+      onStartDay(btn.patientId, btn.dayId, btn.levelRef);
       break;
     }
   }

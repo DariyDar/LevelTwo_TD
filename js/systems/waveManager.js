@@ -7,6 +7,7 @@ import { PeasantState } from '../entities/Peasant.js';
 import { getLevel } from '../levels/index.js';
 import { playWaveStart, playFoodSelect, playVictory } from '../audio.js';
 import { food } from '../levels/foodData.js';
+import { recordEvent } from './bgHistory.js';
 
 // Convert dayClock (real seconds) to virtual hour (float, e.g. 13.5 = 13:30)
 export function getVirtualHour() {
@@ -40,8 +41,8 @@ export function updateWaveManager(dt) {
   // Juice cooldown
   if (gameState.juiceCooldown > 0) gameState.juiceCooldown -= dt;
 
-  // Time-based wave scheduling: send wave when virtual clock reaches meal time
-  if (!gameState.allWavesSent) {
+  // Time-based wave scheduling (skipped when plan executor handles meals)
+  if (!gameState.allWavesSent && !gameState.currentPlan) {
     const currentHour = getVirtualHour();
     const nextIdx = gameState.currentWaveIndex;
 
@@ -83,6 +84,10 @@ function sendNextWave() {
   playFoodSelect();
   const boat = new Boat(foods);
   gameState.boats.push(boat);
+
+  // Log food event for BG graph
+  const foodLabel = foods.map(f => f.emoji || f.name).join(' ');
+  recordEvent('food', foodLabel);
 
   // Advance wave index
   gameState.currentWaveIndex++;
@@ -188,6 +193,7 @@ export function spawnJuice() {
   const boat = new Boat([juiceFood]);
   gameState.boats.push(boat);
   gameState.juiceCooldown = CONFIG.JUICE_COOLDOWN;
+  recordEvent('food', '\u{1F9C3} Juice');
 
   return true;
 }

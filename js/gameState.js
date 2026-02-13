@@ -6,6 +6,7 @@ export const GamePhase = {
   MENU: 'menu',
   MEAL_PLAN: 'meal_plan',
   FOOD_CHOICE: 'food_choice',
+  PLANNING: 'planning',
   PLAYING: 'playing',
   BETWEEN_WAVES: 'between_waves',
   GAME_OVER: 'game_over',
@@ -28,6 +29,11 @@ export function createGameState() {
 
     // Effects
     effects: [],
+
+    // BG history for graph
+    bgHistory: [],       // Array of {hour: float, bg: number}
+    bgEventLog: [],      // Array of {hour: float, type: string, label: string}
+    bgSampleTimer: 0,
 
     // Semaglutide mines on the road
     semaglutideMines: [],
@@ -85,6 +91,18 @@ export function createGameState() {
     // Level config reference
     levelConfig: null,
 
+    // Patient system
+    currentPatientId: null,
+    currentDay: 0,
+
+    // Patient physiology modifiers (applied by startDay)
+    _insulinProductionRate: 1.0,
+    _insulinSensitivity: 1.0,
+    _degradationDisabled: false,
+    _liverStorageMultiplier: 1.0,
+    _insulinCharges: null,
+    _insulinChargesMax: null,
+
     // Progress (localStorage backed)
     unlockedLevel: 1,
 
@@ -97,6 +115,13 @@ export function createGameState() {
     // Day clock (seconds elapsed since 6:00)
     dayClock: 0,
 
+    // Speed control
+    speedMultiplier: 1.0,
+    paused: false,
+
+    // Current plan (persists across restarts)
+    currentPlan: null,
+
     // Game over
     gameOverReason: null,
   };
@@ -105,11 +130,16 @@ export function createGameState() {
 export let gameState = createGameState();
 
 export function resetGameState() {
-  const prevDeg = gameState.degradation;
+  // degradation intentionally NOT preserved — applyPatientPhysiology sets it
   const prevUnlocked = gameState.unlockedLevel;
+  const prevPlan = gameState.currentPlan;
+  const prevPatientId = gameState.currentPatientId;
+  const prevDay = gameState.currentDay;
   Object.assign(gameState, createGameState());
-  gameState.degradation = prevDeg;
   gameState.unlockedLevel = prevUnlocked;
+  gameState.currentPlan = prevPlan;
+  gameState.currentPatientId = prevPatientId;
+  gameState.currentDay = prevDay;
 }
 
 export function fullReset() {

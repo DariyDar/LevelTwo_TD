@@ -19,7 +19,10 @@ export class Pancreas {
     if (deg >= 5) return;
 
     // Auto-spawn priests on a timer
-    const interval = CONFIG.PANCREAS_AUTO_SPAWN_INTERVAL[Math.min(deg, 4)];
+    // insulinProductionRate < 1.0 → longer intervals (less insulin)
+    const baseInterval = CONFIG.PANCREAS_AUTO_SPAWN_INTERVAL[Math.min(deg, 4)];
+    const rate = gameState._insulinProductionRate ?? 1.0;
+    const interval = rate > 0 ? baseInterval / rate : 999;
     this.spawnTimer -= dt;
     if (this.spawnTimer <= 0) {
       this.spawnTimer = interval;
@@ -66,6 +69,10 @@ export class Pancreas {
     this.hp -= amount;
     if (this.hp <= 0) {
       this.hp = this.maxHp;
+
+      // Skip degradation if disabled for this patient (e.g., Healthy)
+      if (gameState._degradationDisabled) return;
+
       gameState.degradation++;
       playDegradation();
 

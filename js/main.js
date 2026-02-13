@@ -6,9 +6,9 @@ import { Peasant, PeasantState } from './entities/Peasant.js';
 import { findLeastFilledMine } from './buildings/Mine.js';
 import { initRenderer, render as renderMap, nextMealBtnRect, juiceBtnRect } from './renderer.js';
 import { initEntityRenderer, renderEntities } from './rendererEntities.js';
-import { initUIRenderer, renderUI, restartButtonRect } from './rendererUI.js';
+import { initUIRenderer, renderUI, renderPausedOverlay, renderBottomPanel, restartButtonRect, speedButtonRects } from './rendererUI.js';
 import { initEffectsRenderer, renderEffects } from './rendererEffects.js';
-import { updateWaveManager, loadLevel, triggerNextWave, triggerEarlyWave, spawnJuice } from './systems/waveManager.js';
+import { updateWaveManager, loadLevel, triggerNextWave, triggerEarlyWave, spawnJuice, formatVirtualTime } from './systems/waveManager.js';
 import { updateEnergy } from './systems/energySystem.js';
 import { calculateBG } from './systems/bgSystem.js';
 import { playBlackout } from './audio.js';
@@ -26,11 +26,15 @@ import {
   activateKidneyVortex,
 } from './systems/interventions.js';
 import { initBottomBar, renderBottomBar } from './ui/bottomBar.js';
-import { initMenu, renderMenu } from './ui/menu.js';
+import { initMenu, renderMenu, unlockNextDay } from './ui/menu.js';
+import { getPatient } from './patients/index.js';
 import { initGameOver, renderGameOver } from './ui/gameOver.js';
 import { initWavePreview, renderWavePreview } from './ui/wavePreview.js';
 import { initMealPlan, renderMealPlan } from './ui/mealPlan.js';
 import { updateKidneyFiltration } from './systems/kidneyFiltration.js';
+import { initBGHistory, updateBGHistory } from './systems/bgHistory.js';
+import { initPlanningMode, renderPlanningMode } from './ui/planningMode.js';
+import { initPlanExecutor, updatePlanExecutor } from './systems/planExecutor.js';
 
 let lastTime = 0;
 let canvas = null;
@@ -49,10 +53,11 @@ function init() {
   initEffectsRenderer(ctx);
   initFoodChoiceUI(canvas, ctx);
   initBottomBar(canvas, ctx);
-  initMenu(canvas, ctx, startLevel);
+  initMenu(canvas, ctx, startDay);
   initGameOver(canvas, ctx, handleGameOverAction);
   initWavePreview(ctx);
   initMealPlan(canvas, ctx, startPlayingAfterMealPlan);
+  initPlanningMode(canvas, ctx, startPlayingAfterPlanning);
 
   // Keyboard shortcuts for core actions
   document.addEventListener('keydown', handleKeyboard);
@@ -68,8 +73,27 @@ function init() {
   requestAnimationFrame(gameLoop);
 }
 
-export function startLevel(levelId) {
+// Start a day for a specific patient
+export function startDay(patientId, dayId, levelRef) {
+  const levelId = levelRef || dayId;
+
+  // Clear plan if switching to a different level/patient
+  if (gameState.currentPlan &&
+      (gameState.currentPlan.levelId !== levelId || gameState.currentPatientId !== patientId)) {
+    gameState.currentPlan = null;
+  }
+
   resetGameState();
+
+  // Store patient and day info
+  gameState.currentPatientId = patientId;
+  gameState.currentDay = dayId;
+
+  // Apply patient physiology
+  const patient = getPatient(patientId);
+  if (patient) {
+    applyPatientPhysiology(patient.physiology);
+  }
 
   // Load level data (waves, interventions)
   loadLevel(levelId);
@@ -81,29 +105,77 @@ export function startLevel(levelId) {
   gameState.liverTower = new LiverTower();
   gameState.kidneys = new KidneyTower();
 
+  // Initialize BG history tracking
+  initBGHistory();
+
   // Spawn starting workers (baseline glucose pool)
   spawnStartingWorkers();
 
-  // Show meal plan selection UI
-  gameState.phase = GamePhase.MEAL_PLAN;
+  // Show planning mode (replaces old meal plan selection)
+  gameState.phase = GamePhase.PLANNING;
 }
 
-// Called after player finishes meal plan selection
+// Legacy wrapper for backward compatibility (restart, etc.)
+export function startLevel(levelId) {
+  const patientId = gameState.currentPatientId || 'type2';
+  const dayId = gameState.currentDay || levelId;
+  startDay(patientId, dayId, levelId);
+}
+
+// Apply patient physiology to game CONFIG and gameState
+function applyPatientPhysiology(phys) {
+  gameState.degradation = phys.startingDegradation || 0;
+  gameState._insulinProductionRate = phys.insulinProductionRate ?? 1.0;
+  gameState._insulinSensitivity = phys.insulinSensitivity ?? 1.0;
+  gameState._degradationDisabled = phys.degradationEnabled === false;
+  gameState._liverStorageMultiplier = phys.liverStorageMultiplier ?? 1.0;
+
+  // Energy start multiplier
+  const energyMult = phys.energyStartMultiplier ?? 1.0;
+  if (energyMult !== 1.0) {
+    gameState.energy = Math.round(CONFIG.ENERGY_START * energyMult);
+  }
+
+  // Insulin charges (Type 1: limited injections; null = unlimited)
+  if (phys.insulinCharges != null) {
+    gameState._insulinCharges = phys.insulinCharges;
+    gameState._insulinChargesMax = phys.insulinCharges;
+  }
+}
+
+// Called after player finishes meal plan selection (legacy)
 function startPlayingAfterMealPlan() {
   gameState.phase = GamePhase.PLAYING;
   triggerNextWave();
 }
 
+// Called when player clicks "Start Day" in planning mode
+function startPlayingAfterPlanning() {
+  // Initialize plan executor (resets executed flags)
+  initPlanExecutor();
+
+  // Set wave count from plan for UI
+  const plan = gameState.currentPlan;
+  if (plan) {
+    gameState.waves = plan.meals.map(m => ({ time: formatVirtualTime(m.hour), choices: [] }));
+  }
+
+  gameState.phase = GamePhase.PLAYING;
+}
+
 function handleGameOverAction(action) {
   if (action === 'retry') {
-    startLevel(gameState.level);
+    startDay(gameState.currentPatientId, gameState.currentDay, gameState.level);
   } else if (action === 'menu') {
     fullReset();
     gameState.phase = GamePhase.MENU;
   } else if (action === 'next') {
-    const nextLevel = gameState.level + 1;
-    if (nextLevel <= 5) {
-      startLevel(nextLevel);
+    const nextDay = gameState.currentDay + 1;
+    const patient = getPatient(gameState.currentPatientId);
+    if (patient && nextDay <= patient.days.length) {
+      const dayDef = patient.days.find(d => d.dayId === nextDay);
+      const levelRef = dayDef ? dayDef.levelRef : nextDay;
+      startDay(gameState.currentPatientId, nextDay, levelRef);
     } else {
       fullReset();
       gameState.phase = GamePhase.MENU;
@@ -199,9 +271,10 @@ function gameLoop(timestamp) {
   lastTime = timestamp;
 
   const cappedDt = Math.min(dt, 0.1);
+  const effectiveDt = gameState.paused ? 0 : cappedDt * gameState.speedMultiplier;
 
   if (gameState.phase === GamePhase.PLAYING || gameState.phase === GamePhase.BETWEEN_WAVES) {
-    update(cappedDt);
+    update(effectiveDt);
   }
 
   // Render
@@ -209,6 +282,8 @@ function gameLoop(timestamp) {
 
   if (gameState.phase === GamePhase.MENU) {
     renderMenu();
+  } else if (gameState.phase === GamePhase.PLANNING) {
+    renderPlanningMode();
   } else if (gameState.phase === GamePhase.MEAL_PLAN) {
     renderMealPlan();
   } else if (gameState.phase === GamePhase.GAME_OVER) {
@@ -216,14 +291,17 @@ function gameLoop(timestamp) {
     renderEffects();
     renderUI();
     renderBottomBar();
+    renderBottomPanel();
     renderGameOver();
   } else {
     renderEntities();
     renderEffects();
     renderUI();
     renderBottomBar();
+    renderBottomPanel();
     renderWavePreview();
     renderFoodChoice();
+    renderPausedOverlay();
   }
 
   requestAnimationFrame(gameLoop);
@@ -231,6 +309,7 @@ function gameLoop(timestamp) {
 
 function update(dt) {
   updateWaveManager(dt);
+  updatePlanExecutor(dt);
   updateBoats(dt);
   updatePeasants(dt);
   separatePeasants();
@@ -245,6 +324,7 @@ function update(dt) {
   updateHypoglycemia(dt);
   updateEnergy(dt);
   updateInterventions(dt);
+  updateBGHistory(dt);
   updateEffects(dt);
   cleanupDead();
 }
@@ -328,6 +408,25 @@ function cleanupDead() {
   gameState.boats = gameState.boats.filter(b => b.alive);
 }
 
+const SPEED_OPTIONS = [0.25, 0.5, 1.0, 2.0];
+
+function cycleSpeed(direction) {
+  let idx = SPEED_OPTIONS.indexOf(gameState.speedMultiplier);
+  if (idx === -1) {
+    // Find nearest valid speed
+    idx = 0;
+    for (let i = 1; i < SPEED_OPTIONS.length; i++) {
+      if (Math.abs(SPEED_OPTIONS[i] - gameState.speedMultiplier) <
+          Math.abs(SPEED_OPTIONS[idx] - gameState.speedMultiplier)) {
+        idx = i;
+      }
+    }
+  }
+  const newIdx = Math.max(0, Math.min(SPEED_OPTIONS.length - 1, idx + direction));
+  gameState.speedMultiplier = SPEED_OPTIONS[newIdx];
+  gameState.paused = false;
+}
+
 function handleKeyboard(e) {
   if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return;
 
@@ -338,7 +437,13 @@ function handleKeyboard(e) {
     case '4': activateKidneyVortex(); break;
     case 'r':
     case 'R':
-      startLevel(gameState.level);
+      startDay(gameState.currentPatientId, gameState.currentDay, gameState.level);
+      break;
+    case '[': cycleSpeed(-1); break;
+    case ']': cycleSpeed(1); break;
+    case ' ':
+      e.preventDefault();
+      gameState.paused = !gameState.paused;
       break;
   }
 }
@@ -351,6 +456,19 @@ function handleCanvasClick(e) {
   const scaleY = CONFIG.CANVAS_HEIGHT / rect.height;
   const mx = (e.clientX - rect.left) * scaleX;
   const my = (e.clientY - rect.top) * scaleY;
+
+  // Speed control buttons
+  for (const sb of speedButtonRects) {
+    if (mx >= sb.x && mx <= sb.x + sb.w && my >= sb.y && my <= sb.y + sb.h) {
+      if (sb.action === 'pause') {
+        gameState.paused = !gameState.paused;
+      } else {
+        gameState.speedMultiplier = sb.speed;
+        gameState.paused = false;
+      }
+      return;
+    }
+  }
 
   // "Send Now" button (next meal)
   if (nextMealBtnRect.visible) {
@@ -372,7 +490,7 @@ function handleCanvasClick(e) {
 
   const btn = restartButtonRect;
   if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
-    startLevel(gameState.level);
+    startDay(gameState.currentPatientId, gameState.currentDay, gameState.level);
   }
 }
 

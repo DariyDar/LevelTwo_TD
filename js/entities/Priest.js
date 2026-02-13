@@ -120,9 +120,12 @@ export class Priest {
 
   _merge() {
     const deg = gameState.degradation;
-    const successChance = this.successOverride !== null
+    const baseChance = this.successOverride !== null
       ? this.successOverride
       : CONFIG.RESISTANCE_BY_DEGRADATION[Math.min(deg, CONFIG.RESISTANCE_BY_DEGRADATION.length - 1)];
+    // Insulin sensitivity multiplier (patient physiology)
+    const sensitivity = gameState._insulinSensitivity ?? 1.0;
+    const successChance = Math.min(1.0, baseChance * sensitivity);
 
     const roll = Math.random();
 
