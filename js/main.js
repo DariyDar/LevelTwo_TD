@@ -129,6 +129,7 @@ function applyPatientPhysiology(phys) {
   gameState._insulinSensitivity = phys.insulinSensitivity ?? 1.0;
   gameState._degradationDisabled = phys.degradationEnabled === false;
   gameState._liverStorageMultiplier = phys.liverStorageMultiplier ?? 1.0;
+  gameState._energyDrainMultiplier = phys.energyDrainMultiplier ?? 1.0;
 
   // Energy start multiplier
   const energyMult = phys.energyStartMultiplier ?? 1.0;
@@ -334,8 +335,10 @@ function updateHypoglycemia(dt) {
   if (bg < CONFIG.BG_HYPO) {
     gameState.hypoDuration += dt;
 
-    // Tier 3: 20+ seconds of hypoglycemia → blackout (coma)
-    if (gameState.hypoDuration >= 20) {
+    // Prolonged hypoglycemia → blackout (coma)
+    // Healthy patients (degradation disabled) have glucagon/epinephrine counter-regulation
+    // that prevents consciousness loss — they effectively cannot blackout from hypo
+    if (!gameState._degradationDisabled && gameState.hypoDuration >= 20) {
       gameState.energy = 0;
       playBlackout();
       gameState.phase = GamePhase.GAME_OVER;

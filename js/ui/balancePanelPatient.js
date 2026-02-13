@@ -10,6 +10,7 @@ export const PATIENT_PARAMS = [
   { key: 'degradationEnabled', label: 'Degradation On (1) / Off (0)', min: 0, max: 1, step: 1 },
   { key: 'liverStorageMultiplier', label: 'Liver Storage Multiplier', min: 0.5, max: 2.0, step: 0.1 },
   { key: 'energyStartMultiplier', label: 'Starting Energy Multiplier', min: 0.5, max: 2.0, step: 0.1 },
+  { key: 'energyDrainMultiplier', label: 'Energy Drain Multiplier', min: 0.1, max: 2.0, step: 0.1 },
   { key: 'insulinCharges', label: 'Insulin Injection Charges (0=none)', min: 0, max: 30, step: 1 },
 ];
 
@@ -27,6 +28,7 @@ export function getPatientParamValue(patientId, key) {
   const phys = patient.physiology;
   if (key === 'degradationEnabled') return phys.degradationEnabled ? 1 : 0;
   if (key === 'insulinCharges') return phys.insulinCharges ?? 0;
+  if (key === 'energyDrainMultiplier') return phys.energyDrainMultiplier ?? 1.0;
   return phys[key] ?? 0;
 }
 
@@ -47,6 +49,7 @@ export function getPatientDefault(patientId, key) {
   if (!def) return 0;
   if (key === 'degradationEnabled') return def.degradationEnabled ? 1 : 0;
   if (key === 'insulinCharges') return def.insulinCharges ?? 0;
+  if (key === 'energyDrainMultiplier') return def.energyDrainMultiplier ?? 1.0;
   return def[key] ?? 0;
 }
 

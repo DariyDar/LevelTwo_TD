@@ -1,4 +1,4 @@
-// GlucoDefense — Balance Settings Panel (tabbed: Global, Patient tabs, Day tabs)
+// GlucoDefense — Balance Settings Panel (tabbed: Global + Patient tabs with embedded day settings)
 
 import { CONFIG } from '../config.js';
 import { PATIENTS } from '../patients/index.js';
@@ -108,58 +108,65 @@ function copyGlobalBalance() {
 
 // --- Tab system ---
 
-// Tab IDs: 'global', 'patient_healthy', 'patient_type1', ..., 'day_1', 'day_2', ...
+// Tab IDs: 'global', 'patient_healthy', 'patient_type1', ...
+// Day settings are embedded inside each patient tab (no standalone day tabs)
 const TABS = [
   { id: 'global', label: 'Global' },
   ...PATIENTS.map(p => ({ id: `patient_${p.id}`, label: p.emoji + ' ' + p.name.split(' ')[0] })),
-  ...LEVELS.map((l, i) => ({ id: `day_${l.id}`, label: `Day ${l.id}` })),
 ];
 
 let currentTab = 'global';
 
+// Build combined params: patient physiology + day-specific settings for each level
+function buildPatientDayParams() {
+  const combined = [...PATIENT_PARAMS];
+  for (const level of LEVELS) {
+    combined.push({ isHeader: true, label: `\u2014 Day ${level.id} \u2014` });
+    for (const dp of DAY_PARAMS) {
+      combined.push({ ...dp, dayId: level.id });
+    }
+  }
+  return combined;
+}
+
 function getActiveParams() {
   if (currentTab === 'global') return BALANCE_PARAMS;
-  if (currentTab.startsWith('patient_')) return PATIENT_PARAMS;
-  if (currentTab.startsWith('day_')) return DAY_PARAMS;
+  if (currentTab.startsWith('patient_')) return buildPatientDayParams();
   return [];
 }
 
 function getActiveParamValue(param) {
+  if (param.isHeader) return 0;
   if (currentTab === 'global') return getGlobalValue(param);
   if (currentTab.startsWith('patient_')) {
     const patientId = currentTab.replace('patient_', '');
+    if (param.dayId) return getDayParamValue(param.dayId, param.key);
     return getPatientParamValue(patientId, param.key);
-  }
-  if (currentTab.startsWith('day_')) {
-    const dayId = parseInt(currentTab.replace('day_', ''));
-    return getDayParamValue(dayId, param.key);
   }
   return 0;
 }
 
 function setActiveParamValue(param, val) {
+  if (param.isHeader) return;
   if (currentTab === 'global') { setGlobalValue(param, val); return; }
   if (currentTab.startsWith('patient_')) {
-    const patientId = currentTab.replace('patient_', '');
-    setPatientParamValue(patientId, param.key, val);
-    return;
-  }
-  if (currentTab.startsWith('day_')) {
-    const dayId = parseInt(currentTab.replace('day_', ''));
-    setDayParamValue(dayId, param.key, val);
+    if (param.dayId) {
+      setDayParamValue(param.dayId, param.key, val);
+    } else {
+      const patientId = currentTab.replace('patient_', '');
+      setPatientParamValue(patientId, param.key, val);
+    }
     return;
   }
 }
 
 function getActiveDefault(param) {
+  if (param.isHeader) return 0;
   if (currentTab === 'global') return DEFAULTS[param.key];
   if (currentTab.startsWith('patient_')) {
+    if (param.dayId) return getDayDefault(param.dayId, param.key);
     const patientId = currentTab.replace('patient_', '');
     return getPatientDefault(patientId, param.key);
-  }
-  if (currentTab.startsWith('day_')) {
-    const dayId = parseInt(currentTab.replace('day_', ''));
-    return getDayDefault(dayId, param.key);
   }
   return 0;
 }
@@ -169,11 +176,7 @@ function saveActiveBalance() {
   if (currentTab.startsWith('patient_')) {
     const patientId = currentTab.replace('patient_', '');
     savePatientBalance(patientId);
-    return;
-  }
-  if (currentTab.startsWith('day_')) {
-    const dayId = parseInt(currentTab.replace('day_', ''));
-    saveDayBalance(dayId);
+    for (const level of LEVELS) saveDayBalance(level.id);
     return;
   }
 }
@@ -183,24 +186,21 @@ function resetActiveBalance() {
   if (currentTab.startsWith('patient_')) {
     const patientId = currentTab.replace('patient_', '');
     resetPatientBalance(patientId);
-    return;
-  }
-  if (currentTab.startsWith('day_')) {
-    const dayId = parseInt(currentTab.replace('day_', ''));
-    resetDayBalance(dayId);
+    for (const level of LEVELS) resetDayBalance(level.id);
     return;
   }
 }
 
 function copyActiveBalance() {
   let text = '';
-  if (currentTab === 'global') text = copyGlobalBalance();
-  else if (currentTab.startsWith('patient_')) {
+  if (currentTab === 'global') {
+    text = copyGlobalBalance();
+  } else if (currentTab.startsWith('patient_')) {
     const patientId = currentTab.replace('patient_', '');
     text = copyPatientBalance(patientId);
-  } else if (currentTab.startsWith('day_')) {
-    const dayId = parseInt(currentTab.replace('day_', ''));
-    text = copyDayBalance(dayId);
+    for (const level of LEVELS) {
+      text += '\n\n' + copyDayBalance(level.id);
+    }
   }
   navigator.clipboard.writeText(text).catch(() => {});
   copyFlashTimer = 1.5;
@@ -317,6 +317,18 @@ export function renderBalancePanel() {
     const rowY = contentStartY + i * ROW_H;
 
     if (rowY + ROW_H < contentY || rowY > contentY + CONTENT_H) {
+      sliderRects.push(null);
+      continue;
+    }
+
+    // Section header (day dividers in patient tabs)
+    if (param.isHeader) {
+      ctx.fillStyle = 'rgba(241, 196, 15, 0.1)';
+      ctx.fillRect(PANEL_X + 5, rowY, PANEL_W - 10, ROW_H);
+      ctx.fillStyle = '#F1C40F';
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(param.label, PANEL_X + PANEL_W / 2, rowY + ROW_H / 2 + 5);
       sliderRects.push(null);
       continue;
     }
@@ -532,7 +544,7 @@ function handleWheel(e) {
 function updateSliderValue(mx, sr) {
   const params = getActiveParams();
   const param = params[sr.paramIndex];
-  if (!param) return;
+  if (!param || param.isHeader) return;
 
   const pct = Math.max(0, Math.min(1, (mx - sr.x) / sr.w));
   let val = param.min + pct * (param.max - param.min);

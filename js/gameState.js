@@ -102,6 +102,7 @@ export function createGameState() {
     _liverStorageMultiplier: 1.0,
     _insulinCharges: null,
     _insulinChargesMax: null,
+    _energyDrainMultiplier: 1.0,
 
     // Progress (localStorage backed)
     unlockedLevel: 1,

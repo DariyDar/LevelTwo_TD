@@ -28,17 +28,23 @@ export function updateEnergy(dt) {
   } else if (gameState.hypoDuration > 0) {
     drainMult = 2;
   }
-  gameState.energy -= CONFIG.ENERGY_BASAL_DRAIN * drainMult * dt;
+  const patientDrainMult = gameState._energyDrainMultiplier ?? 1.0;
+  gameState.energy -= CONFIG.ENERGY_BASAL_DRAIN * drainMult * patientDrainMult * dt;
 
   // Cap energy
   gameState.energy = Math.min(gameState.energy, gameState.energyMax);
 
   // Blackout check
+  // Healthy patients (degradation disabled) have fat reserves — energy never fully depletes
   if (gameState.energy <= 0) {
-    gameState.energy = 0;
-    playBlackout();
-    gameState.phase = GamePhase.GAME_OVER;
-    gameState.gameOverReason = 'blackout';
+    if (gameState._degradationDisabled) {
+      gameState.energy = 1; // clamp to minimum — body taps fat reserves
+    } else {
+      gameState.energy = 0;
+      playBlackout();
+      gameState.phase = GamePhase.GAME_OVER;
+      gameState.gameOverReason = 'blackout';
+    }
   }
 
   // Track stats
