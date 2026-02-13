@@ -106,6 +106,8 @@ export function createGameState() {
     _energyDrainMultiplier: 1.0,
     _rebelDamageMultiplier: 1.0,
     _kidneyAutoFilterRate: 2.0,
+    _liverReleaseRate: 1.0,
+    _liverInitialStorage: 0,
 
     // Progress (localStorage backed)
     unlockedLevel: 1,

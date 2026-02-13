@@ -51,10 +51,11 @@ export class LiverTower {
     // Only check BG on timer expiry to avoid per-frame calculateBG() calls
     if (this.releaseTimer > 0) this.releaseTimer -= dt;
     if (this.storage > 0 && this.releaseTimer <= 0) {
-      this.releaseTimer = CONFIG.LIVER_AUTO_RELEASE_INTERVAL;
+      const rateMult = Math.max(0.1, gameState._liverReleaseRate ?? 1.0);
+      this.releaseTimer = CONFIG.LIVER_AUTO_RELEASE_INTERVAL / rateMult;
       const bg = calculateBG();
       if (bg < CONFIG.LIVER_RELEASE_THRESHOLD_BG && !gameState.interventions.metformin.active) {
-        const count = Math.min(CONFIG.LIVER_RELEASE_RATE, this.storage);
+        const count = Math.min(Math.max(1, Math.round(CONFIG.LIVER_RELEASE_RATE * rateMult)), this.storage);
         for (let i = 0; i < count; i++) {
           this._releasePeasant();
         }

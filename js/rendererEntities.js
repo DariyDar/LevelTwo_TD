@@ -87,9 +87,20 @@ function drawPeasant(p) {
       ctx.fill();
       ctx.strokeStyle = C.PURPLE_DARK;
     } else if (p.color === 'red') {
-      ctx.fillStyle = C.RED;
-      ctx.fill();
-      ctx.strokeStyle = C.RED_DARK;
+      // Speed-based coloring: fast=orange, medium=red, slow=dark red
+      if (p.speedCategory === 'fast') {
+        ctx.fillStyle = C.ORANGE;
+        ctx.fill();
+        ctx.strokeStyle = '#D68910';
+      } else if (p.speedCategory === 'slow') {
+        ctx.fillStyle = '#A93226';
+        ctx.fill();
+        ctx.strokeStyle = '#7B241C';
+      } else {
+        ctx.fillStyle = C.RED;
+        ctx.fill();
+        ctx.strokeStyle = C.RED_DARK;
+      }
     } else {
       ctx.fillStyle = C.BLUE;
       ctx.fill();

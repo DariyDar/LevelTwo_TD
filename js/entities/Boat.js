@@ -17,7 +17,9 @@ export class Boat {
 
     // Calculate totals
     this.totalPeasants = foods.reduce((sum, f) => sum + f.count, 0);
-    this.peasantSpeed = this._getSpeed(foods[0].speed);
+    const firstSpeed = foods.length > 0 ? foods[0].speed : 'medium';
+    this.peasantSpeed = this._getSpeed(firstSpeed);
+    this.speedCategory = this._getSpeedCategory(firstSpeed);
 
     // Determine boat size and unload time
     this.boatSize = this._getBoatSize(this.totalPeasants);
@@ -27,7 +29,7 @@ export class Boat {
     this.state = 'sailing'; // sailing | unloading | done
     this.unloadedCount = 0;
     this.unloadTimer = 0;
-    this.unloadInterval = this.unloadTime / this.totalPeasants;
+    this.unloadInterval = this.totalPeasants > 0 ? this.unloadTime / this.totalPeasants : 1;
   }
 
   _getSpeed(speedKey) {
@@ -38,6 +40,12 @@ export class Boat {
       case 'slow': return CONFIG.SPEED_SLOW;
       default: return CONFIG.SPEED_MEDIUM;
     }
+  }
+
+  _getSpeedCategory(speedKey) {
+    if (speedKey === 'very_fast' || speedKey === 'fast') return 'fast';
+    if (speedKey === 'slow') return 'slow';
+    return 'medium';
   }
 
   _getBoatSize(count) {
@@ -102,6 +110,7 @@ export class Boat {
     const x = this.x + Math.random() * 40;
     const y = this.y + (Math.random() - 0.5) * 80;
     const peasant = new Peasant(x, y, this.peasantSpeed);
+    peasant.speedCategory = this.speedCategory;
     gameState.peasants.push(peasant);
   }
 }

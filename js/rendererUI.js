@@ -331,16 +331,27 @@ function drawGameTimeline() {
       .slice(0, 3)
       .join('');
 
-    ctx.globalAlpha = meal.executed ? 1.0 : 0.5;
-    ctx.font = '11px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = C.WHITE;
-    ctx.fillText(emojis, mx, stripY + 13);
-
     if (meal.executed) {
+      // Executed: full opacity, checkmark
+      ctx.globalAlpha = 0.6;
+      ctx.font = '11px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = C.WHITE;
+      ctx.fillText(emojis, mx, stripY + 13);
+      ctx.globalAlpha = 1.0;
       ctx.fillStyle = '#2ECC71';
       ctx.font = 'bold 8px Arial';
       ctx.fillText('\u2713', mx + 12, stripY + 8);
+    } else {
+      // Upcoming: bright with marker background
+      ctx.fillStyle = 'rgba(241, 196, 15, 0.2)';
+      const ew = Math.max(18, emojis.length * 10);
+      ctx.fillRect(mx - ew / 2, stripY + 1, ew, stripH - 2);
+      ctx.globalAlpha = 1.0;
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = C.WHITE;
+      ctx.fillText(emojis, mx, stripY + 14);
     }
     ctx.globalAlpha = 1.0;
   }
@@ -350,16 +361,23 @@ function drawGameTimeline() {
     const ix = hourToX(iv.hour);
     const emoji = IV_EMOJI[iv.type] || '\u2699';
 
-    ctx.globalAlpha = iv.executed ? 1.0 : 0.5;
-    ctx.font = '9px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#3498DB';
-    ctx.fillText(emoji, ix, stripY + 20);
-
     if (iv.executed) {
+      ctx.globalAlpha = 0.6;
+      ctx.font = '9px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#3498DB';
+      ctx.fillText(emoji, ix, stripY + 20);
+      ctx.globalAlpha = 1.0;
       ctx.fillStyle = '#2ECC71';
       ctx.font = 'bold 7px Arial';
       ctx.fillText('\u2713', ix + 8, stripY + 15);
+    } else {
+      // Upcoming: bright
+      ctx.globalAlpha = 1.0;
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#5DADE2';
+      ctx.fillText(emoji, ix, stripY + 20);
     }
     ctx.globalAlpha = 1.0;
   }

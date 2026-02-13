@@ -107,6 +107,14 @@ export function startDay(patientId, dayId, levelRef) {
   gameState.liverTower = new LiverTower();
   gameState.kidneys = new KidneyTower();
 
+  // Set initial liver glucose reserve
+  if (gameState._liverInitialStorage > 0 && gameState.liverTower) {
+    gameState.liverTower.storage = Math.min(
+      gameState._liverInitialStorage,
+      gameState.liverTower.maxStorage
+    );
+  }
+
   // Initialize BG history tracking
   initBGHistory();
 
@@ -134,6 +142,8 @@ function applyPatientPhysiology(phys) {
   gameState._energyDrainMultiplier = phys.energyDrainMultiplier ?? 1.0;
   gameState._rebelDamageMultiplier = phys.rebelDamageMultiplier ?? 1.0;
   gameState._kidneyAutoFilterRate = phys.kidneyAutoFilterRate ?? 2.0;
+  gameState._liverReleaseRate = phys.liverReleaseRate ?? 1.0;
+  gameState._liverInitialStorage = phys.liverInitialStorage ?? 0;
 
   // Energy start multiplier
   const energyMult = phys.energyStartMultiplier ?? 1.0;

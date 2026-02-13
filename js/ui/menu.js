@@ -189,6 +189,24 @@ function truncateText(text, maxWidth) {
   return truncated + '\u2026';
 }
 
+// Word-wrap text into multiple lines that fit within maxWidth
+function wrapText(text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? current + ' ' + word : word;
+    if (ctx.measureText(test).width <= maxWidth) {
+      current = test;
+    } else {
+      if (current) lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
 function drawPatientCard(patient, x, y, w, h) {
   const C = CONFIG.COLORS;
   const textMaxW = w - 70; // padding: 55 left + 15 right
@@ -215,10 +233,14 @@ function drawPatientCard(patient, x, y, w, h) {
   ctx.fillStyle = patient.color;
   ctx.fillText(truncateText(patient.name, textMaxW), x + 55, y + 35);
 
-  // Description
+  // Description (word-wrapped)
   ctx.font = '12px Arial';
   ctx.fillStyle = '#95A5A6';
-  ctx.fillText(truncateText(patient.description, textMaxW), x + 55, y + 55);
+  const descLines = wrapText(patient.description, textMaxW);
+  for (let i = 0; i < Math.min(descLines.length, 2); i++) {
+    ctx.fillText(descLines[i], x + 55, y + 55 + i * 14);
+  }
+  const descEndY = y + 55 + Math.min(descLines.length, 2) * 14;
 
   // Key physiology info
   ctx.font = '11px Arial';
@@ -237,14 +259,15 @@ function drawPatientCard(patient, x, y, w, h) {
     infoItems.push(`Start IR: ${phys.startingDegradation}`);
   }
   if (infoItems.length > 0) {
-    ctx.fillText(truncateText(infoItems.join('  \u00B7  '), textMaxW), x + 55, y + 75);
+    const infoText = infoItems.join('  \u00B7  ');
+    ctx.fillText(truncateText(infoText, textMaxW), x + 55, descEndY + 2);
   }
 
-  // Available interventions (icons)
+  // Available interventions
   ctx.font = '11px Arial';
   ctx.fillStyle = '#5D7A8C';
   const ivText = patient.availableInterventions.join(', ');
-  ctx.fillText(truncateText(ivText, fullMaxW), x + 15, y + 98);
+  ctx.fillText(truncateText(ivText, fullMaxW), x + 15, y + h - 8);
 }
 
 function drawDayButtons(patient, prog, startX, rowY, btnW, btnH, gap) {
