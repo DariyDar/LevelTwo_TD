@@ -150,6 +150,11 @@ export const CONFIG = {
   KIDNEY_CIRCLE_ORIGIN: { x: 850, y: 400 },
   KIDNEY_EJECT_SPEED: 400,
 
+  // Kidney auto-filtration (fires automatically when BG stays above threshold)
+  KIDNEY_AUTO_FILL_RATE: 2,        // % per second when BG > threshold
+  KIDNEY_AUTO_COOLDOWN: 50,        // seconds after auto-fire before refill starts
+  KIDNEY_AUTO_THRESHOLD: 180,      // BG mg/dL threshold to start filling
+
   // Building HP (liver + kidneys can be attacked by rebels)
   LIVER_HP: 200,
   KIDNEY_HP: 150,

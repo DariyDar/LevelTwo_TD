@@ -297,6 +297,45 @@ function drawKidneys() {
   ctx.font = 'bold 11px Arial';
   ctx.textAlign = 'center';
   ctx.fillText('Kidneys', pos.x, pos.y + 4);
+
+  // Auto-filtration progress bar (below kidney circle)
+  if (kidneys && !kidneys.destroyed) {
+    const barW = r * 2;
+    const barH = 4;
+    const barX = pos.x - r;
+    const barY = pos.y + r + 6;
+
+    if (kidneys.autoFilterCooldown > 0) {
+      // Cooldown state: grey bar with countdown
+      ctx.fillStyle = '#333';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(barX, barY, barW, barH);
+
+      ctx.font = '7px Arial';
+      ctx.fillStyle = '#7F8C8D';
+      ctx.fillText(`${Math.ceil(kidneys.autoFilterCooldown)}s`, pos.x, barY + barH + 8);
+    } else if (kidneys.autoFilterProgress > 0) {
+      // Filling state: yellow progress bar
+      const pct = kidneys.autoFilterProgress / 100;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = pct >= 0.8 ? '#F1C40F' : '#D4AC0D';
+      ctx.fillRect(barX, barY, barW * pct, barH);
+      ctx.strokeStyle = '#5D6D7E';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(barX, barY, barW, barH);
+
+      // Pulse when near full
+      if (pct >= 0.9) {
+        const pulse = 0.3 + 0.7 * Math.abs(Math.sin(Date.now() / 200));
+        ctx.strokeStyle = `rgba(241, 196, 15, ${pulse})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX - 1, barY - 1, barW + 2, barH + 2);
+      }
+    }
+  }
 }
 
 function drawMines() {

@@ -3,6 +3,7 @@
 import { CONFIG } from './config.js';
 
 export const GamePhase = {
+  WELCOME: 'welcome',
   MENU: 'menu',
   MEAL_PLAN: 'meal_plan',
   FOOD_CHOICE: 'food_choice',
@@ -103,6 +104,8 @@ export function createGameState() {
     _insulinCharges: null,
     _insulinChargesMax: null,
     _energyDrainMultiplier: 1.0,
+    _rebelDamageMultiplier: 1.0,
+    _kidneyAutoFilterRate: 2.0,
 
     // Progress (localStorage backed)
     unlockedLevel: 1,

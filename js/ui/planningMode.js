@@ -1,7 +1,7 @@
 // GlucoDefense — Planning mode UI (full-screen timeline editor)
 
 import { CONFIG } from '../config.js';
-import { gameState, GamePhase } from '../gameState.js';
+import { gameState, GamePhase, fullReset } from '../gameState.js';
 import { FOODS } from '../levels/foodData.js';
 import { formatVirtualTime } from '../systems/waveManager.js';
 import { getPatient } from '../patients/index.js';
@@ -17,10 +17,14 @@ let hoveredSlot = null;  // hour float or null
 let scrollOffset = 0;    // food palette scroll
 
 // Layout constants
-const TIMELINE_Y = 160;
-const TIMELINE_H = 100;
-const FOOD_PALETTE_Y = 300;
-const IV_PALETTE_Y = 440;
+const TIMELINE_Y = 100;
+const TIMELINE_H = 90;
+const FOOD_PALETTE_Y = 220;
+const FOOD_ITEM_W = 76;
+const FOOD_ITEM_H = 68;
+const FOOD_GAP = 5;
+const FOOD_COLS = 14; // items per row
+const IV_PALETTE_Y = 560;
 const START_HOUR = CONFIG.DAY_START_HOUR;
 const END_HOUR = CONFIG.DAY_END_HOUR;
 const MARGIN_L = 60;
@@ -28,9 +32,9 @@ const MARGIN_R = 60;
 
 // Food categories for palette display
 const FOOD_CATEGORIES = [
-  { label: 'Unhealthy (Fast)', keys: ['burger', 'pizza', 'fries', 'muffin', 'cola', 'juice', 'chocolate', 'donut', 'iceCream', 'cookie', 'chips'] },
-  { label: 'Medium', keys: ['rice', 'pasta', 'oatmeal', 'cereal', 'sandwich', 'banana', 'bread', 'apple', 'fruitSalad', 'milk', 'yogurt'] },
-  { label: 'Healthy (Slow)', keys: ['stew', 'veggies', 'turkey', 'chicken', 'fish', 'salad', 'cheese', 'broccoli', 'eggs'] },
+  { label: 'Fast (Unhealthy)', color: '#E74C3C', keys: ['burger', 'pizza', 'fries', 'muffin', 'cola', 'juice', 'chocolate', 'donut', 'iceCream', 'cookie', 'chips'] },
+  { label: 'Medium', color: '#F1C40F', keys: ['rice', 'pasta', 'oatmeal', 'cereal', 'sandwich', 'banana', 'bread', 'apple', 'fruitSalad', 'milk', 'yogurt'] },
+  { label: 'Slow (Healthy)', color: '#2ECC71', keys: ['stew', 'veggies', 'turkey', 'chicken', 'fish', 'salad', 'cheese', 'broccoli', 'eggs'] },
 ];
 
 // All intervention types (filtered by patient's availableInterventions)
@@ -43,10 +47,26 @@ const ALL_INTERVENTION_TYPES = [
   { key: 'dapagliflozin', label: 'SGLT2', emoji: '\u{1F9EA}' },
 ];
 
+// Cached food item rects for click detection
+let foodItemRects = [];
+let ivItemRects = [];
+
 function getAvailableInterventions() {
   const patient = getPatient(gameState.currentPatientId);
   if (!patient) return ALL_INTERVENTION_TYPES;
   return ALL_INTERVENTION_TYPES.filter(iv => patient.availableInterventions.includes(iv.key));
+}
+
+function getUsedFoodKeys() {
+  const plan = gameState.currentPlan;
+  if (!plan) return new Set();
+  const used = new Set();
+  for (const meal of plan.meals) {
+    for (const key of meal.foodKeys) {
+      used.add(key);
+    }
+  }
+  return used;
 }
 
 export function initPlanningMode(canvasEl, context, startDayCallback) {
@@ -72,22 +92,33 @@ export function renderPlanningMode() {
 
   // Title with patient info
   const patient = getPatient(gameState.currentPatientId);
-  const patientLabel = patient ? `${patient.emoji} ${patient.name} — Day ${gameState.currentDay}` : '';
+  const patientLabel = patient ? `${patient.emoji} ${patient.name} \u2014 Day ${gameState.currentDay}` : '';
   ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 28px Arial';
+  ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('PLAN YOUR DAY', W / 2, 40);
+  ctx.fillText('PLAN YOUR DAY', W / 2, 35);
 
   if (patientLabel) {
-    ctx.font = '15px Arial';
+    ctx.font = '14px Arial';
     ctx.fillStyle = patient ? patient.color : '#95A5A6';
-    ctx.fillText(patientLabel, W / 2, 65);
+    ctx.fillText(patientLabel, W / 2, 55);
   }
 
-  ctx.font = '13px Arial';
-  ctx.fillStyle = '#95A5A6';
-  ctx.fillText('Click a food/intervention below, then click on the timeline to place it. Right-click to remove.', W / 2, 85);
+  // Day narrative (italic, below patient label)
+  if (patient) {
+    const dayDef = patient.days.find(d => d.dayId === gameState.currentDay);
+    if (dayDef && dayDef.narrative) {
+      ctx.font = 'italic 11px Arial';
+      ctx.fillStyle = '#7F8C8D';
+      ctx.fillText(dayDef.narrative.length > 120 ? dayDef.narrative.slice(0, 117) + '\u2026' : dayDef.narrative, W / 2, 72);
+    }
+  }
 
+  ctx.font = '12px Arial';
+  ctx.fillStyle = '#95A5A6';
+  ctx.fillText('Click food/intervention, then click timeline to place. Right-click timeline to remove.', W / 2, 90);
+
+  drawBackButton(C);
   drawTimeline(C, W);
   drawFoodPalette(C, W);
   drawInterventionPalette(C, W);
@@ -97,6 +128,22 @@ export function renderPlanningMode() {
   if (selectedItem) {
     drawSelectedIndicator(C, W);
   }
+}
+
+function drawBackButton(C) {
+  const bb = backButtonRect;
+  ctx.fillStyle = '#4A6274';
+  ctx.strokeStyle = '#5D7A8C';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(bb.x, bb.y, bb.w, bb.h, 6);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = C.WHITE;
+  ctx.font = 'bold 13px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('\u2190 Back', bb.x + bb.w / 2, bb.y + bb.h / 2 + 5);
 }
 
 function hourToX(hour) {
@@ -143,7 +190,7 @@ function drawTimeline(C, W) {
   }
 
   // Meal row (upper half)
-  const mealRowY = TIMELINE_Y + 10;
+  const mealRowY = TIMELINE_Y + 8;
   ctx.fillStyle = '#7F8C8D';
   ctx.font = '9px Arial';
   ctx.textAlign = 'left';
@@ -152,14 +199,14 @@ function drawTimeline(C, W) {
   for (let i = 0; i < plan.meals.length; i++) {
     const meal = plan.meals[i];
     const mx = hourToX(meal.hour);
-    const foods = meal.foodKeys.map(k => FOODS[k]);
+    const foods = meal.foodKeys.map(k => FOODS[k]).filter(Boolean);
     const emoji = foods.map(f => f.emoji).join('');
     const totalCount = foods.reduce((s, f) => s + f.count, 0);
 
     // Meal marker
     ctx.fillStyle = 'rgba(241, 196, 15, 0.2)';
     ctx.beginPath();
-    ctx.roundRect(mx - 20, mealRowY, 40, 35, 4);
+    ctx.roundRect(mx - 20, mealRowY, 40, 32, 4);
     ctx.fill();
     ctx.strokeStyle = '#F1C40F';
     ctx.lineWidth = 1;
@@ -168,18 +215,18 @@ function drawTimeline(C, W) {
     ctx.font = '14px Arial';
     ctx.textAlign = 'center';
     ctx.fillStyle = C.WHITE;
-    ctx.fillText(emoji, mx, mealRowY + 16);
+    ctx.fillText(emoji, mx, mealRowY + 15);
 
     ctx.font = '8px Arial';
     ctx.fillStyle = '#F1C40F';
-    ctx.fillText(`${totalCount}g`, mx, mealRowY + 28);
+    ctx.fillText(`${totalCount}g`, mx, mealRowY + 26);
 
     ctx.fillStyle = '#7F8C8D';
     ctx.fillText(formatVirtualTime(meal.hour), mx, mealRowY - 2);
   }
 
   // Intervention row (lower half)
-  const ivRowY = TIMELINE_Y + 55;
+  const ivRowY = TIMELINE_Y + 48;
   ctx.fillStyle = '#7F8C8D';
   ctx.font = '9px Arial';
   ctx.textAlign = 'left';
@@ -192,7 +239,7 @@ function drawTimeline(C, W) {
 
     ctx.fillStyle = 'rgba(52, 152, 219, 0.2)';
     ctx.beginPath();
-    ctx.roundRect(ix - 18, ivRowY, 36, 30, 4);
+    ctx.roundRect(ix - 18, ivRowY, 36, 28, 4);
     ctx.fill();
     ctx.strokeStyle = '#3498DB';
     ctx.lineWidth = 1;
@@ -201,11 +248,11 @@ function drawTimeline(C, W) {
     ctx.font = '13px Arial';
     ctx.textAlign = 'center';
     ctx.fillStyle = C.WHITE;
-    ctx.fillText(def ? def.emoji : '?', ix, ivRowY + 15);
+    ctx.fillText(def ? def.emoji : '?', ix, ivRowY + 14);
 
     ctx.font = '7px Arial';
     ctx.fillStyle = '#3498DB';
-    ctx.fillText(def ? def.label : iv.type, ix, ivRowY + 25);
+    ctx.fillText(def ? def.label : iv.type, ix, ivRowY + 23);
   }
 
   // Hover indicator
@@ -228,71 +275,96 @@ function drawTimeline(C, W) {
 }
 
 function drawFoodPalette(C, W) {
-  ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 14px Arial';
-  ctx.textAlign = 'left';
-  ctx.fillText('Food Palette:', 20, FOOD_PALETTE_Y - 10);
+  const usedKeys = getUsedFoodKeys();
+  foodItemRects = [];
 
-  let cx = 20;
-  const itemW = 52;
-  const itemH = 55;
-  const gap = 4;
+  let curY = FOOD_PALETTE_Y;
 
   for (const category of FOOD_CATEGORIES) {
     // Category label
-    ctx.font = '8px Arial';
-    ctx.fillStyle = '#7F8C8D';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = category.color;
     ctx.textAlign = 'left';
+    ctx.fillText(category.label, 20, curY);
+    curY += 6;
 
+    let col = 0;
     for (const key of category.keys) {
       const f = FOODS[key];
       if (!f) continue;
-      if (cx + itemW > W - 20) {
-        cx = 20;
-      }
 
+      const cx = 20 + col * (FOOD_ITEM_W + FOOD_GAP);
+      const isUsed = usedKeys.has(key);
       const isSelected = selectedItem && selectedItem.type === 'food' && selectedItem.key === key;
 
-      ctx.fillStyle = isSelected ? 'rgba(241, 196, 15, 0.3)' : 'rgba(40, 50, 70, 0.8)';
-      ctx.strokeStyle = isSelected ? '#F1C40F' : '#3D5A6E';
-      ctx.lineWidth = 1;
+      // Item background
+      if (isUsed) {
+        ctx.fillStyle = 'rgba(30, 30, 40, 0.5)';
+        ctx.strokeStyle = '#2C3E50';
+      } else if (isSelected) {
+        ctx.fillStyle = 'rgba(241, 196, 15, 0.3)';
+        ctx.strokeStyle = '#F1C40F';
+      } else {
+        ctx.fillStyle = 'rgba(40, 50, 70, 0.8)';
+        ctx.strokeStyle = '#3D5A6E';
+      }
+      ctx.lineWidth = isSelected ? 2 : 1;
       ctx.beginPath();
-      ctx.roundRect(cx, FOOD_PALETTE_Y, itemW, itemH, 4);
+      ctx.roundRect(cx, curY, FOOD_ITEM_W, FOOD_ITEM_H, 5);
       ctx.fill();
       ctx.stroke();
 
       // Emoji
-      ctx.font = '18px Arial';
+      ctx.font = '22px Arial';
       ctx.textAlign = 'center';
-      ctx.fillStyle = C.WHITE;
-      ctx.fillText(f.emoji, cx + itemW / 2, FOOD_PALETTE_Y + 22);
+      ctx.fillStyle = isUsed ? 'rgba(255,255,255,0.3)' : C.WHITE;
+      ctx.fillText(f.emoji, cx + FOOD_ITEM_W / 2, curY + 25);
 
       // Name
-      ctx.font = '7px Arial';
-      ctx.fillStyle = '#BDC3C7';
-      ctx.fillText(f.name.substring(0, 10), cx + itemW / 2, FOOD_PALETTE_Y + 35);
+      ctx.font = '9px Arial';
+      ctx.fillStyle = isUsed ? '#4A5568' : '#BDC3C7';
+      const shortName = f.name.length > 11 ? f.name.substring(0, 10) + '\u2026' : f.name;
+      ctx.fillText(shortName, cx + FOOD_ITEM_W / 2, curY + 40);
 
-      // Count
-      ctx.font = '8px Arial';
-      ctx.fillStyle = f.speed === 'fast' || f.speed === 'very_fast' ? '#E74C3C' :
-                      f.speed === 'slow' ? '#2ECC71' : '#F1C40F';
-      ctx.fillText(`${f.count}g`, cx + itemW / 2, FOOD_PALETTE_Y + 47);
+      // Count + speed indicator
+      ctx.font = '10px Arial';
+      if (isUsed) {
+        ctx.fillStyle = '#5D6D7E';
+        ctx.fillText('Used', cx + FOOD_ITEM_W / 2, curY + 55);
+      } else {
+        ctx.fillStyle = f.speed === 'fast' || f.speed === 'very_fast' ? '#E74C3C' :
+                        f.speed === 'slow' ? '#2ECC71' : '#F1C40F';
+        ctx.fillText(`${f.count}g`, cx + FOOD_ITEM_W / 2, curY + 55);
+      }
 
-      cx += itemW + gap;
+      foodItemRects.push({ x: cx, y: curY, w: FOOD_ITEM_W, h: FOOD_ITEM_H, key, used: isUsed });
+
+      col++;
+      if (col >= FOOD_COLS) {
+        col = 0;
+        curY += FOOD_ITEM_H + FOOD_GAP;
+      }
     }
 
-    cx += gap * 3; // Extra gap between categories
+    // Move to next row after category
+    if (col > 0) {
+      curY += FOOD_ITEM_H + FOOD_GAP;
+      col = 0;
+    }
+    curY += 4; // gap between categories
   }
 }
 
 function drawInterventionPalette(C, W) {
-  ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 14px Arial';
-  ctx.textAlign = 'left';
-  ctx.fillText('Interventions:', 20, IV_PALETTE_Y - 10);
+  ivItemRects = [];
 
-  const itemW = 90;
-  const itemH = 40;
+  ctx.fillStyle = C.WHITE;
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('Interventions:', 20, IV_PALETTE_Y - 8);
+
+  const itemW = 100;
+  const itemH = 42;
   const gap = 6;
   let cx = 20;
 
@@ -302,16 +374,18 @@ function drawInterventionPalette(C, W) {
 
     ctx.fillStyle = isSelected ? 'rgba(52, 152, 219, 0.3)' : 'rgba(40, 50, 70, 0.8)';
     ctx.strokeStyle = isSelected ? '#3498DB' : '#3D5A6E';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = isSelected ? 2 : 1;
     ctx.beginPath();
-    ctx.roundRect(cx, IV_PALETTE_Y, itemW, itemH, 4);
+    ctx.roundRect(cx, IV_PALETTE_Y, itemW, itemH, 5);
     ctx.fill();
     ctx.stroke();
 
-    ctx.font = '14px Arial';
+    ctx.font = '15px Arial';
     ctx.textAlign = 'center';
     ctx.fillStyle = C.WHITE;
-    ctx.fillText(`${iv.emoji} ${iv.label}`, cx + itemW / 2, IV_PALETTE_Y + 25);
+    ctx.fillText(`${iv.emoji} ${iv.label}`, cx + itemW / 2, IV_PALETTE_Y + 27);
+
+    ivItemRects.push({ x: cx, y: IV_PALETTE_Y, w: itemW, h: itemH, iv });
 
     cx += itemW + gap;
   }
@@ -322,7 +396,7 @@ function drawStartButton(C, W, H) {
   const btnW = 180;
   const btnH = 44;
   const btnX = W / 2 - btnW / 2;
-  const btnY = H - 60;
+  const btnY = H - 55;
 
   const hasMeals = plan.meals.length > 0;
 
@@ -347,16 +421,17 @@ function drawStartButton(C, W, H) {
 }
 
 const startButtonRect = { x: 0, y: 0, w: 0, h: 0 };
+const backButtonRect = { x: 20, y: 10, w: 80, h: 36 };
 
 function drawSelectedIndicator(C, W) {
   const text = selectedItem.type === 'food'
-    ? `Selected: ${FOODS[selectedItem.key]?.emoji || ''} — click timeline to place`
-    : `Selected: ${selectedItem.key} — click timeline to place`;
+    ? `Selected: ${FOODS[selectedItem.key]?.emoji || ''} ${FOODS[selectedItem.key]?.name || ''} \u2014 click timeline to place`
+    : `Selected: ${selectedItem.key} \u2014 click timeline to place`;
 
   ctx.font = '12px Arial';
   ctx.fillStyle = '#F1C40F';
   ctx.textAlign = 'center';
-  ctx.fillText(text, W / 2, TIMELINE_Y + TIMELINE_H + 28);
+  ctx.fillText(text, W / 2, TIMELINE_Y + TIMELINE_H + 15);
 }
 
 function ensurePlan() {
@@ -379,6 +454,18 @@ function handleClick(e) {
   const mx = (e.clientX - rect.left) * scaleX;
   const my = (e.clientY - rect.top) * scaleY;
 
+  // Check back button
+  const bb = backButtonRect;
+  if (mx >= bb.x && mx <= bb.x + bb.w && my >= bb.y && my <= bb.y + bb.h) {
+    fullReset();
+    gameState.phase = GamePhase.MENU;
+    selectedItem = null;
+    hoveredSlot = null;
+    dragItem = null;
+    scrollOffset = 0;
+    return;
+  }
+
   const plan = ensurePlan();
 
   // Check start button
@@ -393,15 +480,20 @@ function handleClick(e) {
     const hour = xToHour(mx);
     if (hour >= START_HOUR && hour <= END_HOUR) {
       if (selectedItem.type === 'food') {
+        // Single-use check: skip if already used in plan
+        const usedKeys = getUsedFoodKeys();
+        if (usedKeys.has(selectedItem.key)) return;
+
         // Add food to an existing meal at this time, or create new meal
         const existingMeal = plan.meals.find(m => Math.abs(m.hour - hour) < 0.25);
         if (existingMeal) {
           existingMeal.foodKeys.push(selectedItem.key);
         } else {
           plan.meals.push({ foodKeys: [selectedItem.key], hour, executed: false });
-          // Sort by time
           plan.meals.sort((a, b) => a.hour - b.hour);
         }
+        // Deselect after placing (since it's single-use)
+        selectedItem = null;
       } else if (selectedItem.type === 'intervention') {
         plan.interventions.push({
           type: selectedItem.key,
@@ -410,44 +502,26 @@ function handleClick(e) {
           executed: false,
         });
         plan.interventions.sort((a, b) => a.hour - b.hour);
+        // Keep selected for rapid placement (interventions can repeat)
       }
-      // Keep selected for rapid placement
       return;
     }
   }
 
   // Check food palette click
-  if (my >= FOOD_PALETTE_Y && my <= FOOD_PALETTE_Y + 55) {
-    const itemW = 52;
-    const gap = 4;
-    let cx = 20;
-
-    for (const category of FOOD_CATEGORIES) {
-      for (const key of category.keys) {
-        if (!FOODS[key]) continue; // Skip missing foods (match rendering)
-        if (mx >= cx && mx <= cx + itemW) {
-          selectedItem = { type: 'food', key };
-          return;
-        }
-        cx += itemW + gap;
-      }
-      cx += gap * 3;
+  for (const fr of foodItemRects) {
+    if (fr.used) continue; // Can't select used foods
+    if (mx >= fr.x && mx <= fr.x + fr.w && my >= fr.y && my <= fr.y + fr.h) {
+      selectedItem = { type: 'food', key: fr.key };
+      return;
     }
   }
 
   // Check intervention palette click
-  if (my >= IV_PALETTE_Y && my <= IV_PALETTE_Y + 40) {
-    const itemW = 90;
-    const gap = 6;
-    let cx = 20;
-
-    const clickableIVs = getAvailableInterventions();
-    for (const iv of clickableIVs) {
-      if (mx >= cx && mx <= cx + itemW) {
-        selectedItem = { type: 'intervention', key: iv.key, dose: iv.dose };
-        return;
-      }
-      cx += itemW + gap;
+  for (const ir of ivItemRects) {
+    if (mx >= ir.x && mx <= ir.x + ir.w && my >= ir.y && my <= ir.y + ir.h) {
+      selectedItem = { type: 'intervention', key: ir.iv.key, dose: ir.iv.dose };
+      return;
     }
   }
 
@@ -490,8 +564,7 @@ function handleRightClick(e) {
   // Right-click on timeline removes nearest item
   if (my >= TIMELINE_Y && my <= TIMELINE_Y + TIMELINE_H) {
     const hour = xToHour(mx);
-    const mealRowY = TIMELINE_Y + 10;
-    const ivRowY = TIMELINE_Y + 55;
+    const ivRowY = TIMELINE_Y + 48;
 
     if (my < ivRowY) {
       // Remove nearest meal

@@ -61,9 +61,14 @@ export function renderGameOver() {
   const statsY = graphY + graphH + 25;
   drawStatsRow(C, W, statsY);
 
+  // === RECOMMENDATIONS ===
+  const recs = getRecommendations(reason);
+  const recsY = statsY + 40;
+  drawRecommendations(recs, C, W, recsY);
+
   // === BUTTONS ===
   buttonRects = [];
-  const btnY = statsY + 50;
+  const btnY = recsY + recs.length * 18 + 20;
   const btnW = 120;
   const btnH = 44;
 
@@ -315,6 +320,72 @@ function getStarRating(degradation) {
   if (degradation === 1) return 2;
   if (degradation <= 3) return 1;
   return 0;
+}
+
+function getRecommendations(reason) {
+  const recs = [];
+  const patientId = gameState.currentPatientId;
+  if (!patientId) return recs;
+
+  const hasData = gameState.bgHistory.length >= 5;
+  const tir = hasData ? getTimeInRange() : null;
+
+  if (reason === 'victory') {
+    const stars = getStarRating(gameState.degradation);
+    if (stars === 3) {
+      recs.push('Excellent glucose control! You kept blood sugar in the healthy range.');
+    } else if (stars >= 2) {
+      recs.push('Good job! Some insulin resistance developed \u2014 try spacing meals further apart.');
+    }
+  }
+
+  if (reason === 'blackout') {
+    recs.push('Blood sugar dropped dangerously low. Eat more regularly or choose foods with more carbs.');
+    if (patientId === 'type1') {
+      recs.push('With Type 1, reduce insulin dose before exercise to prevent lows.');
+    }
+  }
+
+  if (reason === 'pancreas_destroyed') {
+    recs.push('Too many rebels damaged the pancreas. Use insulin or exercise to clear glucose faster.');
+  }
+
+  if (tir) {
+    if (tir.high > 40) {
+      recs.push('BG was high for too long. Choose slower-absorbing foods and use interventions after meals.');
+    }
+    if (tir.low > 15) {
+      recs.push('BG dropped low frequently. Add snacks between meals or reduce medication timing.');
+    }
+  }
+
+  if (gameState.degradation >= 2 && reason !== 'victory') {
+    recs.push('Organ damage was significant. Keep BG in range (80\u2013140) to prevent insulin resistance.');
+  }
+
+  if (patientId === 'type1' && recs.length < 3) {
+    recs.push('Type 1: Match insulin doses carefully to carb counts for best control.');
+  }
+  if (patientId === 'type2' && recs.length < 3) {
+    recs.push('Type 2: Combine medications with exercise and healthy food choices.');
+  }
+  if (patientId === 'type2advanced' && recs.length < 3) {
+    recs.push('Advanced Type 2: Every meal matters \u2014 prioritize slow-absorbing foods.');
+  }
+
+  return recs.slice(0, 3);
+}
+
+function drawRecommendations(recs, C, W, y) {
+  if (recs.length === 0) return;
+
+  ctx.font = '12px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.GOLD;
+
+  for (let i = 0; i < recs.length; i++) {
+    ctx.fillText(recs[i], W / 2, y + i * 18);
+  }
 }
 
 function handleClick(e) {

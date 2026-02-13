@@ -35,6 +35,7 @@ import { updateKidneyFiltration } from './systems/kidneyFiltration.js';
 import { initBGHistory, updateBGHistory } from './systems/bgHistory.js';
 import { initPlanningMode, renderPlanningMode } from './ui/planningMode.js';
 import { initPlanExecutor, updatePlanExecutor } from './systems/planExecutor.js';
+import { initWelcome, renderWelcome } from './ui/welcome.js';
 
 let lastTime = 0;
 let canvas = null;
@@ -58,6 +59,7 @@ function init() {
   initWavePreview(ctx);
   initMealPlan(canvas, ctx, startPlayingAfterMealPlan);
   initPlanningMode(canvas, ctx, startPlayingAfterPlanning);
+  initWelcome(canvas, ctx);
 
   // Keyboard shortcuts for core actions
   document.addEventListener('keydown', handleKeyboard);
@@ -66,8 +68,8 @@ function init() {
   canvas.addEventListener('click', handleCanvasClick);
   canvas.addEventListener('mousemove', handleCanvasMouseMove);
 
-  // Show menu
-  gameState.phase = GamePhase.MENU;
+  // Show welcome screen
+  gameState.phase = GamePhase.WELCOME;
 
   // Start game loop
   requestAnimationFrame(gameLoop);
@@ -130,6 +132,8 @@ function applyPatientPhysiology(phys) {
   gameState._degradationDisabled = phys.degradationEnabled === false;
   gameState._liverStorageMultiplier = phys.liverStorageMultiplier ?? 1.0;
   gameState._energyDrainMultiplier = phys.energyDrainMultiplier ?? 1.0;
+  gameState._rebelDamageMultiplier = phys.rebelDamageMultiplier ?? 1.0;
+  gameState._kidneyAutoFilterRate = phys.kidneyAutoFilterRate ?? 2.0;
 
   // Energy start multiplier
   const energyMult = phys.energyStartMultiplier ?? 1.0;
@@ -281,7 +285,9 @@ function gameLoop(timestamp) {
   // Render
   renderMap();
 
-  if (gameState.phase === GamePhase.MENU) {
+  if (gameState.phase === GamePhase.WELCOME) {
+    renderWelcome();
+  } else if (gameState.phase === GamePhase.MENU) {
     renderMenu();
   } else if (gameState.phase === GamePhase.PLANNING) {
     renderPlanningMode();
@@ -291,7 +297,6 @@ function gameLoop(timestamp) {
     renderEntities();
     renderEffects();
     renderUI();
-    renderBottomBar();
     renderBottomPanel();
     renderGameOver();
   } else {

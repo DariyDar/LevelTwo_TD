@@ -31,7 +31,8 @@ export function updateCombat(dt) {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < 25) {
-        rebel.attackTarget.takeDamage(CONFIG.REBEL_BUILDING_DPS * dt);
+        const dmgMult = gameState._rebelDamageMultiplier ?? 1.0;
+        rebel.attackTarget.takeDamage(CONFIG.REBEL_BUILDING_DPS * dmgMult * dt);
       } else {
         rebel.moveToward(rebel.attackTarget.x, rebel.attackTarget.y, dt);
       }

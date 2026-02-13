@@ -11,6 +11,8 @@ export const PATIENT_PARAMS = [
   { key: 'liverStorageMultiplier', label: 'Liver Storage Multiplier', min: 0.5, max: 2.0, step: 0.1 },
   { key: 'energyStartMultiplier', label: 'Starting Energy Multiplier', min: 0.5, max: 2.0, step: 0.1 },
   { key: 'energyDrainMultiplier', label: 'Energy Drain Multiplier', min: 0.1, max: 2.0, step: 0.1 },
+  { key: 'rebelDamageMultiplier', label: 'Rebel Damage Multiplier', min: 0, max: 3.0, step: 0.1 },
+  { key: 'kidneyAutoFilterRate', label: 'Kidney Auto-Filter Rate (%/s)', min: 0, max: 5.0, step: 0.1 },
   { key: 'insulinCharges', label: 'Insulin Injection Charges (0=none)', min: 0, max: 30, step: 1 },
 ];
 
@@ -29,6 +31,8 @@ export function getPatientParamValue(patientId, key) {
   if (key === 'degradationEnabled') return phys.degradationEnabled ? 1 : 0;
   if (key === 'insulinCharges') return phys.insulinCharges ?? 0;
   if (key === 'energyDrainMultiplier') return phys.energyDrainMultiplier ?? 1.0;
+  if (key === 'rebelDamageMultiplier') return phys.rebelDamageMultiplier ?? 1.0;
+  if (key === 'kidneyAutoFilterRate') return phys.kidneyAutoFilterRate ?? 2.0;
   return phys[key] ?? 0;
 }
 
@@ -50,6 +54,8 @@ export function getPatientDefault(patientId, key) {
   if (key === 'degradationEnabled') return def.degradationEnabled ? 1 : 0;
   if (key === 'insulinCharges') return def.insulinCharges ?? 0;
   if (key === 'energyDrainMultiplier') return def.energyDrainMultiplier ?? 1.0;
+  if (key === 'rebelDamageMultiplier') return def.rebelDamageMultiplier ?? 1.0;
+  if (key === 'kidneyAutoFilterRate') return def.kidneyAutoFilterRate ?? 2.0;
   return def[key] ?? 0;
 }
 

@@ -6,6 +6,7 @@ import { getEnergyPercent } from './systems/energySystem.js';
 import { calculateBG, getBGColor, getBGLabel } from './systems/bgSystem.js';
 import { PeasantState } from './entities/Peasant.js';
 import { getVirtualHour, formatVirtualTime } from './systems/waveManager.js';
+import { FOODS } from './levels/foodData.js';
 
 let ctx = null;
 
@@ -22,6 +23,7 @@ export function initUIRenderer(context) {
 
 export function renderUI() {
   drawTopBar();
+  drawGameTimeline();
   drawHypoglycemiaOverlay();
 }
 
@@ -260,6 +262,130 @@ function drawTopBar() {
     ctx.textAlign = 'center';
     ctx.fillText('Restart \u21BB', btn.x + btn.w / 2, btn.y + btn.h / 2 + 4);
   }
+}
+
+// Intervention type → emoji map (matches planningMode.js)
+const IV_EMOJI = {
+  walk: '\u{1F6B6}',
+  exercise: '\u{1F3CB}',
+  insulin: '\u{1F489}',
+  semaglutide: '\u{1F48A}',
+  metformin: '\u{1F48A}',
+  dapagliflozin: '\u{1F9EA}',
+};
+
+function drawGameTimeline() {
+  if (gameState.phase !== GamePhase.PLAYING &&
+      gameState.phase !== GamePhase.BETWEEN_WAVES) return;
+
+  const plan = gameState.currentPlan;
+  if (!plan) return;
+  if (plan.meals.length === 0 && plan.interventions.length === 0) return;
+
+  ctx.save();
+
+  const C = CONFIG.COLORS;
+  const startHour = CONFIG.DAY_START_HOUR;
+  const endHour = CONFIG.DAY_END_HOUR;
+  const hourRange = endHour - startHour;
+
+  // Strip position: just below the top bar
+  const stripY = 56;
+  const stripH = 22;
+  const marginL = 50;
+  const marginR = 10;
+  const stripW = CONFIG.CANVAS_WIDTH - marginL - marginR;
+
+  const hourToX = (h) => marginL + ((h - startHour) / hourRange) * stripW;
+
+  // Background
+  ctx.fillStyle = 'rgba(20, 25, 40, 0.85)';
+  ctx.fillRect(0, stripY, CONFIG.CANVAS_WIDTH, stripH);
+
+  // Thin track line
+  ctx.strokeStyle = '#3D5A6E';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(marginL, stripY + stripH / 2);
+  ctx.lineTo(marginL + stripW, stripY + stripH / 2);
+  ctx.stroke();
+
+  // Hour tick marks (every 3 hours)
+  ctx.font = '7px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#5D6D7E';
+  for (let h = startHour; h <= endHour; h += 3) {
+    const tx = hourToX(h);
+    ctx.beginPath();
+    ctx.moveTo(tx, stripY + stripH / 2 - 3);
+    ctx.lineTo(tx, stripY + stripH / 2 + 3);
+    ctx.stroke();
+    ctx.fillText(`${h}`, tx, stripY + stripH - 2);
+  }
+
+  // Draw planned meals
+  for (const meal of plan.meals) {
+    const mx = hourToX(meal.hour);
+    const emojis = (meal.foodKeys || [])
+      .map(k => FOODS[k]?.emoji || '?')
+      .slice(0, 3)
+      .join('');
+
+    ctx.globalAlpha = meal.executed ? 1.0 : 0.5;
+    ctx.font = '11px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = C.WHITE;
+    ctx.fillText(emojis, mx, stripY + 13);
+
+    if (meal.executed) {
+      ctx.fillStyle = '#2ECC71';
+      ctx.font = 'bold 8px Arial';
+      ctx.fillText('\u2713', mx + 12, stripY + 8);
+    }
+    ctx.globalAlpha = 1.0;
+  }
+
+  // Draw planned interventions
+  for (const iv of plan.interventions) {
+    const ix = hourToX(iv.hour);
+    const emoji = IV_EMOJI[iv.type] || '\u2699';
+
+    ctx.globalAlpha = iv.executed ? 1.0 : 0.5;
+    ctx.font = '9px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#3498DB';
+    ctx.fillText(emoji, ix, stripY + 20);
+
+    if (iv.executed) {
+      ctx.fillStyle = '#2ECC71';
+      ctx.font = 'bold 7px Arial';
+      ctx.fillText('\u2713', ix + 8, stripY + 15);
+    }
+    ctx.globalAlpha = 1.0;
+  }
+
+  // Current time marker (gold vertical line)
+  const currentHour = getVirtualHour();
+  if (currentHour >= startHour && currentHour <= endHour) {
+    const nowX = hourToX(currentHour);
+    ctx.strokeStyle = C.GOLD;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(nowX, stripY);
+    ctx.lineTo(nowX, stripY + stripH);
+    ctx.stroke();
+
+    // Small triangle marker at top
+    ctx.fillStyle = C.GOLD;
+    ctx.beginPath();
+    ctx.moveTo(nowX - 3, stripY);
+    ctx.lineTo(nowX + 3, stripY);
+    ctx.lineTo(nowX, stripY + 4);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.restore();
 }
 
 const SPEED_BUTTONS = [

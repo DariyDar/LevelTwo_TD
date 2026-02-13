@@ -35,8 +35,9 @@ function parseTimeToHour(timeStr) {
 export function updateWaveManager(dt) {
   if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return;
 
-  // Day clock (real seconds elapsed since start)
-  gameState.dayClock += dt;
+  // Day clock (real seconds elapsed since start) — clamp so display never exceeds 24:00
+  const maxDayClock = ((CONFIG.DAY_END_HOUR - CONFIG.DAY_START_HOUR) * 60) / CONFIG.DAY_SPEED;
+  gameState.dayClock = Math.min(gameState.dayClock + dt, maxDayClock);
 
   // Juice cooldown
   if (gameState.juiceCooldown > 0) gameState.juiceCooldown -= dt;

@@ -15,6 +15,7 @@ let canvas = null;
 let onStartDay = null;
 let dayButtonRects = [];
 let balanceBtnRect = { x: 0, y: 0, w: 0, h: 0 };
+let hoveredDayBtn = null; // index into dayButtonRects
 
 // Per-patient progress: { patientId: { unlockedDay: number, stars: number[] } }
 let progress = {};
@@ -85,6 +86,7 @@ export function initMenu(canvasEl, context, startDayCallback) {
   loadProgress();
   initBalancePanel(canvasEl, context);
   canvas.addEventListener('click', handleClick);
+  canvas.addEventListener('mousemove', handleMenuMouseMove);
 }
 
 export function renderMenu() {
@@ -129,11 +131,28 @@ export function renderMenu() {
     drawDayButtons(patient, prog, dayBtnStartX, rowY, dayBtnW, dayBtnH, dayBtnGap);
   }
 
+  // Hovered day narrative tooltip
+  if (hoveredDayBtn !== null && hoveredDayBtn < dayButtonRects.length) {
+    const btn = dayButtonRects[hoveredDayBtn];
+    const patient = PATIENTS.find(p => p.id === btn.patientId);
+    if (patient) {
+      const dayDef = patient.days.find(d => d.dayId === btn.dayId);
+      if (dayDef && dayDef.narrative) {
+        const tooltipY = startY + PATIENTS.length * rowH + 5;
+        ctx.font = 'italic 12px Arial';
+        ctx.fillStyle = '#BDC3C7';
+        ctx.textAlign = 'center';
+        const narrative = dayDef.narrative.length > 140 ? dayDef.narrative.slice(0, 137) + '\u2026' : dayDef.narrative;
+        ctx.fillText(narrative, W / 2, tooltipY);
+      }
+    }
+  }
+
   // Instructions
   ctx.font = '13px Arial';
   ctx.fillStyle = '#7F8C8D';
   ctx.textAlign = 'center';
-  ctx.fillText('Select a patient and day to begin. Each patient has unique physiology and challenges.', W / 2, startY + PATIENTS.length * rowH + 10);
+  ctx.fillText('Select a patient and day to begin. Each patient has unique physiology and challenges.', W / 2, startY + PATIENTS.length * rowH + 30);
 
   // Balance button (bottom-right)
   const balBtnW = 140;
@@ -161,17 +180,31 @@ export function renderMenu() {
   renderBalancePanel();
 }
 
+function truncateText(text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let truncated = text;
+  while (truncated.length > 0 && ctx.measureText(truncated + '\u2026').width > maxWidth) {
+    truncated = truncated.slice(0, -1);
+  }
+  return truncated + '\u2026';
+}
+
 function drawPatientCard(patient, x, y, w, h) {
   const C = CONFIG.COLORS;
+  const textMaxW = w - 70; // padding: 55 left + 15 right
+  const fullMaxW = w - 30; // padding: 15 left + 15 right
 
-  // Card background
-  ctx.fillStyle = 'rgba(30, 40, 55, 0.8)';
-  ctx.strokeStyle = patient.color;
-  ctx.lineWidth = 2;
+  // Card background (info panel style — subtle, not button-like)
+  ctx.fillStyle = 'rgba(25, 32, 45, 0.7)';
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, 8);
   ctx.fill();
-  ctx.stroke();
+
+  // Thin colored left accent bar
+  ctx.fillStyle = patient.color;
+  ctx.beginPath();
+  ctx.roundRect(x, y, 4, h, 2);
+  ctx.fill();
 
   // Emoji + name
   ctx.textAlign = 'left';
@@ -180,12 +213,12 @@ function drawPatientCard(patient, x, y, w, h) {
 
   ctx.font = 'bold 18px Arial';
   ctx.fillStyle = patient.color;
-  ctx.fillText(patient.name, x + 55, y + 35);
+  ctx.fillText(truncateText(patient.name, textMaxW), x + 55, y + 35);
 
   // Description
   ctx.font = '12px Arial';
   ctx.fillStyle = '#95A5A6';
-  ctx.fillText(patient.description, x + 55, y + 55);
+  ctx.fillText(truncateText(patient.description, textMaxW), x + 55, y + 55);
 
   // Key physiology info
   ctx.font = '11px Arial';
@@ -204,14 +237,14 @@ function drawPatientCard(patient, x, y, w, h) {
     infoItems.push(`Start IR: ${phys.startingDegradation}`);
   }
   if (infoItems.length > 0) {
-    ctx.fillText(infoItems.join('  \u00B7  '), x + 55, y + 75);
+    ctx.fillText(truncateText(infoItems.join('  \u00B7  '), textMaxW), x + 55, y + 75);
   }
 
   // Available interventions (icons)
   ctx.font = '11px Arial';
   ctx.fillStyle = '#5D7A8C';
   const ivText = patient.availableInterventions.join(', ');
-  ctx.fillText(ivText, x + 15, y + 98);
+  ctx.fillText(truncateText(ivText, fullMaxW), x + 15, y + 98);
 }
 
 function drawDayButtons(patient, prog, startX, rowY, btnW, btnH, gap) {
@@ -224,16 +257,25 @@ function drawDayButtons(patient, prog, startX, rowY, btnW, btnH, gap) {
     const x = startX + di * (btnW + gap);
     const unlocked = day.dayId <= prog.unlockedDay;
     const stars = prog.stars[di] || 0;
+    const rectIdx = dayButtonRects.length; // index for hover check
+
+    // Check if this button is hovered
+    const isHovered = hoveredDayBtn !== null && hoveredDayBtn === rectIdx && unlocked;
 
     // Button background
-    if (unlocked) {
+    if (isHovered) {
+      ctx.fillStyle = stars > 0 ? '#4A7A5A' : '#5A8A94';
+      ctx.strokeStyle = '#F1C40F';
+      ctx.lineWidth = 2;
+    } else if (unlocked) {
       ctx.fillStyle = stars > 0 ? '#3A5A4A' : '#4A6274';
       ctx.strokeStyle = stars > 0 ? '#4CAF50' : '#5D7A8C';
+      ctx.lineWidth = 1.5;
     } else {
       ctx.fillStyle = '#2C3E50';
       ctx.strokeStyle = '#3D5060';
+      ctx.lineWidth = 1.5;
     }
-    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.roundRect(x, btnY, btnW, btnH, 6);
     ctx.fill();
@@ -250,20 +292,36 @@ function drawDayButtons(patient, prog, startX, rowY, btnW, btnH, gap) {
     ctx.textAlign = 'center';
 
     if (unlocked) {
-      // Day label
-      ctx.font = 'bold 13px Arial';
-      ctx.fillStyle = C.WHITE;
-      ctx.fillText(`Day ${day.dayId}`, x + btnW / 2, btnY + 16);
+      if (isHovered) {
+        // Hover state: show "Play >"
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = '#F1C40F';
+        ctx.fillText(`Day ${day.dayId} \u25B6`, x + btnW / 2, btnY + 18);
 
-      // Stars
-      if (stars > 0) {
-        ctx.font = '13px serif';
-        const starStr = '\u2B50'.repeat(stars) + '\u2606'.repeat(3 - stars);
-        ctx.fillText(starStr, x + btnW / 2, btnY + 33);
+        if (stars > 0) {
+          ctx.font = '11px serif';
+          const starStr = '\u2B50'.repeat(stars) + '\u2606'.repeat(3 - stars);
+          ctx.fillText(starStr, x + btnW / 2, btnY + 33);
+        } else {
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#F1C40F';
+          ctx.fillText('Play', x + btnW / 2, btnY + 33);
+        }
       } else {
-        ctx.font = '10px Arial';
-        ctx.fillStyle = '#7F8C8D';
-        ctx.fillText('Not played', x + btnW / 2, btnY + 33);
+        // Normal state
+        ctx.font = 'bold 13px Arial';
+        ctx.fillStyle = C.WHITE;
+        ctx.fillText(`Day ${day.dayId}`, x + btnW / 2, btnY + 16);
+
+        if (stars > 0) {
+          ctx.font = '13px serif';
+          const starStr = '\u2B50'.repeat(stars) + '\u2606'.repeat(3 - stars);
+          ctx.fillText(starStr, x + btnW / 2, btnY + 33);
+        } else {
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#7F8C8D';
+          ctx.fillText('Not played', x + btnW / 2, btnY + 33);
+        }
       }
     } else {
       // Lock icon
@@ -276,7 +334,7 @@ function drawDayButtons(patient, prog, startX, rowY, btnW, btnH, gap) {
 
     // Second row: day name
     ctx.font = '9px Arial';
-    ctx.fillStyle = unlocked ? '#7F8C8D' : '#4A5568';
+    ctx.fillStyle = isHovered ? '#BDC3C7' : unlocked ? '#7F8C8D' : '#4A5568';
     const shortName = day.name.replace(/^Day \d+: /, '');
     ctx.fillText(shortName, x + btnW / 2, btnY + btnH + 12);
 
@@ -315,6 +373,31 @@ function handleClick(e) {
         mx >= btn.x && mx <= btn.x + btn.w &&
         my >= btn.y && my <= btn.y + btn.h) {
       onStartDay(btn.patientId, btn.dayId, btn.levelRef);
+      break;
+    }
+  }
+}
+
+function handleMenuMouseMove(e) {
+  if (gameState.phase !== GamePhase.MENU) return;
+  if (isBalancePanelVisible()) {
+    hoveredDayBtn = null;
+    return;
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = CONFIG.CANVAS_WIDTH / rect.width;
+  const scaleY = CONFIG.CANVAS_HEIGHT / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  hoveredDayBtn = null;
+  for (let i = 0; i < dayButtonRects.length; i++) {
+    const btn = dayButtonRects[i];
+    if (btn.unlocked &&
+        mx >= btn.x && mx <= btn.x + btn.w &&
+        my >= btn.y && my <= btn.y + btn.h) {
+      hoveredDayBtn = i;
       break;
     }
   }

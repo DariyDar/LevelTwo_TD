@@ -1,8 +1,9 @@
-// GlucoDefense — Kidney Tower building (player-activated filtration circle)
+// GlucoDefense — Kidney Tower building (player-activated + auto filtration circle)
 
 import { CONFIG } from '../config.js';
 import { gameState } from '../gameState.js';
 import { spendEnergy } from '../systems/energySystem.js';
+import { calculateBG } from '../systems/bgSystem.js';
 import { playVortex } from '../audio.js';
 
 export class KidneyTower {
@@ -16,6 +17,10 @@ export class KidneyTower {
     this.maxHp = CONFIG.KIDNEY_HP;
     this.destroyed = false;
     this.repairTimer = 0;
+
+    // Auto-filtration (fills when BG > threshold, fires at 100%)
+    this.autoFilterProgress = 0;   // 0–100
+    this.autoFilterCooldown = 0;   // seconds remaining before refill can start
   }
 
   update(dt) {
@@ -31,7 +36,30 @@ export class KidneyTower {
         this.destroyed = false;
         this.hp = this.maxHp;
       }
+      return; // Don't process auto-filter while destroyed
     }
+
+    // Auto-filtration cooldown
+    if (this.autoFilterCooldown > 0) {
+      this.autoFilterCooldown -= dt;
+      if (this.autoFilterCooldown < 0) this.autoFilterCooldown = 0;
+      return; // Don't fill during cooldown
+    }
+
+    // Auto-filtration progress: fill when BG > threshold
+    const bg = calculateBG();
+    if (bg > CONFIG.KIDNEY_AUTO_THRESHOLD) {
+      const fillRate = Math.max(0, gameState._kidneyAutoFilterRate ?? CONFIG.KIDNEY_AUTO_FILL_RATE);
+      this.autoFilterProgress = Math.min(100, this.autoFilterProgress + fillRate * dt);
+
+      if (this.autoFilterProgress >= 100) {
+        this.autoFilterProgress = 0;
+        this.autoFilterCooldown = CONFIG.KIDNEY_AUTO_COOLDOWN;
+        // Auto-fire filtration (free, no energy cost)
+        this.castVortex(null, true);
+      }
+    }
+    // BG below threshold: progress pauses (doesn't reset)
   }
 
   takeDamage(dmg) {
