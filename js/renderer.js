@@ -32,22 +32,29 @@ export function render() {
 
 function drawBackground() {
   const C = CONFIG.COLORS;
+  // Oversized bounds so camera never reveals empty canvas
+  const pad = 400;
+  const left = -pad;
+  const top = -pad;
+  const right = CONFIG.CANVAS_WIDTH + pad;
+  const bottom = CONFIG.CANVAS_HEIGHT + pad;
+  const fullH = bottom - top;
 
-  // Sea
+  // Sea (extends left infinitely)
   ctx.fillStyle = C.SEA;
-  ctx.fillRect(0, 0, CONFIG.SEA_X_END, CONFIG.CANVAS_HEIGHT);
+  ctx.fillRect(left, top, CONFIG.SEA_X_END - left, fullH);
 
   // Shore
   ctx.fillStyle = C.SAND;
-  ctx.fillRect(CONFIG.SEA_X_END, 0, CONFIG.SHORE_X_END - CONFIG.SEA_X_END, CONFIG.CANVAS_HEIGHT);
+  ctx.fillRect(CONFIG.SEA_X_END, top, CONFIG.SHORE_X_END - CONFIG.SEA_X_END, fullH);
 
   // Main ground (between shore and village)
   ctx.fillStyle = '#A8D5A2';
-  ctx.fillRect(CONFIG.SHORE_X_END, 0, CONFIG.VILLAGE_X_END - CONFIG.SHORE_X_END, CONFIG.CANVAS_HEIGHT);
+  ctx.fillRect(CONFIG.SHORE_X_END, top, CONFIG.VILLAGE_X_END - CONFIG.SHORE_X_END, fullH);
 
-  // Village
+  // Village (extends right infinitely)
   ctx.fillStyle = C.GRASS;
-  ctx.fillRect(650, 0, CONFIG.VILLAGE_X_END - 650, CONFIG.CANVAS_HEIGHT);
+  ctx.fillRect(650, top, right - 650, fullH);
 
   // Shore waves (decorative lines)
   ctx.strokeStyle = '#5DADE2';
