@@ -29,7 +29,7 @@ export const PATIENTS = [
         dayId: 1, levelRef: 1, name: 'Day 1: How It Works',
         narrative: 'Your first day. Learn how food arrives as glucose, how insulin converts it to energy, and how your body stays balanced. Only healthy foods today.',
         fixedMeals: [
-          { hour: 7, foodKeys: ['oatmeal', 'eggs'] },
+          { hour: 9, foodKeys: ['oatmeal', 'eggs'] },
           { hour: 13, foodKeys: ['chicken', 'salad'] },
           { hour: 19, foodKeys: ['fish', 'veggies'] },
         ],
@@ -39,7 +39,7 @@ export const PATIENTS = [
         dayId: 2, levelRef: 2, name: 'Day 2: Fast vs Slow',
         narrative: 'Today you\'ll see the difference between fast and slow glucose. Fast food (red) spikes blood sugar quickly; healthy food (orange/green) is gentler.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['cereal', 'banana'] },
+          { hour: 9, foodKeys: ['cereal', 'banana'] },
           { hour: 13, foodKeys: ['burger', 'cola'] },
           { hour: 19, foodKeys: ['stew', 'bread'] },
         ],
@@ -49,7 +49,7 @@ export const PATIENTS = [
         dayId: 3, levelRef: 3, name: 'Day 3: Sugar Challenge',
         narrative: 'Challenge day! Only unhealthy food. Watch how even a healthy body struggles with sugar overload. Use walking and exercise to help!',
         fixedMeals: [
-          { hour: 8, foodKeys: ['muffin', 'juice'] },
+          { hour: 9, foodKeys: ['muffin', 'juice'] },
           { hour: 12, foodKeys: ['pizza', 'cola'] },
           { hour: 16, foodKeys: ['iceCream', 'cookie'] },
           { hour: 19, foodKeys: ['burger', 'fries'] },
@@ -87,12 +87,12 @@ export const PATIENTS = [
         dayId: 1, levelRef: 1, name: 'Day 1: First Injections',
         narrative: 'Your pancreas produces almost no insulin. Every meal requires a carefully timed injection. Start simple with regular meals.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['oatmeal', 'banana'] },
+          { hour: 9, foodKeys: ['oatmeal', 'banana'] },
           { hour: 13, foodKeys: ['sandwich', 'apple'] },
           { hour: 19, foodKeys: ['chicken', 'veggies'] },
         ],
         fixedInterventions: [
-          { hour: 7.75, type: 'insulin', dose: 10 },
+          { hour: 8.75, type: 'insulin', dose: 10 },
           { hour: 12.75, type: 'insulin', dose: 10 },
           { hour: 18.75, type: 'insulin', dose: 10 },
         ],
@@ -101,12 +101,12 @@ export const PATIENTS = [
         dayId: 2, levelRef: 2, name: 'Day 2: Counting Carbs',
         narrative: 'Match insulin to carbs. Too little means high BG; too much means dangerous lows. Today\'s lunch is heavier — adjust your dose!',
         fixedMeals: [
-          { hour: 8, foodKeys: ['eggs', 'bread'] },
+          { hour: 9, foodKeys: ['eggs', 'bread'] },
           { hour: 13, foodKeys: ['rice', 'chicken'] },
           { hour: 19, foodKeys: ['stew', 'salad'] },
         ],
         fixedInterventions: [
-          { hour: 7.75, type: 'insulin', dose: 5 },
+          { hour: 8.75, type: 'insulin', dose: 5 },
           { hour: 12.75, type: 'insulin', dose: 20 },
           { hour: 18.75, type: 'insulin', dose: 10 },
         ],
@@ -115,13 +115,13 @@ export const PATIENTS = [
         dayId: 3, levelRef: 3, name: 'Day 3: Party Challenge',
         narrative: 'Birthday party! Cake, snacks, and sugary drinks. Estimating carbs in party food is tricky. Will you pre-bolus or correct after?',
         fixedMeals: [
-          { hour: 8, foodKeys: ['cereal', 'milk'] },
+          { hour: 9, foodKeys: ['cereal', 'milk'] },
           { hour: 13, foodKeys: ['pizza', 'cola'] },
           { hour: 16, foodKeys: ['chocolate', 'cookie'] },
           { hour: 19, foodKeys: ['pasta', 'iceCream'] },
         ],
         fixedInterventions: [
-          { hour: 7.75, type: 'insulin', dose: 10 },
+          { hour: 8.75, type: 'insulin', dose: 10 },
           { hour: 12.5, type: 'insulin', dose: 20 },
           { hour: 18.5, type: 'insulin', dose: 20 },
         ],
@@ -130,12 +130,12 @@ export const PATIENTS = [
         dayId: 4, levelRef: 4, name: 'Day 4: Active Day',
         narrative: 'A day of exercise and activity. Physical activity acts like extra insulin — watch for lows! You may need less insulin today.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['oatmeal', 'banana'] },
+          { hour: 9, foodKeys: ['oatmeal', 'banana'] },
           { hour: 12, foodKeys: ['sandwich', 'fruitSalad'] },
           { hour: 18, foodKeys: ['fish', 'veggies'] },
         ],
         fixedInterventions: [
-          { hour: 7.75, type: 'insulin', dose: 5 },
+          { hour: 8.75, type: 'insulin', dose: 5 },
           { hour: 10, type: 'exercise' },
           { hour: 11.75, type: 'insulin', dose: 5 },
           { hour: 15, type: 'walk' },
@@ -146,14 +146,14 @@ export const PATIENTS = [
         dayId: 5, levelRef: 5, name: 'Day 5: Fine Tuning',
         narrative: 'Complex day with varied meals. Master insulin timing to stay in range all day. Every unit counts — precision is key.',
         fixedMeals: [
-          { hour: 7, foodKeys: ['eggs', 'cheese'] },
-          { hour: 10, foodKeys: ['apple', 'yogurt'] },
+          { hour: 9, foodKeys: ['eggs', 'cheese'] },
+          { hour: 11, foodKeys: ['apple', 'yogurt'] },
           { hour: 13, foodKeys: ['burger', 'fries'] },
           { hour: 16, foodKeys: ['banana'] },
           { hour: 19, foodKeys: ['pasta', 'salad'] },
         ],
         fixedInterventions: [
-          { hour: 6.75, type: 'insulin', dose: 5 },
+          { hour: 8.75, type: 'insulin', dose: 5 },
           { hour: 12.5, type: 'insulin', dose: 30 },
           { hour: 14, type: 'walk' },
           { hour: 18.5, type: 'insulin', dose: 20 },
@@ -187,7 +187,7 @@ export const PATIENTS = [
         dayId: 1, levelRef: 1, name: 'Day 1: Diagnosis',
         narrative: 'Just diagnosed with Type 2 diabetes. Your body still produces insulin, but cells resist it. Start with simple meals and a morning walk.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['oatmeal', 'apple'] },
+          { hour: 9, foodKeys: ['oatmeal', 'apple'] },
           { hour: 13, foodKeys: ['rice', 'chicken'] },
           { hour: 19, foodKeys: ['fish', 'veggies'] },
         ],
@@ -200,7 +200,7 @@ export const PATIENTS = [
         dayId: 2, levelRef: 2, name: 'Day 2: Office Lunch',
         narrative: 'Office catering is carb-heavy. Medications can help, but food choices matter most. The cafeteria only has pasta and sandwiches today.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['cereal', 'milk'] },
+          { hour: 9, foodKeys: ['cereal', 'milk'] },
           { hour: 13, foodKeys: ['pasta', 'bread'] },
           { hour: 19, foodKeys: ['stew', 'salad'] },
         ],
@@ -213,7 +213,7 @@ export const PATIENTS = [
         dayId: 3, levelRef: 3, name: 'Day 3: Birthday Party',
         narrative: 'Granddaughter\'s birthday! She baked a cake herself and really wants you to eat a slice. Social pressure to eat sweets all afternoon.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['eggs', 'bread'] },
+          { hour: 9, foodKeys: ['eggs', 'bread'] },
           { hour: 12, foodKeys: ['sandwich', 'banana'] },
           { hour: 15, foodKeys: ['muffin', 'iceCream'] },
           { hour: 19, foodKeys: ['pizza', 'cola'] },
@@ -244,14 +244,14 @@ export const PATIENTS = [
         dayId: 5, levelRef: 5, name: 'Day 5: Management',
         narrative: 'Full day of managing diabetes with diet, exercise, and medications. Show that you understand the disease and can keep BG stable all day.',
         fixedMeals: [
-          { hour: 7, foodKeys: ['oatmeal', 'eggs'] },
-          { hour: 10, foodKeys: ['apple', 'yogurt'] },
+          { hour: 9, foodKeys: ['oatmeal', 'eggs'] },
+          { hour: 11, foodKeys: ['apple', 'yogurt'] },
           { hour: 13, foodKeys: ['sandwich', 'fruitSalad'] },
           { hour: 16, foodKeys: ['banana', 'cheese'] },
           { hour: 19, foodKeys: ['turkey', 'veggies'] },
         ],
         fixedInterventions: [
-          { hour: 8, type: 'metformin' },
+          { hour: 9.5, type: 'metformin' },
           { hour: 11, type: 'walk' },
           { hour: 14, type: 'exercise' },
           { hour: 17, type: 'semaglutide' },
@@ -285,7 +285,7 @@ export const PATIENTS = [
         dayId: 1, levelRef: 1, name: 'Day 1: Complications',
         narrative: 'Years of high blood sugar damaged your organs. Kidneys are weaker, resistance is high. Even small meals cause big spikes. Be very careful.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['eggs', 'salad'] },
+          { hour: 9, foodKeys: ['eggs', 'salad'] },
           { hour: 13, foodKeys: ['chicken', 'veggies'] },
           { hour: 19, foodKeys: ['fish', 'broccoli'] },
         ],
@@ -299,7 +299,7 @@ export const PATIENTS = [
         dayId: 2, levelRef: 2, name: 'Day 2: Diet Change',
         narrative: 'Doctor ordered strict diet changes. Focus on slow-absorbing foods and use all available medications. Your weakened body has little margin for error.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['oatmeal', 'cheese'] },
+          { hour: 9, foodKeys: ['oatmeal', 'cheese'] },
           { hour: 13, foodKeys: ['stew', 'salad'] },
           { hour: 19, foodKeys: ['turkey', 'veggies'] },
         ],
@@ -314,13 +314,13 @@ export const PATIENTS = [
         dayId: 3, levelRef: 3, name: 'Day 3: Strict Control',
         narrative: 'Every meal must be carefully managed. High BG damages organs further, but going too low is equally dangerous. Precision is everything.',
         fixedMeals: [
-          { hour: 7, foodKeys: ['eggs', 'bread'] },
-          { hour: 10, foodKeys: ['apple', 'yogurt'] },
+          { hour: 9, foodKeys: ['eggs', 'bread'] },
+          { hour: 11, foodKeys: ['apple', 'yogurt'] },
           { hour: 13, foodKeys: ['rice', 'chicken'] },
           { hour: 19, foodKeys: ['fish', 'salad'] },
         ],
         fixedInterventions: [
-          { hour: 8, type: 'metformin' },
+          { hour: 9.5, type: 'metformin' },
           { hour: 11, type: 'walk' },
           { hour: 14, type: 'semaglutide' },
           { hour: 16, type: 'exercise' },
@@ -331,7 +331,7 @@ export const PATIENTS = [
         dayId: 4, levelRef: 4, name: 'Day 4: Emergency',
         narrative: 'Stuck at an airport with only fast food. Your degraded organs struggle to process glucose. Use every tool at your disposal to survive this day.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['muffin', 'juice'] },
+          { hour: 9, foodKeys: ['muffin', 'juice'] },
           { hour: 12, foodKeys: ['burger', 'fries'] },
           { hour: 16, foodKeys: ['pizza', 'cola'] },
           { hour: 20, foodKeys: ['sandwich', 'chips'] },
@@ -349,14 +349,14 @@ export const PATIENTS = [
         dayId: 5, levelRef: 5, name: 'Day 5: Survival',
         narrative: 'The ultimate test. Damaged organs, resistant cells, a full day of meals. Can you maintain control despite severe metabolic dysfunction?',
         fixedMeals: [
-          { hour: 7, foodKeys: ['cereal', 'banana'] },
-          { hour: 10, foodKeys: ['donut', 'cola'] },
+          { hour: 9, foodKeys: ['cereal', 'banana'] },
+          { hour: 11, foodKeys: ['donut', 'cola'] },
           { hour: 13, foodKeys: ['burger', 'fries', 'cola'] },
           { hour: 16, foodKeys: ['iceCream', 'cookie'] },
           { hour: 19, foodKeys: ['pizza', 'chocolate'] },
         ],
         fixedInterventions: [
-          { hour: 8, type: 'metformin' },
+          { hour: 9.5, type: 'metformin' },
           { hour: 9, type: 'walk' },
           { hour: 11, type: 'semaglutide' },
           { hour: 14, type: 'exercise' },

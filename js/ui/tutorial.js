@@ -49,7 +49,17 @@ const TUTORIAL_STEPS = {
       pointer: null,
       pauseGame: true,
     },
-    // Step 3 (PLAYING): BG counter — when first glucose actually raises BG
+    // Step 3 (PLAYING): Boat arrival — when first meal boat appears
+    {
+      id: 'boat_arrival',
+      phase: 'playing',
+      trigger: (gs) => gs.boats.length > 0,
+      spotlight: { x: 0, y: 250, w: 300, h: 200 },
+      text: 'A meal has arrived! The boat delivers glucose to your bloodstream. Watch the glucose units walk from shore into your body.',
+      pointer: null,
+      pauseGame: true,
+    },
+    // Step 4 (PLAYING): BG counter — when first glucose actually raises BG
     {
       id: 'bg_counter',
       phase: 'playing',

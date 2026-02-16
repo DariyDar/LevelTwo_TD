@@ -221,10 +221,10 @@ export const CONFIG = {
   WAVE_INTERVAL: 60,
   JUICE_COOLDOWN: 30, // seconds between juice/snack boats
 
-  // Day cycle: 6:00 to 24:00 (18 virtual hours)
-  DAY_START_HOUR: 6,  // 6:00 AM
+  // Day cycle: 8:00 to 24:00 (16 virtual hours)
+  DAY_START_HOUR: 8,  // 8:00 AM
   DAY_END_HOUR: 24,   // midnight
-  DAY_SPEED: 3.5,     // virtual minutes per real second (18h = 360min / 3.5 ≈ 103s real)
+  DAY_SPEED: 3.5,     // virtual minutes per real second (16h = 960min / 3.5 ≈ 91s real)
 
   // Boat unload times (longer for bigger loads)
   UNLOAD_TIME_S: 5,

@@ -119,6 +119,9 @@ export class Priest {
   }
 
   _merge() {
+    // Healthy patients (degradation disabled) — insulin always succeeds
+    const noResistance = gameState._degradationDisabled === true;
+
     const deg = gameState.degradation;
     const baseChance = this.successOverride !== null
       ? this.successOverride
@@ -127,7 +130,7 @@ export class Priest {
     const sensitivity = gameState._insulinSensitivity ?? 1.0;
     const successChance = Math.min(1.0, baseChance * sensitivity);
 
-    const roll = Math.random();
+    const roll = noResistance ? 0 : Math.random();
 
     if (roll < successChance) {
       // SUCCESS — insulin merges with glucose, priest consumed
