@@ -39,7 +39,7 @@ import { initWelcome, renderWelcome } from './ui/welcome.js';
 import { initTutorial, initTutorialForDay, updateTutorial, renderTutorial, advanceTutorial, isTutorialActive } from './ui/tutorial.js';
 import { loadAllSprites } from './spriteLoader.js';
 import { updateAnim } from './spriteAnimator.js';
-import { initCamera, applyCamera, resetCamera, screenToWorld, handleZoom, startDrag, updateDrag, endDrag, isDragging } from './camera.js';
+import { initCamera, applyCamera, resetCamera, screenToWorld, handleZoom, startDrag, updateDrag, endDrag, isDragging, setCameraOverride } from './camera.js';
 
 let lastTime = 0;
 let canvas = null;
@@ -350,6 +350,9 @@ function gameLoop(timestamp) {
   // Render — clear in screen space, then apply camera for world
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+
+  // Disable camera zoom during tutorial so highlights align with world
+  setCameraOverride(isTutorialActive());
 
   // World rendering (with camera transform)
   applyCamera(ctx);

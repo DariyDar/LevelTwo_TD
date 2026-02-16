@@ -18,7 +18,18 @@ export function initCamera() {
   clampCamera();
 }
 
+// Temporary override for tutorial — forces zoom 1.0, pos (0,0)
+let overrideActive = false;
+
+export function setCameraOverride(active) {
+  overrideActive = active;
+}
+
 export function applyCamera(ctx) {
+  if (overrideActive) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    return;
+  }
   ctx.setTransform(cam.zoom, 0, 0, cam.zoom, -cam.x * cam.zoom, -cam.y * cam.zoom);
 }
 
@@ -27,6 +38,7 @@ export function resetCamera(ctx) {
 }
 
 export function screenToWorld(sx, sy) {
+  if (overrideActive) return { x: sx, y: sy };
   return {
     x: sx / cam.zoom + cam.x,
     y: sy / cam.zoom + cam.y,
