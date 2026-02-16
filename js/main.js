@@ -109,12 +109,14 @@ export function startDay(patientId, dayId, levelRef) {
   gameState.liverTower = new LiverTower();
   gameState.kidneys = new KidneyTower();
 
-  // Set initial liver glucose reserve
+  // Set initial liver glucose reserve (all initial storage counts as slow-type)
   if (gameState._liverInitialStorage > 0 && gameState.liverTower) {
-    gameState.liverTower.storage = Math.min(
+    const amount = Math.min(
       gameState._liverInitialStorage,
       gameState.liverTower.maxStorage
     );
+    gameState.liverTower.storage = amount;
+    gameState.liverTower.slowStorage = amount;
   }
 
   // Initialize BG history tracking

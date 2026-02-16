@@ -174,6 +174,9 @@ export class Knight {
 
     // Absorb when at liver — knight survives and returns home
     if (dist <= 10) {
+      if (this.target.speedCategory === 'slow') {
+        liver.slowStorage++;
+      }
       this.target.alive = false;
       this.target.assignedKnight = null;
       this.target = null;

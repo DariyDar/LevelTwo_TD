@@ -142,7 +142,7 @@ const TUTORIAL_STEPS = {
       trigger: () => getVirtualHour() >= 10,
       spotlight: null,
       text: 'You can speed up time! Click the speed buttons to fast-forward through quiet periods. Try x10 for maximum speed!',
-      pointer: { x: 0, y: 40, dir: 'speed_10x' },
+      pointer: { x: 0, y: 52, dir: 'speed_10x' },
       pauseGame: true,
       minDelay: 5,
     },
@@ -395,13 +395,12 @@ function _renderOverlay(step) {
     ctx.textAlign = 'center';
 
     if (step.pointer.dir === 'speed_10x') {
-      // Dynamic positioning: point at the x10 speed button area
-      // Speed buttons are drawn left of restart (x=1100), 6 buttons of 30px + 3px gap
-      // x10 is the 6th button (index 5): startX + 5 * 33
-      // totalW = 6*33 + 33 = 231, startX = 1100 - 231 - 8 = 861
+      // Point at the x10 speed button area from below
+      // Speed buttons: startX = 1100 - (6*33 + 33) - 8 = 861
+      // x10 button center: 861 + 5*33 + 15 = 1041
       const approxX = 861 + 5 * 33 + 15;
       const bounce = 6 * Math.sin(Date.now() / 300);
-      ctx.fillText('\u{1F447}', approxX, py + bounce);
+      ctx.fillText('\u{1F446}', approxX, py + bounce);
     } else if (step.pointer.dir === 'down') {
       const bounce = 6 * Math.sin(Date.now() / 300);
       ctx.fillText('\u{1F447}', px, py + bounce);

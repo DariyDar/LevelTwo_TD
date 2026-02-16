@@ -12,6 +12,7 @@ export class LiverTower {
     this.x = CONFIG.LIVER_POS.x;
     this.y = CONFIG.LIVER_POS.y;
     this.storage = 0;
+    this.slowStorage = 0; // how many stored glucose are slow-type
     this.spawnTimer = CONFIG.LIVER_AUTO_SPAWN_INTERVAL;
     this.releaseTimer = 0; // auto-glycogenolysis cooldown
 
@@ -123,12 +124,16 @@ export class LiverTower {
   _releasePeasant() {
     if (this.storage <= 0) return false;
 
+    // Determine speed category from stored mix
+    const isSlow = this.slowStorage > 0;
     this.storage--;
+    if (isSlow) this.slowStorage--;
 
-    // Released glucose goes to muscle zone as red — needs priest to convert
+    // Released glucose goes to muscle zone — needs priest to convert
     const zone = CONFIG.MUSCLE_ZONE;
     const peasant = new Peasant(this.x + 50, this.y + (Math.random() - 0.5) * 30, CONFIG.SPEED_MEDIUM);
     peasant.color = 'red';
+    peasant.speedCategory = isSlow ? 'slow' : 'fast';
     peasant.state = PeasantState.WAITING_FOR_PRIEST;
     peasant.waitTimer = 0;
     peasant.rebelThreshold = CONFIG.PRIEST_WAIT_TIMEOUT * (0.5 + Math.random());
