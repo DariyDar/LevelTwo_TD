@@ -6,7 +6,7 @@ import { Peasant, PeasantState } from './entities/Peasant.js';
 import { findLeastFilledMine } from './buildings/Mine.js';
 import { initRenderer, render as renderMap, nextMealBtnRect, juiceBtnRect } from './renderer.js';
 import { initEntityRenderer, renderEntities } from './rendererEntities.js';
-import { initUIRenderer, renderUI, renderPausedOverlay, renderBottomPanel, restartButtonRect, speedButtonRects } from './rendererUI.js';
+import { initUIRenderer, renderUI, renderPausedOverlay, restartButtonRect, speedButtonRects, menuButtonRect } from './rendererUI.js';
 import { initEffectsRenderer, renderEffects } from './rendererEffects.js';
 import { updateWaveManager, loadLevel, triggerNextWave, triggerEarlyWave, spawnJuice, formatVirtualTime } from './systems/waveManager.js';
 import { updateEnergy } from './systems/energySystem.js';
@@ -129,17 +129,14 @@ export function startDay(patientId, dayId, levelRef) {
   // Check if this day has fixed meals (tutorial / narrative days)
   const dayDef = patient ? patient.days.find(d => d.dayId === dayId) : null;
   if (dayDef && dayDef.fixedMeals) {
-    // Auto-create plan from fixed meals — skip planning mode
+    // Auto-create plan from fixed meals — show planning screen (read-only)
     gameState.currentPlan = {
       levelId,
       meals: dayDef.fixedMeals.map(m => ({ ...m, executed: false })),
       interventions: (dayDef.fixedInterventions || []).map(iv => ({ ...iv, executed: false })),
     };
-    initPlanExecutor();
-    gameState.waves = gameState.currentPlan.meals.map(m => ({
-      time: formatVirtualTime(m.hour), choices: [],
-    }));
-    gameState.phase = GamePhase.PLAYING;
+    // Plan executor init happens when "Start Day" is clicked (startPlayingAfterPlanning)
+    gameState.phase = GamePhase.PLANNING;
     return;
   }
 
@@ -166,6 +163,7 @@ function applyPatientPhysiology(phys) {
   gameState._kidneyAutoFilterRate = phys.kidneyAutoFilterRate ?? 2.0;
   gameState._liverReleaseRate = phys.liverReleaseRate ?? 1.0;
   gameState._liverInitialStorage = phys.liverInitialStorage ?? 0;
+  gameState._priestWaitMultiplier = phys.priestWaitMultiplier ?? 1.0;
 
   // Energy start multiplier
   const energyMult = phys.energyStartMultiplier ?? 1.0;
@@ -329,7 +327,6 @@ function gameLoop(timestamp) {
     renderEntities();
     renderEffects();
     renderUI();
-    renderBottomPanel();
     renderGameOver();
   } else {
     renderEntities();
@@ -343,7 +340,6 @@ function gameLoop(timestamp) {
       renderBottomBar();
     }
 
-    renderBottomPanel();
     renderWavePreview();
     renderFoodChoice();
     renderPausedOverlay();
@@ -457,7 +453,7 @@ function cleanupDead() {
   gameState.boats = gameState.boats.filter(b => b.alive);
 }
 
-const SPEED_OPTIONS = [0.25, 0.5, 1.0, 2.0];
+const SPEED_OPTIONS = [0.25, 0.5, 1.0, 2.0, 5.0, 10.0];
 
 function cycleSpeed(direction) {
   let idx = SPEED_OPTIONS.indexOf(gameState.speedMultiplier);
@@ -546,6 +542,14 @@ function handleCanvasClick(e) {
   const btn = restartButtonRect;
   if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
     startDay(gameState.currentPatientId, gameState.currentDay, gameState.level);
+    return;
+  }
+
+  // Menu button — return to main menu
+  const mbtn = menuButtonRect;
+  if (mx >= mbtn.x && mx <= mbtn.x + mbtn.w && my >= mbtn.y && my <= mbtn.y + mbtn.h) {
+    fullReset();
+    gameState.phase = GamePhase.MENU;
   }
 }
 

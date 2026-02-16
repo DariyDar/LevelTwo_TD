@@ -111,7 +111,8 @@ export class Peasant {
         // Arrived at village square
         this.state = PeasantState.WAITING_FOR_PRIEST;
         this.waitTimer = 0;
-        this.rebelThreshold = CONFIG.PRIEST_WAIT_TIMEOUT * (0.5 + Math.random());
+        const priestMult = gameState._priestWaitMultiplier ?? 1.0;
+        this.rebelThreshold = CONFIG.PRIEST_WAIT_TIMEOUT * priestMult * (0.5 + Math.random());
       }
     }
   }

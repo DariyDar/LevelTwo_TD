@@ -11,7 +11,10 @@ import { FOODS } from './levels/foodData.js';
 let ctx = null;
 
 // Restart button rect for click detection
-export const restartButtonRect = { x: 1180, y: 8, w: 80, h: 36 };
+export const restartButtonRect = { x: 1100, y: 8, w: 80, h: 36 };
+
+// Menu button rect for click detection
+export const menuButtonRect = { x: 0, y: 8, w: 70, h: 36 };
 
 // Speed control button rects for click detection
 // Populated each frame by drawSpeedControls()
@@ -262,6 +265,23 @@ function drawTopBar() {
     ctx.font = 'bold 11px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Restart \u21BB', btn.x + btn.w / 2, btn.y + btn.h / 2 + 4);
+
+    // Menu button — right after Restart
+    const mbtn = menuButtonRect;
+    mbtn.x = btn.x + btn.w + 8;
+    mbtn.w = 70;
+    ctx.fillStyle = '#4A6274';
+    ctx.strokeStyle = '#5D7A8C';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(mbtn.x, mbtn.y, mbtn.w, mbtn.h, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = C.WHITE;
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Menu', mbtn.x + mbtn.w / 2, mbtn.y + mbtn.h / 2 + 4);
   }
 }
 
@@ -433,7 +453,7 @@ function drawBGMiniGraph() {
   ctx.fillStyle = 'rgba(20, 25, 40, 0.80)';
   ctx.fillRect(0, gY, CONFIG.CANVAS_WIDTH, gH);
 
-  const bgMax = CONFIG.BG_VERY_HIGH;
+  const bgMax = 300;
 
   // Zone color bands (horizontal)
   const zones = [
@@ -525,13 +545,15 @@ const SPEED_BUTTONS = [
   { label: '0.5x', speed: 0.5 },
   { label: '1x', speed: 1.0 },
   { label: '2x', speed: 2.0 },
+  { label: '5x', speed: 5.0 },
+  { label: '10x', speed: 10.0 },
 ];
 
 function drawSpeedControls(C) {
   // Clear previous rects
   speedButtonRects.length = 0;
 
-  const btnW = 36;
+  const btnW = 30;
   const btnH = 28;
   const gap = 3;
   const pauseW = 30;
@@ -579,81 +601,6 @@ function drawSpeedControls(C) {
   ctx.fillText(isPaused ? '\u25B6' : '\u23F8', cx + pauseW / 2, startY + btnH / 2 + 4);
 
   speedButtonRects.push({ x: cx, y: startY, w: pauseW, h: btnH, speed: 0, action: 'pause' });
-}
-
-// Bottom panel: event timeline (40px) — BG graph is now in the top mini-graph
-export function renderBottomPanel() {
-  if (gameState.phase !== GamePhase.PLAYING &&
-      gameState.phase !== GamePhase.BETWEEN_WAVES &&
-      gameState.phase !== GamePhase.GAME_OVER) return;
-
-  if (!gameState.bgEventLog || gameState.bgEventLog.length === 0) return;
-
-  const panelH = 40;
-  const panelY = CONFIG.CANVAS_HEIGHT - panelH;
-  const margin = 50;
-  const rightMargin = 10;
-  const graphW = CONFIG.CANVAS_WIDTH - margin - rightMargin;
-
-  // Panel background
-  ctx.fillStyle = 'rgba(30, 30, 50, 0.85)';
-  ctx.fillRect(0, panelY, CONFIG.CANVAS_WIDTH, panelH);
-
-  // Separator line
-  ctx.strokeStyle = '#3D5A6E';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, panelY);
-  ctx.lineTo(CONFIG.CANVAS_WIDTH, panelY);
-  ctx.stroke();
-
-  const startHour = CONFIG.DAY_START_HOUR;
-  const endHour = CONFIG.DAY_END_HOUR;
-  const hourRange = endHour - startHour;
-  const hourToX = (h) => margin + ((h - startHour) / hourRange) * graphW;
-
-  // Hour tick marks + labels
-  ctx.font = '8px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#5D6D7E';
-  for (let h = startHour; h <= endHour; h += 3) {
-    const tx = hourToX(h);
-    ctx.beginPath();
-    ctx.moveTo(tx, panelY);
-    ctx.lineTo(tx, panelY + 4);
-    ctx.stroke();
-    ctx.fillText(`${h}`, tx, panelY + 12);
-  }
-
-  // Food + intervention event markers
-  for (const evt of gameState.bgEventLog) {
-    const ex = hourToX(evt.hour);
-    if (evt.type === 'food') {
-      ctx.font = '11px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#BDC3C7';
-      ctx.fillText(evt.label, ex, panelY + 26);
-    } else if (evt.type === 'intervention') {
-      ctx.font = '9px Arial';
-      ctx.fillStyle = '#3498DB';
-      ctx.textAlign = 'center';
-      ctx.fillText(evt.label, ex, panelY + 36);
-    }
-  }
-
-  // Current time indicator
-  const currentHour = getVirtualHour();
-  if (currentHour >= startHour && currentHour <= endHour) {
-    const nowX = hourToX(currentHour);
-    ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 2]);
-    ctx.beginPath();
-    ctx.moveTo(nowX, panelY);
-    ctx.lineTo(nowX, panelY + panelH);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
 }
 
 function drawHypoglycemiaOverlay() {

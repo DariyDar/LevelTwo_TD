@@ -4,59 +4,119 @@ import { CONFIG } from '../config.js';
 import { gameState } from '../gameState.js';
 import { PeasantState } from '../entities/Peasant.js';
 import { calculateBG } from '../systems/bgSystem.js';
+import { getVirtualHour } from '../systems/waveManager.js';
 
 let ctx = null;
 let canvas = null;
 
 // Tutorial step definitions per patient+day key
+// Each step has:
+//   phase: 'planning' | 'playing' — which game phase triggers this step
+//   trigger: (gs) => boolean — when to show
+//   spotlight: { x, y, w, h } | null — highlighted zone (null = full dim)
+//   text: string — display text
+//   pointer: { x, y, dir? } | null — finger pointer (ONLY for button-pointing steps)
+//   pauseGame: boolean — whether to pause the game when shown (playing phase only)
 const TUTORIAL_STEPS = {
   healthy_1: [
+    // Step 0 (PLANNING): Introduce the planning screen
     {
-      id: 'welcome',
-      trigger: (gs) => gs.dayClock < 2,
+      id: 'planning_intro',
+      phase: 'planning',
+      trigger: () => true,
+      spotlight: { x: 50, y: 90, w: 1180, h: 120 },
+      text: 'Meals are pre-set for this day. See them on the timeline above. Each meal will deliver glucose to your bloodstream at the scheduled time.',
+      pointer: null,
+      pauseGame: false,
+    },
+    // Step 1 (PLANNING): Point at Start Day button
+    {
+      id: 'planning_start',
+      phase: 'planning',
+      trigger: () => true,
       spotlight: null,
-      text: 'Welcome! This is your bloodstream. Food arrives as glucose from the sea on the left and travels through your body.',
-      pointer: { x: 200, y: 360, dir: 'left' },
+      text: 'Click "Start Day" to begin!',
+      pointer: { x: 640, y: 640, dir: 'down' },
+      pauseGame: false,
+    },
+    // Step 2 (PLAYING): Show timeline at top
+    {
+      id: 'timeline_intro',
+      phase: 'playing',
+      trigger: (gs) => gs.dayClock < 2,
+      spotlight: { x: 0, y: 56, w: 1280, h: 22 },
+      text: 'This timeline shows your planned meals throughout the day. The gold marker shows the current time.',
+      pointer: null,
       pauseGame: true,
     },
+    // Step 3 (PLAYING): BG counter — after boat food lands on shore
     {
-      id: 'boat_arrives',
-      trigger: (gs) => gs.boats.length > 0 && gs.boats[0].x > 80,
-      spotlight: { x: 30, y: 280, w: 270, h: 160 },
-      text: 'A meal arrives by boat! It unloads glucose (colored circles) onto the shore. They walk toward your organs.',
-      pointer: { x: 250, y: 360, dir: 'right' },
+      id: 'bg_counter',
+      phase: 'playing',
+      trigger: (gs) => gs.peasants.some(p => p.alive && p.x > 300),
+      spotlight: { x: 240, y: 0, w: 230, h: 55 },
+      text: 'Watch the BG (Blood Glucose) meter — it shows how much sugar is in your blood. Green zone (80-140 mg/dL) is healthy!',
+      pointer: null,
       pauseGame: true,
     },
+    // Step 4 (PLAYING): Liver — after knight catches first glucose
     {
-      id: 'liver_explained',
-      trigger: (gs) => gs.peasants.some(p => p.alive && p.x > 400 && p.x < 600),
+      id: 'liver_intro',
+      phase: 'playing',
+      trigger: (gs) => gs.liverTower && gs.liverTower.storage > (gs._liverInitialStorage + 5),
       spotlight: { x: 420, y: 290, w: 160, h: 140 },
-      text: 'The Liver stores excess glucose as glycogen. Green knights intercept passing glucose and escort it to storage.',
-      pointer: { x: 500, y: 360 },
+      text: 'The Liver stores excess glucose. Green knights intercept glucose and escort it to storage for later use.',
+      pointer: null,
       pauseGame: true,
     },
+    // Step 5 (PLAYING): Muscles — glucose reaches mine field
     {
-      id: 'pancreas_explained',
-      trigger: (gs) => gs.priests.length > 3,
-      spotlight: { x: 820, y: 150, w: 120, h: 110 },
-      text: 'The Pancreas produces insulin (gold circles). Insulin converts free glucose into purple workers that produce energy.',
-      pointer: { x: 875, y: 200 },
-      pauseGame: true,
-    },
-    {
-      id: 'muscles_explained',
-      trigger: (gs) => gs.stats.totalWorkers > 85,
+      id: 'muscles_intro',
+      phase: 'playing',
+      trigger: (gs) => gs.peasants.some(p => p.alive && p.state === PeasantState.WAITING_FOR_PRIEST && p.x > 660),
       spotlight: { x: 640, y: 230, w: 380, h: 280 },
-      text: 'Muscle cells (orange rectangles) use glucose workers to produce energy (ATP). Keep them supplied to stay alive!',
-      pointer: { x: 800, y: 370 },
+      text: 'Muscle cells need glucose workers to produce energy (ATP). Free glucose waits here for insulin to convert it.',
+      pointer: null,
       pauseGame: true,
     },
+    // Step 6 (PLAYING): Pancreas — when first insulin appears
     {
-      id: 'energy_explained',
-      trigger: (gs) => gs.energy < 260,
-      spotlight: { x: 0, y: 0, w: 230, h: 55 },
-      text: 'Energy bar (top-left) drains constantly. Workers in mines replenish it. If energy hits zero: blackout! But don\'t worry — a healthy body manages this easily.',
-      pointer: { x: 100, y: 30 },
+      id: 'pancreas_intro',
+      phase: 'playing',
+      trigger: (gs) => gs.priests.length > 0,
+      spotlight: { x: 820, y: 150, w: 120, h: 110 },
+      text: 'The Pancreas produces insulin (gold circles). Insulin is the key that lets glucose enter muscle cells!',
+      pointer: null,
+      pauseGame: true,
+    },
+    // Step 7 (PLAYING): Insulin in action — conversion happened
+    {
+      id: 'insulin_action',
+      phase: 'playing',
+      trigger: (gs) => gs.stats.totalWorkers > 82,
+      spotlight: { x: 640, y: 230, w: 380, h: 280 },
+      text: 'Insulin converts free glucose into workers (purple). Workers enter muscle cells and produce energy. This is how your body turns food into fuel!',
+      pointer: null,
+      pauseGame: true,
+    },
+    // Step 8 (PLAYING): Rebel glucose — event-driven only
+    {
+      id: 'rebel_intro',
+      phase: 'playing',
+      trigger: (gs) => gs.peasants.some(p => p.alive && p.state === PeasantState.REBEL),
+      spotlight: null,
+      text: 'When glucose waits too long without insulin, it becomes "angry" (rebel). Don\'t worry — in a healthy body this is rare and not dangerous.',
+      pointer: null,
+      pauseGame: true,
+    },
+    // Step 9 (PLAYING): Speed tutorial at ~10:00
+    {
+      id: 'speed_tutorial',
+      phase: 'playing',
+      trigger: () => getVirtualHour() >= 10,
+      spotlight: null,
+      text: 'You can speed up time! Click the speed buttons to fast-forward through quiet periods. Try x10 for maximum speed!',
+      pointer: { x: 0, y: 40, dir: 'speed_10x' },
       pauseGame: true,
     },
   ],
@@ -64,16 +124,20 @@ const TUTORIAL_STEPS = {
   healthy_2: [
     {
       id: 'fast_vs_slow',
+      phase: 'playing',
       trigger: (gs) => gs.boats.length > 0,
       spotlight: { x: 30, y: 280, w: 270, h: 160 },
       text: 'Notice the glucose colors: RED = fast absorption (spikes BG quickly), ORANGE = slow absorption (gentle rise). Today you\'ll see both!',
+      pointer: null,
       pauseGame: true,
     },
     {
       id: 'bg_bar',
-      trigger: (gs) => calculateBG() > 110,
+      phase: 'playing',
+      trigger: () => calculateBG() > 110,
       spotlight: { x: 240, y: 0, w: 230, h: 55 },
-      text: 'Watch the Blood Glucose bar! Green zone (80-140 mg/dL) is healthy. Yellow means elevated, red means danger. Even healthy people benefit from steady BG.',
+      text: 'Watch the Blood Glucose bar! Green zone (80-140 mg/dL) is healthy. Yellow means elevated, red means danger.',
+      pointer: null,
       pauseGame: true,
     },
   ],
@@ -81,16 +145,20 @@ const TUTORIAL_STEPS = {
   healthy_3: [
     {
       id: 'challenge_intro',
+      phase: 'playing',
       trigger: (gs) => gs.dayClock < 2,
       spotlight: null,
       text: 'Challenge! Only unhealthy food today. Your body can handle it, but watch how BG behaves. Walking and exercise are pre-scheduled to help.',
+      pointer: null,
       pauseGame: true,
     },
     {
       id: 'walk_hint',
+      phase: 'playing',
       trigger: (gs) => gs.peasants.filter(p => p.alive && p.state === PeasantState.REBEL).length > 8,
       spotlight: null,
       text: 'Lots of free glucose! Walking helps muscles absorb glucose faster. Exercise doubles energy production. These tools keep you balanced.',
+      pointer: null,
       pauseGame: true,
     },
   ],
@@ -98,16 +166,20 @@ const TUTORIAL_STEPS = {
   type1_1: [
     {
       id: 'type1_intro',
+      phase: 'playing',
       trigger: (gs) => gs.dayClock < 2,
       spotlight: null,
       text: 'Type 1 Diabetes: Your pancreas produces almost no insulin. You must rely on injections (pre-scheduled). Watch your insulin charges!',
+      pointer: null,
       pauseGame: true,
     },
     {
       id: 'insulin_charges',
+      phase: 'playing',
       trigger: (gs) => gs._insulinCharges != null && gs._insulinCharges < 14,
       spotlight: { x: 450, y: 25, w: 130, h: 22 },
       text: 'Insulin charges are limited! Each injection uses charges shown at top. Too much insulin causes dangerous lows. Timing is everything.',
+      pointer: null,
       pauseGame: true,
     },
   ],
@@ -115,23 +187,29 @@ const TUTORIAL_STEPS = {
   type2_1: [
     {
       id: 'type2_intro',
+      phase: 'playing',
       trigger: (gs) => gs.dayClock < 2,
       spotlight: null,
       text: 'Type 2 Diabetes: Your body produces insulin, but cells are becoming resistant. The IR number shows how resistant they are. Keep BG in range!',
+      pointer: null,
       pauseGame: true,
     },
     {
       id: 'ir_explained',
+      phase: 'playing',
       trigger: (gs) => gs.degradation > 0,
       spotlight: { x: 680, y: 0, w: 100, h: 55 },
       text: 'Insulin Resistance increased! High BG damages organs over time. When IR rises, insulin works worse. Medications and exercise help control it.',
+      pointer: null,
       pauseGame: true,
     },
     {
       id: 'medications',
+      phase: 'playing',
       trigger: (gs) => gs.dayClock > 40,
       spotlight: null,
       text: 'You have medications: Metformin improves liver function, Semaglutide slows glucose absorption, Dapagliflozin helps kidneys filter glucose.',
+      pointer: null,
       pauseGame: true,
     },
   ],
@@ -155,6 +233,7 @@ export function initTutorialForDay(patientId, dayId) {
   }
 }
 
+// Called during PLAYING phase update loop
 export function updateTutorial() {
   if (!gameState.tutorialDayKey) return;
   if (gameState.tutorialActive) return;
@@ -163,11 +242,31 @@ export function updateTutorial() {
   if (!steps || gameState.tutorialStepIndex >= steps.length) return;
 
   const step = steps[gameState.tutorialStepIndex];
+  // Only trigger playing-phase steps here
+  if (step.phase === 'planning') return;
+
   if (step.trigger(gameState)) {
     gameState.tutorialActive = true;
     if (step.pauseGame) {
       gameState.paused = true;
     }
+  }
+}
+
+// Called during PLANNING phase render
+export function updatePlanningTutorial() {
+  if (!gameState.tutorialDayKey) return;
+  if (gameState.tutorialActive) return;
+
+  const steps = TUTORIAL_STEPS[gameState.tutorialDayKey];
+  if (!steps || gameState.tutorialStepIndex >= steps.length) return;
+
+  const step = steps[gameState.tutorialStepIndex];
+  // Only trigger planning-phase steps here
+  if (step.phase !== 'planning') return;
+
+  if (step.trigger(gameState)) {
+    gameState.tutorialActive = true;
   }
 }
 
@@ -189,6 +288,15 @@ export function renderTutorial() {
   if (!steps || gameState.tutorialStepIndex >= steps.length) return;
 
   const step = steps[gameState.tutorialStepIndex];
+  _renderOverlay(step);
+}
+
+// Alias for planning mode — same rendering logic
+export function renderPlanningTutorial() {
+  renderTutorial();
+}
+
+function _renderOverlay(step) {
   const W = CONFIG.CANVAS_WIDTH;
   const H = CONFIG.CANVAS_HEIGHT;
 
@@ -196,19 +304,13 @@ export function renderTutorial() {
 
   // Dark overlay with spotlight cutout
   if (step.spotlight) {
-    // Draw dark overlay using off-screen technique
-    // First: fill everything dark
     ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
 
     const s = step.spotlight;
     // Draw 4 dark rectangles around the spotlight zone
-    // Top
     ctx.fillRect(0, 0, W, s.y);
-    // Bottom
     ctx.fillRect(0, s.y + s.h, W, H - s.y - s.h);
-    // Left
     ctx.fillRect(0, s.y, s.x, s.h);
-    // Right
     ctx.fillRect(s.x + s.w, s.y, W - s.x - s.w, s.h);
 
     // Bright border around spotlight
@@ -250,14 +352,25 @@ export function renderTutorial() {
     ctx.fillText(lines[i], textBoxX + 15, textBoxY + 25 + i * 20);
   }
 
-  // Pointing finger emoji at pointer location
+  // Pointing finger emoji at pointer location (only for button-pointing steps)
   if (step.pointer) {
     const px = step.pointer.x;
     const py = step.pointer.y;
     ctx.font = '28px serif';
     ctx.textAlign = 'center';
-    // Finger pointing right by default, rotate for other directions
-    if (step.pointer.dir === 'left') {
+
+    if (step.pointer.dir === 'speed_10x') {
+      // Dynamic positioning: point at the x10 speed button area
+      // Speed buttons are drawn left of restart (x=1100), 6 buttons of 30px + 3px gap
+      // x10 is the 6th button (index 5): startX + 5 * 33
+      // totalW = 6*33 + 33 = 231, startX = 1100 - 231 - 8 = 861
+      const approxX = 861 + 5 * 33 + 15;
+      const bounce = 6 * Math.sin(Date.now() / 300);
+      ctx.fillText('\u{1F447}', approxX, py + bounce);
+    } else if (step.pointer.dir === 'down') {
+      const bounce = 6 * Math.sin(Date.now() / 300);
+      ctx.fillText('\u{1F447}', px, py + bounce);
+    } else if (step.pointer.dir === 'left') {
       ctx.fillText('\u{1F448}', px, py);
     } else {
       ctx.fillText('\u{1F449}', px, py);

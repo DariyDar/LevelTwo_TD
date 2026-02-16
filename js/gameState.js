@@ -108,6 +108,7 @@ export function createGameState() {
     _kidneyAutoFilterRate: 2.0,
     _liverReleaseRate: 1.0,
     _liverInitialStorage: 0,
+    _priestWaitMultiplier: 1.0,
 
     // Progress (localStorage backed)
     unlockedLevel: 1,

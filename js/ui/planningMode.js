@@ -5,6 +5,7 @@ import { gameState, GamePhase, fullReset } from '../gameState.js';
 import { FOODS } from '../levels/foodData.js';
 import { formatVirtualTime } from '../systems/waveManager.js';
 import { getPatient } from '../patients/index.js';
+import { updatePlanningTutorial, renderPlanningTutorial, isTutorialActive, advanceTutorial } from './tutorial.js';
 
 let ctx = null;
 let canvas = null;
@@ -165,6 +166,10 @@ export function renderPlanningMode() {
   if (selectedItem) {
     drawSelectedIndicator(C, W);
   }
+
+  // Tutorial overlay (planning-phase steps)
+  updatePlanningTutorial();
+  renderPlanningTutorial();
 }
 
 function drawBackButton(C) {
@@ -488,6 +493,12 @@ function ensurePlan() {
 
 function handleClick(e) {
   if (gameState.phase !== GamePhase.PLANNING) return;
+
+  // Tutorial overlay consumes clicks while active
+  if (isTutorialActive()) {
+    advanceTutorial();
+    return;
+  }
 
   const rect = canvas.getBoundingClientRect();
   const scaleX = CONFIG.CANVAS_WIDTH / rect.width;

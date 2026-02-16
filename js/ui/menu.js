@@ -199,6 +199,21 @@ export function renderMenu() {
     }
   }
 
+  // Animated finger pointer on first playable (unlocked + not yet completed) day
+  const firstPlayable = dayButtonRects.find(btn => {
+    if (!btn.unlocked) return false;
+    const prog = getPatientProgress(btn.patientId);
+    const stars = prog.stars[btn.dayId - 1] || 0;
+    return stars === 0;
+  });
+
+  if (firstPlayable) {
+    const bounce = 6 * Math.sin(Date.now() / 300);
+    ctx.font = '28px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('\u{1F447}', firstPlayable.x + firstPlayable.w / 2, firstPlayable.y - 8 + bounce);
+  }
+
   // Instructions
   ctx.font = '13px Arial';
   ctx.fillStyle = '#7F8C8D';
