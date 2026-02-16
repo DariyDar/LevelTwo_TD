@@ -18,6 +18,7 @@ let canvas = null;
 //   text: string — display text
 //   pointer: { x, y, dir? } | null — finger pointer (ONLY for button-pointing steps)
 //   pauseGame: boolean — whether to pause the game when shown (playing phase only)
+//   minDelay: number — minimum real-time seconds after previous step before this can trigger (default 0)
 const TUTORIAL_STEPS = {
   healthy_1: [
     // Step 0 (PLANNING): Introduce the planning screen
@@ -80,7 +81,7 @@ const TUTORIAL_STEPS = {
       pointer: null,
       pauseGame: true,
     },
-    // Step 5 (PLAYING): Liver — when knight grabs glucose
+    // Step 6 (PLAYING): Liver — when knight grabs glucose
     {
       id: 'liver_intro',
       phase: 'playing',
@@ -90,7 +91,7 @@ const TUTORIAL_STEPS = {
       pointer: null,
       pauseGame: true,
     },
-    // Step 5 (PLAYING): Muscles — glucose reaches mine field
+    // Step 7 (PLAYING): Muscles — glucose reaches mine field (delay after liver)
     {
       id: 'muscles_intro',
       phase: 'playing',
@@ -99,18 +100,9 @@ const TUTORIAL_STEPS = {
       text: 'Muscle cells need glucose workers to produce energy (ATP). Free glucose waits here for insulin to convert it.',
       pointer: null,
       pauseGame: true,
+      minDelay: 5,
     },
-    // Step 6 (PLAYING): Pancreas — when first insulin appears
-    {
-      id: 'pancreas_intro',
-      phase: 'playing',
-      trigger: (gs) => gs.priests.length > 0,
-      spotlight: { x: 820, y: 150, w: 120, h: 110 },
-      text: 'The Pancreas produces insulin (gold circles). Insulin is the key that lets glucose enter muscle cells!',
-      pointer: null,
-      pauseGame: true,
-    },
-    // Step 7 (PLAYING): Insulin in action — conversion happened
+    // Step 8 (PLAYING): Insulin in action — conversion happened (delay after muscles)
     {
       id: 'insulin_action',
       phase: 'playing',
@@ -119,8 +111,20 @@ const TUTORIAL_STEPS = {
       text: 'Insulin converts free glucose into workers (purple). Workers enter muscle cells and produce energy. This is how your body turns food into fuel!',
       pointer: null,
       pauseGame: true,
+      minDelay: 5,
     },
-    // Step 8 (PLAYING): Rebel glucose — event-driven only
+    // Step 9 (PLAYING): Pancreas — immediately after insulin (no delay)
+    {
+      id: 'pancreas_intro',
+      phase: 'playing',
+      trigger: (gs) => gs.priests.length > 0,
+      spotlight: { x: 820, y: 150, w: 120, h: 110 },
+      text: 'The Pancreas produces insulin (gold circles). Insulin is the key that lets glucose enter muscle cells!',
+      pointer: null,
+      pauseGame: true,
+      minDelay: 0,
+    },
+    // Step 10 (PLAYING): Rebel glucose — event-driven only (delay after pancreas)
     {
       id: 'rebel_intro',
       phase: 'playing',
@@ -129,8 +133,9 @@ const TUTORIAL_STEPS = {
       text: 'When glucose waits too long without insulin, it becomes "angry" (rebel). Don\'t worry — in a healthy body this is rare and not dangerous.',
       pointer: null,
       pauseGame: true,
+      minDelay: 5,
     },
-    // Step 9 (PLAYING): Speed tutorial at ~10:00
+    // Step 11 (PLAYING): Speed tutorial at ~10:00
     {
       id: 'speed_tutorial',
       phase: 'playing',
@@ -139,6 +144,7 @@ const TUTORIAL_STEPS = {
       text: 'You can speed up time! Click the speed buttons to fast-forward through quiet periods. Try x10 for maximum speed!',
       pointer: { x: 0, y: 40, dir: 'speed_10x' },
       pauseGame: true,
+      minDelay: 5,
     },
   ],
 
@@ -266,6 +272,13 @@ export function updateTutorial() {
   // Only trigger playing-phase steps here
   if (step.phase === 'planning') return;
 
+  // Enforce minimum delay between steps (real-time seconds)
+  const minDelay = step.minDelay || 0;
+  if (minDelay > 0 && gameState.tutorialDismissedAt > 0) {
+    const elapsed = (Date.now() - gameState.tutorialDismissedAt) / 1000;
+    if (elapsed < minDelay) return;
+  }
+
   if (step.trigger(gameState)) {
     gameState.tutorialActive = true;
     if (step.pauseGame) {
@@ -295,6 +308,7 @@ export function advanceTutorial() {
   if (!gameState.tutorialActive) return;
   gameState.tutorialActive = false;
   gameState.paused = false;
+  gameState.tutorialDismissedAt = Date.now();
   gameState.tutorialStepIndex++;
 }
 

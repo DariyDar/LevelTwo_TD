@@ -133,6 +133,7 @@ export function createGameState() {
     tutorialStepIndex: 0,
     tutorialActive: false,
     tutorialDayKey: null,
+    tutorialDismissedAt: 0, // Date.now() when last step was dismissed
 
     // Game over
     gameOverReason: null,

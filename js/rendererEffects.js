@@ -74,6 +74,9 @@ function renderVisualEffects() {
       case 'kidney_eject':
         drawKidneyEject(effect);
         break;
+      case 'mine_energy_plus':
+        drawMineEnergyPlus(effect);
+        break;
     }
   }
 }
@@ -204,4 +207,15 @@ function drawKidneyEject(effect) {
   // Yellow streak
   ctx.fillStyle = `rgba(241, 196, 15, ${alpha})`;
   ctx.fillRect(effect.x - 20, effect.y - 2, 20, 4);
+}
+
+function drawMineEnergyPlus(effect) {
+  const progress = 1 - effect.timer / effect.maxTimer;
+  const alpha = 1 - progress;
+  const yOffset = progress * 18;
+
+  ctx.font = 'bold 10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = `rgba(241, 196, 15, ${alpha})`;
+  ctx.fillText('+', effect.x, effect.y - yOffset);
 }

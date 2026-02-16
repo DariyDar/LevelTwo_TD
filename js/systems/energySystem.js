@@ -5,6 +5,10 @@ import { gameState, GamePhase } from '../gameState.js';
 import { PeasantState } from '../entities/Peasant.js';
 import { playBlackout } from '../audio.js';
 
+// Timer for spawning energy "+" particles on mines with workers
+let energyParticleTimer = 0;
+const ENERGY_PARTICLE_INTERVAL = 1.5; // seconds between particle spawns
+
 export function updateEnergy(dt) {
   if (gameState.phase === GamePhase.GAME_OVER) return;
 
@@ -19,6 +23,24 @@ export function updateEnergy(dt) {
     : CONFIG.MINE_ENERGY_PER_WORKER;
 
   gameState.energy += workerCount * ratePerWorker * dt;
+
+  // Spawn yellow "+" particles on mines with workers (real-time rate, not game-speed)
+  const realDt = gameState.speedMultiplier > 0 ? dt / gameState.speedMultiplier : dt;
+  energyParticleTimer += realDt;
+  if (energyParticleTimer >= ENERGY_PARTICLE_INTERVAL) {
+    energyParticleTimer -= ENERGY_PARTICLE_INTERVAL;
+    for (const mine of gameState.mines) {
+      if (mine.workers.length > 0 && !mine.destroyed) {
+        gameState.effects.push({
+          type: 'mine_energy_plus',
+          x: mine.x + (Math.random() - 0.5) * 20,
+          y: mine.y - CONFIG.MINE_SIZE.h / 2,
+          timer: 1.0,
+          maxTimer: 1.0,
+        });
+      }
+    }
+  }
 
   // Basal metabolism drain — cells always consume ATP
   // Hypoglycemia multiplier: brain demands more energy when BG is low
