@@ -5,6 +5,7 @@ import { gameState } from '../gameState.js';
 import { PeasantState } from './Peasant.js';
 import { findLeastFilledMine } from '../buildings/Mine.js';
 import { playCastSuccess, playCastFail } from '../audio.js';
+import { createAnimState } from '../spriteAnimator.js';
 
 export const PriestState = {
   IDLE: 'idle',
@@ -26,6 +27,9 @@ export class Priest {
 
     // Lifetime for enhanced priests
     this.lifetime = enhanced ? CONFIG.FAST_INSULIN_DURATION : Infinity;
+
+    // Sprite animation
+    this.anim = createAnimState('monk_idle', CONFIG.SPRITE_FPS_PRIEST);
   }
 
   update(dt) {

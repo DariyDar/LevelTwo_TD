@@ -37,6 +37,8 @@ import { initPlanningMode, renderPlanningMode } from './ui/planningMode.js';
 import { initPlanExecutor, updatePlanExecutor } from './systems/planExecutor.js';
 import { initWelcome, renderWelcome } from './ui/welcome.js';
 import { initTutorial, initTutorialForDay, updateTutorial, renderTutorial, advanceTutorial, isTutorialActive } from './ui/tutorial.js';
+import { loadAllSprites } from './spriteLoader.js';
+import { updateAnim } from './spriteAnimator.js';
 
 let lastTime = 0;
 let canvas = null;
@@ -69,6 +71,9 @@ function init() {
   // Restart button click + mouse tracking for building hover
   canvas.addEventListener('click', handleCanvasClick);
   canvas.addEventListener('mousemove', handleCanvasMouseMove);
+
+  // Load sprite assets (fire-and-forget — fallback to circles if it fails)
+  loadAllSprites();
 
   // Show welcome screen
   gameState.phase = GamePhase.WELCOME;
@@ -305,6 +310,15 @@ function spawnStartingWorkers() {
   }
 }
 
+function updateAllAnimations(dt) {
+  for (const p of gameState.peasants) {
+    if (p.alive && p.anim) updateAnim(p.anim, dt);
+  }
+  for (const pr of gameState.priests) {
+    if (pr.alive && pr.anim) updateAnim(pr.anim, dt);
+  }
+}
+
 function gameLoop(timestamp) {
   const dt = lastTime === 0 ? 0 : (timestamp - lastTime) / 1000;
   lastTime = timestamp;
@@ -315,6 +329,9 @@ function gameLoop(timestamp) {
   if (gameState.phase === GamePhase.PLAYING || gameState.phase === GamePhase.BETWEEN_WAVES) {
     update(effectiveDt);
   }
+
+  // Update sprite animations (real-time, not game-speed affected)
+  updateAllAnimations(cappedDt);
 
   // Render
   renderMap();

@@ -3,6 +3,8 @@
 import { CONFIG } from './config.js';
 import { gameState } from './gameState.js';
 import { PeasantState } from './entities/Peasant.js';
+import { PriestState } from './entities/Priest.js';
+import { drawSprite, setAnimKey } from './spriteAnimator.js';
 
 let ctx = null;
 
@@ -46,26 +48,91 @@ function renderKnights() {
 }
 
 function drawPeasant(p) {
-  const C = CONFIG.COLORS;
   const isRebel = p.state === PeasantState.REBEL;
-  let r = CONFIG.PEASANT_RADIUS;
+  const isWorker = p.state === PeasantState.WORKER;
+  const size = CONFIG.SPRITE_SIZE_PEASANT;
+  const half = size / 2;
+
+  // Determine correct sprite key + fps based on state
+  let targetKey = 'pawn_red_run';
+  let targetFps = CONFIG.SPRITE_FPS_DEFAULT;
+
+  if (isRebel) {
+    targetKey = 'pawn_black_interact';
+    targetFps = CONFIG.SPRITE_FPS_REBEL;
+  } else if (isWorker) {
+    const exerciseActive = gameState.interventions.exercise.active;
+    targetKey = 'pawn_purple_interact';
+    targetFps = exerciseActive ? CONFIG.SPRITE_FPS_REBEL : CONFIG.SPRITE_FPS_WORKER;
+  } else if (p.state === PeasantState.WALKING_TO_MINE || p.color === 'purple') {
+    targetKey = 'pawn_purple_run';
+  } else if (p.speedCategory === 'slow') {
+    targetKey = 'pawn_yellow_run';
+  }
+
+  // Update animation key if changed
+  if (p.anim) {
+    setAnimKey(p.anim, targetKey, targetFps);
+  }
+
+  // Draw position (rebels vibrate)
   let drawX = p.x;
   let drawY = p.y;
-
-  // Rebel effects: vibrate + flash + larger
   if (isRebel) {
-    r = CONFIG.PEASANT_RADIUS + 1;
     const phase = p.x * 7 + p.y * 13;
     drawX += Math.sin(Date.now() / 40 + phase) * 1.5;
     drawY += Math.cos(Date.now() / 50 + phase) * 1.5;
   }
 
-  // Body circle
+  // Try sprite rendering, fall back to circles
+  const spriteDrawn = p.anim && drawSprite(ctx, p.anim, drawX, drawY, size);
+
+  if (!spriteDrawn) {
+    drawPeasantFallback(p, drawX, drawY);
+    return;
+  }
+
+  // Filtering overlay (yellow pulse on top of sprite)
+  if (p.state === PeasantState.FILTERING) {
+    const pulse = 0.3 + 0.2 * Math.sin(Date.now() / 200 + p.x);
+    ctx.fillStyle = `rgba(241, 196, 15, ${pulse})`;
+    ctx.fillRect(drawX - half, drawY - half, size, size);
+  }
+
+  // HP bar for workers
+  if (isWorker) {
+    const pct = Math.max(0, p.workHp / CONFIG.WORKER_LIFETIME);
+    const barW = size * 0.8;
+    const barX = drawX - barW / 2;
+    const barY = drawY - half - 4;
+    ctx.fillStyle = '#2ECC71';
+    ctx.fillRect(barX, barY, barW * pct, 2);
+    ctx.strokeStyle = '#1E8449';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(barX, barY, barW, 2);
+  }
+
+  // HP bar for rebels
+  if (isRebel) {
+    const pct = Math.max(0, p.hp / CONFIG.REBEL_HP);
+    const barW = size * 0.8;
+    const barX = drawX - barW / 2;
+    const barY = drawY - half - 5;
+    ctx.fillStyle = CONFIG.COLORS.RED;
+    ctx.fillRect(barX, barY, barW * pct, 2);
+  }
+}
+
+function drawPeasantFallback(p, drawX, drawY) {
+  const C = CONFIG.COLORS;
+  const isRebel = p.state === PeasantState.REBEL;
+  let r = CONFIG.PEASANT_RADIUS;
+  if (isRebel) r += 1;
+
   ctx.beginPath();
   ctx.arc(drawX, drawY, r, 0, Math.PI * 2);
 
   if (isRebel) {
-    // Flashing red: pulse between bright and dark
     const flash = 0.5 + 0.5 * Math.sin(Date.now() / 150 + p.x);
     const red = Math.floor(180 + 75 * flash);
     ctx.fillStyle = `rgb(${red}, 50, 50)`;
@@ -74,7 +141,6 @@ function drawPeasant(p) {
     ctx.lineWidth = 1.5;
     ctx.stroke();
   } else if (p.state === PeasantState.FILTERING) {
-    // Yellow pulsing (being captured by kidneys)
     const pulse = 0.7 + 0.3 * Math.sin(Date.now() / 200 + p.x);
     ctx.fillStyle = `rgba(241, 196, 15, ${pulse})`;
     ctx.fill();
@@ -86,21 +152,14 @@ function drawPeasant(p) {
       ctx.fillStyle = C.PURPLE;
       ctx.fill();
       ctx.strokeStyle = C.PURPLE_DARK;
-    } else if (p.color === 'red') {
-      // Speed-based coloring: fast=red (dangerous), slow=orange (safe)
-      if (p.speedCategory === 'slow') {
-        ctx.fillStyle = C.ORANGE;
-        ctx.fill();
-        ctx.strokeStyle = '#D68910';
-      } else {
-        ctx.fillStyle = C.RED;
-        ctx.fill();
-        ctx.strokeStyle = C.RED_DARK;
-      }
-    } else {
-      ctx.fillStyle = C.BLUE;
+    } else if (p.speedCategory === 'slow') {
+      ctx.fillStyle = C.ORANGE;
       ctx.fill();
-      ctx.strokeStyle = C.BLUE_DARK;
+      ctx.strokeStyle = '#D68910';
+    } else {
+      ctx.fillStyle = C.RED;
+      ctx.fill();
+      ctx.strokeStyle = C.RED_DARK;
     }
     ctx.lineWidth = 1;
     ctx.stroke();
@@ -116,7 +175,6 @@ function drawPeasant(p) {
     ctx.strokeRect(drawX - r, drawY - r - 4, r * 2, 2);
   }
 
-  // HP bar for rebels
   if (isRebel) {
     const pct = Math.max(0, p.hp / CONFIG.REBEL_HP);
     ctx.fillStyle = C.RED;
@@ -125,6 +183,32 @@ function drawPeasant(p) {
 }
 
 function drawPriest(pr) {
+  const size = CONFIG.SPRITE_SIZE_PRIEST;
+
+  // Determine sprite key based on state
+  let targetKey = 'monk_idle';
+  let targetFps = CONFIG.SPRITE_FPS_PRIEST;
+
+  if (pr.state === PriestState.WALKING) {
+    targetKey = 'monk_run';
+  }
+
+  // Update animation key + facing
+  if (pr.anim) {
+    setAnimKey(pr.anim, targetKey, targetFps);
+    if (pr.target && pr.state === PriestState.WALKING) {
+      pr.anim.facingRight = pr.target.x > pr.x;
+    }
+  }
+
+  const spriteDrawn = pr.anim && drawSprite(ctx, pr.anim, pr.x, pr.y, size);
+
+  if (!spriteDrawn) {
+    drawPriestFallback(pr);
+  }
+}
+
+function drawPriestFallback(pr) {
   const C = CONFIG.COLORS;
   const r = CONFIG.PRIEST_RADIUS;
 
@@ -136,7 +220,6 @@ function drawPriest(pr) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // White cross in center
   ctx.strokeStyle = C.WHITE;
   ctx.lineWidth = 1;
   ctx.beginPath();

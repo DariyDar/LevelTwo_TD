@@ -2,6 +2,7 @@
 
 import { CONFIG } from '../config.js';
 import { gameState } from '../gameState.js';
+import { createAnimState } from '../spriteAnimator.js';
 
 export const PeasantState = {
   WALKING_TO_VILLAGE: 'walking_to_village',
@@ -51,6 +52,9 @@ export class Peasant {
     this.roamTargetX = 0;
     this.roamTargetY = 0;
     this.roamTimer = 0;
+
+    // Sprite animation
+    this.anim = createAnimState('pawn_red_run', CONFIG.SPRITE_FPS_DEFAULT);
   }
 
   _buildWaypoints() {
@@ -191,6 +195,11 @@ export class Peasant {
     const dy = ty - this.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < 2) return true;
+
+    // Update sprite facing direction
+    if (this.anim && Math.abs(dx) > 0.5) {
+      this.anim.facingRight = dx > 0;
+    }
 
     const step = this.speed * dt;
     if (step >= dist) {
