@@ -96,15 +96,29 @@ export function handleZoom(screenX, screenY, delta) {
   clampCamera();
 }
 
+const DRAG_THRESHOLD = 5; // pixels before mouse-down becomes a drag
+
 export function startDrag(screenX, screenY) {
   if (anim.active) return;
   cam.isDragging = true;
+  cam.didDrag = false;
+  cam.dragOriginX = screenX;
+  cam.dragOriginY = screenY;
   cam.lastScreenX = screenX;
   cam.lastScreenY = screenY;
 }
 
 export function updateDrag(screenX, screenY) {
   if (!cam.isDragging) return;
+
+  // Check if moved past threshold
+  if (!cam.didDrag) {
+    const dx = screenX - cam.dragOriginX;
+    const dy = screenY - cam.dragOriginY;
+    if (dx * dx + dy * dy < DRAG_THRESHOLD * DRAG_THRESHOLD) return;
+    cam.didDrag = true;
+  }
+
   const dx = (screenX - cam.lastScreenX) / cam.zoom;
   const dy = (screenY - cam.lastScreenY) / cam.zoom;
   cam.x -= dx;
@@ -118,8 +132,8 @@ export function endDrag() {
   cam.isDragging = false;
 }
 
-export function isDragging() {
-  return cam.isDragging;
+export function wasDrag() {
+  return cam.didDrag;
 }
 
 export function getCamera() {

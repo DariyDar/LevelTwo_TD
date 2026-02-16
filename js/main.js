@@ -39,7 +39,7 @@ import { initWelcome, renderWelcome } from './ui/welcome.js';
 import { initTutorial, initTutorialForDay, updateTutorial, renderTutorial, advanceTutorial, isTutorialActive } from './ui/tutorial.js';
 import { loadAllSprites } from './spriteLoader.js';
 import { updateAnim } from './spriteAnimator.js';
-import { initCamera, applyCamera, resetCamera, screenToWorld, handleZoom, startDrag, updateDrag, endDrag, isDragging, setCameraOverride, updateCameraAnim } from './camera.js';
+import { initCamera, applyCamera, resetCamera, screenToWorld, handleZoom, startDrag, updateDrag, endDrag, wasDrag, setCameraOverride, updateCameraAnim } from './camera.js';
 
 let lastTime = 0;
 let canvas = null;
@@ -78,7 +78,7 @@ function init() {
   canvas.addEventListener('wheel', handleWheel, { passive: false });
   canvas.addEventListener('mousedown', handleMouseDown);
   canvas.addEventListener('mouseup', handleMouseUp);
-  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  // contextmenu no longer blocked — drag uses left button
 
   // Load sprite assets (fire-and-forget — fallback to circles if it fails)
   loadAllSprites();
@@ -561,8 +561,8 @@ function handleCanvasClick(e) {
     return;
   }
 
-  // Ignore click if we just finished dragging
-  if (isDragging()) return;
+  // Ignore click if we just finished dragging the camera
+  if (wasDrag()) return;
 
   if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return;
 
@@ -622,14 +622,14 @@ function handleWheel(e) {
 }
 
 function handleMouseDown(e) {
-  if (e.button === 2) {
+  if (e.button === 0) {
     const { sx, sy } = getScreenCoords(e);
     startDrag(sx, sy);
   }
 }
 
 function handleMouseUp(e) {
-  if (e.button === 2) {
+  if (e.button === 0) {
     endDrag();
   }
 }
