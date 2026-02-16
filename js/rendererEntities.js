@@ -4,7 +4,9 @@ import { CONFIG } from './config.js';
 import { gameState } from './gameState.js';
 import { PeasantState } from './entities/Peasant.js';
 import { PriestState } from './entities/Priest.js';
+import { KnightState } from './entities/Knight.js';
 import { drawSprite, setAnimKey } from './spriteAnimator.js';
+import { getSprite } from './spriteLoader.js';
 
 let ctx = null;
 
@@ -231,8 +233,38 @@ function drawPriestFallback(pr) {
 }
 
 function drawKnight(k) {
+  const size = CONFIG.SPRITE_SIZE_PRIEST;
+
+  // Determine sprite key based on state
+  let targetKey = 'warrior_idle';
+  if (k.state === KnightState.WALKING_TO_PEASANT ||
+      k.state === KnightState.ESCORTING ||
+      k.state === KnightState.RETURNING) {
+    targetKey = 'warrior_run';
+  }
+
+  // Update animation key + facing
+  if (k.anim) {
+    setAnimKey(k.anim, targetKey);
+    if (k.state === KnightState.WALKING_TO_PEASANT && k.target) {
+      k.anim.facingRight = k.target.x > k.x;
+    } else if (k.state === KnightState.ESCORTING) {
+      k.anim.facingRight = CONFIG.LIVER_POS.x > k.x;
+    } else if (k.state === KnightState.RETURNING) {
+      k.anim.facingRight = k.homeX > k.x;
+    }
+  }
+
+  const spriteDrawn = k.anim && drawSprite(ctx, k.anim, k.x, k.y, size);
+
+  if (!spriteDrawn) {
+    drawKnightFallback(k);
+  }
+}
+
+function drawKnightFallback(k) {
   const C = CONFIG.COLORS;
-  const r = CONFIG.PRIEST_RADIUS; // same size as priest
+  const r = CONFIG.PRIEST_RADIUS;
 
   ctx.beginPath();
   ctx.arc(k.x, k.y, r, 0, Math.PI * 2);
@@ -242,7 +274,6 @@ function drawKnight(k) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // White diamond in center
   ctx.fillStyle = C.WHITE;
   ctx.beginPath();
   ctx.moveTo(k.x, k.y - 2);
@@ -255,37 +286,44 @@ function drawKnight(k) {
 
 function drawBoat(boat) {
   const C = CONFIG.COLORS;
+  const boatSize = 60;
 
-  // Hull
-  ctx.fillStyle = '#8B4513';
-  ctx.strokeStyle = '#5D3A1A';
-  ctx.lineWidth = 1;
+  // Try animated sprite
+  const spriteDrawn = boat.anim && drawSprite(ctx, boat.anim, boat.x, boat.y, boatSize);
 
-  const bx = boat.x - 20;
-  const by = boat.y - 10;
-  ctx.beginPath();
-  ctx.moveTo(bx, by);
-  ctx.lineTo(bx + 40, by);
-  ctx.lineTo(bx + 35, by + 20);
-  ctx.lineTo(bx + 5, by + 20);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
+  if (!spriteDrawn) {
+    // Fallback: simple hull
+    const bx = boat.x - 20;
+    const by = boat.y - 10;
+    ctx.fillStyle = '#8B4513';
+    ctx.strokeStyle = '#5D3A1A';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx + 40, by);
+    ctx.lineTo(bx + 35, by + 20);
+    ctx.lineTo(bx + 5, by + 20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
 
   // Food emoji above
   if (boat.emoji) {
     ctx.font = '20px serif';
     ctx.textAlign = 'center';
-    ctx.fillText(boat.emoji, boat.x, boat.y - 18);
+    ctx.fillText(boat.emoji, boat.x, boat.y - 28);
   }
 
   // Unload progress bar
   if (boat.state === 'unloading' && boat.totalPeasants > 0) {
     const pct = boat.unloadedCount / boat.totalPeasants;
+    const bx = boat.x - 20;
+    const by = boat.y + 20;
     ctx.fillStyle = C.GOLD;
-    ctx.fillRect(bx + 5, by + 22, 30 * pct, 3);
+    ctx.fillRect(bx + 5, by, 30 * pct, 3);
     ctx.strokeStyle = C.GOLD_DARK;
     ctx.lineWidth = 0.5;
-    ctx.strokeRect(bx + 5, by + 22, 30, 3);
+    ctx.strokeRect(bx + 5, by, 30, 3);
   }
 }

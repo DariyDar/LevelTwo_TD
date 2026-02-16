@@ -17,6 +17,21 @@ const SPRITE_MANIFEST = [
   { key: 'monk_run',         src: 'assets/sprites/monk/Run.png',        frameW: 192, frameH: 192, frameCount: 4 },
   { key: 'monk_heal',        src: 'assets/sprites/monk/Heal.png',       frameW: 192, frameH: 192, frameCount: 11 },
   { key: 'monk_heal_effect', src: 'assets/sprites/monk/HealEffect.png', frameW: 192, frameH: 192, frameCount: 11 },
+
+  // Warrior — knights (GLUT4 transporters)
+  { key: 'warrior_idle', src: 'assets/sprites/warrior/green/Idle.png', frameW: 192, frameH: 192, frameCount: 8 },
+  { key: 'warrior_run',  src: 'assets/sprites/warrior/green/Run.png',  frameW: 192, frameH: 192, frameCount: 6 },
+
+  // Buildings (static — single frame, full image)
+  { key: 'bld_mine_active',    src: 'assets/sprites/buildings/GoldMine_Active.png',    frameW: 192, frameH: 128, frameCount: 1 },
+  { key: 'bld_mine_inactive',  src: 'assets/sprites/buildings/GoldMine_Inactive.png',  frameW: 192, frameH: 128, frameCount: 1 },
+  { key: 'bld_mine_destroyed', src: 'assets/sprites/buildings/GoldMine_Destroyed.png', frameW: 192, frameH: 128, frameCount: 1 },
+  { key: 'bld_liver',          src: 'assets/sprites/buildings/Liver.png',              frameW: 128, frameH: 192, frameCount: 1 },
+  { key: 'bld_pancreas',       src: 'assets/sprites/buildings/Pancreas.png',           frameW: 192, frameH: 320, frameCount: 1 },
+  { key: 'bld_kidneys',        src: 'assets/sprites/buildings/Kidneys.png',            frameW: 128, frameH: 256, frameCount: 1 },
+
+  // Boat (animated)
+  { key: 'boat_idle', src: 'assets/sprites/boat/Boat_Idle.png', frameW: 256, frameH: 256, frameCount: 8 },
 ];
 
 function loadImage(src) {
@@ -57,4 +72,12 @@ export function getSprite(key) {
 
 export function isLoaded() {
   return loaded;
+}
+
+// Draw a static (single-frame) sprite image. Returns false if not loaded.
+export function drawStaticSprite(ctx, key, x, y, w, h) {
+  const sprite = spriteCache.get(key);
+  if (!sprite) return false;
+  ctx.drawImage(sprite.img, 0, 0, sprite.frameW, sprite.frameH, x, y, w, h);
+  return true;
 }

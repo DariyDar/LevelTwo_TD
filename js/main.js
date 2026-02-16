@@ -317,6 +317,12 @@ function updateAllAnimations(dt) {
   for (const pr of gameState.priests) {
     if (pr.alive && pr.anim) updateAnim(pr.anim, dt);
   }
+  for (const k of gameState.knights) {
+    if (k.alive && k.anim) updateAnim(k.anim, dt);
+  }
+  for (const b of gameState.boats) {
+    if (b.alive && b.anim) updateAnim(b.anim, dt);
+  }
 }
 
 function gameLoop(timestamp) {

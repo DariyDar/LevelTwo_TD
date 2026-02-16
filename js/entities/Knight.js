@@ -3,6 +3,7 @@
 import { CONFIG } from '../config.js';
 import { gameState } from '../gameState.js';
 import { PeasantState } from './Peasant.js';
+import { createAnimState } from '../spriteAnimator.js';
 
 export const KnightState = {
   IDLE: 'idle',
@@ -24,6 +25,9 @@ export class Knight {
 
     // Track which peasants this knight already evaluated (roll once per peasant)
     this._evaluatedPeasants = new Set();
+
+    // Sprite animation
+    this.anim = createAnimState('warrior_idle', CONFIG.SPRITE_FPS_DEFAULT);
   }
 
   update(dt) {

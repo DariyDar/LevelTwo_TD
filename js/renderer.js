@@ -2,6 +2,7 @@
 
 import { CONFIG } from './config.js';
 import { gameState } from './gameState.js';
+import { drawStaticSprite } from './spriteLoader.js';
 
 let ctx = null;
 let canvas = null;
@@ -89,24 +90,34 @@ function drawLiverTower() {
   const C = CONFIG.COLORS;
   const pos = CONFIG.LIVER_POS;
   const size = CONFIG.LIVER_SIZE;
-  const x = pos.x - size.w / 2;
-  const y = pos.y - size.h / 2;
   const liver = gameState.liverTower;
   const isDestroyed = liver && liver.destroyed;
 
+  // Sprite render size (building sprite is 128x192, scale to fit)
+  const sprW = size.w + 20;
+  const sprH = sprW * (192 / 128);
+  const sprX = pos.x - sprW / 2;
+  const sprY = pos.y - sprH / 2 + 10;
+
+  // Fallback rect position
+  const x = pos.x - size.w / 2;
+  const y = pos.y - size.h / 2;
+
   if (isDestroyed) {
-    // Destroyed state — dark with repair bar
-    ctx.fillStyle = '#3A3A3A';
-    ctx.strokeStyle = '#2A2A2A';
-    ctx.lineWidth = 2;
-    roundRect(x, y, size.w, size.h, 8);
+    ctx.globalAlpha = 0.4;
+    if (!drawStaticSprite(ctx, 'bld_liver', sprX, sprY, sprW, sprH)) {
+      ctx.fillStyle = '#3A3A3A';
+      ctx.strokeStyle = '#2A2A2A';
+      ctx.lineWidth = 2;
+      roundRect(x, y, size.w, size.h, 8);
+    }
+    ctx.globalAlpha = 1.0;
 
     ctx.fillStyle = C.RED;
     ctx.font = '9px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('DAMAGED', pos.x, pos.y);
 
-    // Repair bar
     if (liver.repairTimer > 0) {
       const repairPct = 1 - liver.repairTimer / CONFIG.BUILDING_REPAIR_TIME;
       ctx.fillStyle = '#2ECC71';
@@ -115,24 +126,26 @@ function drawLiverTower() {
 
     ctx.fillStyle = C.WHITE;
     ctx.font = 'bold 12px Arial';
-    ctx.fillText('Liver', pos.x, pos.y - size.h / 2 - 6);
+    ctx.fillText('Liver', pos.x, sprY - 4);
     return;
   }
 
-  // Building body
-  ctx.fillStyle = C.GREEN;
-  ctx.strokeStyle = C.GREEN_DARK;
-  ctx.lineWidth = 2;
-  roundRect(x, y, size.w, size.h, 8);
+  // Building sprite (or fallback green rect)
+  if (!drawStaticSprite(ctx, 'bld_liver', sprX, sprY, sprW, sprH)) {
+    ctx.fillStyle = C.GREEN;
+    ctx.strokeStyle = C.GREEN_DARK;
+    ctx.lineWidth = 2;
+    roundRect(x, y, size.w, size.h, 8);
+  }
 
   // Under attack flash
   if (liver && liver.hp < liver.maxHp) {
     const flash = 0.2 + 0.3 * Math.sin(Date.now() / 120);
     ctx.fillStyle = `rgba(231, 76, 60, ${flash})`;
-    ctx.fillRect(x + 2, y + 2, size.w - 4, size.h - 4);
+    ctx.fillRect(sprX + 4, sprY + 4, sprW - 8, sprH - 8);
   }
 
-  // Draw stored glucose as a fill level inside the liver
+  // Draw stored glucose as dots overlaid on building
   const storage = liver ? liver.storage : 0;
   const maxStorage = CONFIG.LIVER_STORAGE[gameState.degradation] || 100;
 
@@ -147,7 +160,6 @@ function drawLiverTower() {
     const maxDots = cols * rows;
     const dotCount = Math.min(storage, maxDots);
 
-    // Color dots: slow glucose = orange, fast = red
     const slowCount = liver ? liver.slowStorage : 0;
     for (let d = 0; d < dotCount; d++) {
       const col = d % cols;
@@ -160,29 +172,30 @@ function drawLiverTower() {
       ctx.fill();
     }
 
-    // Full warning: flash border red when near capacity
     if (storage / maxStorage >= 0.85) {
       const flash = 0.3 + 0.4 * Math.sin(Date.now() / 200);
       ctx.strokeStyle = `rgba(231, 76, 60, ${flash})`;
       ctx.lineWidth = 3;
-      roundRect(x, y, size.w, size.h, 8);
+      ctx.beginPath();
+      ctx.roundRect(sprX, sprY, sprW, sprH, 4);
+      ctx.stroke();
     }
   }
 
-  // HP bar (if damaged)
+  // HP bar
   if (liver && liver.hp < liver.maxHp) {
     const hpPct = liver.hp / liver.maxHp;
     ctx.fillStyle = '#555';
-    ctx.fillRect(x, y - 6, size.w, 3);
+    ctx.fillRect(x, sprY - 6, size.w, 3);
     ctx.fillStyle = hpPct > 0.5 ? '#2ECC71' : hpPct > 0.25 ? '#F39C12' : '#E74C3C';
-    ctx.fillRect(x, y - 6, size.w * hpPct, 3);
+    ctx.fillRect(x, sprY - 6, size.w * hpPct, 3);
   }
 
   // Label
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Liver', pos.x, pos.y - size.h / 2 - 6);
+  ctx.fillText('Liver', pos.x, sprY - 4);
 
   // Storage counter
   ctx.font = '10px Arial';
@@ -194,14 +207,16 @@ function drawPancreas() {
   const pos = CONFIG.PANCREAS_POS;
   const size = CONFIG.PANCREAS_SIZE;
   const deg = gameState.degradation;
+
+  // Sprite: Monastery is 192x320, scale to fit pancreas area
+  const sprW = size.w + 10;
+  const sprH = sprW * (320 / 192);
+  const sprX = pos.x - sprW / 2;
+  const sprY = pos.y - sprH / 2 + 10;
+
+  // Fallback rect
   const x = pos.x - size.w / 2;
   const y = pos.y - size.h / 2;
-
-  // Color based on degradation
-  const colors = [C.PURPLE, '#8E44AD', '#7D3C98', '#6C3483', '#4A235A', '#333333'];
-  ctx.fillStyle = colors[Math.min(deg, 5)];
-  ctx.strokeStyle = C.PURPLE_DARK;
-  ctx.lineWidth = 2;
 
   // Shake at deg 3+
   let shakeX = 0;
@@ -212,21 +227,34 @@ function drawPancreas() {
     shakeY = (Math.random() - 0.5) * intensity;
   }
 
-  roundRect(x + shakeX, y + shakeY, size.w, size.h, 8);
+  // Darken at higher degradation
+  if (deg >= 2) {
+    const darken = Math.min(0.6, deg * 0.12);
+    ctx.globalAlpha = 1.0 - darken;
+  }
 
-  // Flash red when under attack (hp below max)
+  if (!drawStaticSprite(ctx, 'bld_pancreas', sprX + shakeX, sprY + shakeY, sprW, sprH)) {
+    const colors = [C.PURPLE, '#8E44AD', '#7D3C98', '#6C3483', '#4A235A', '#333333'];
+    ctx.fillStyle = colors[Math.min(deg, 5)];
+    ctx.strokeStyle = C.PURPLE_DARK;
+    ctx.lineWidth = 2;
+    roundRect(x + shakeX, y + shakeY, size.w, size.h, 8);
+  }
+  ctx.globalAlpha = 1.0;
+
+  // Flash red when under attack
   const pancreas = gameState.pancreas;
   if (pancreas && pancreas.hp < CONFIG.PANCREAS_HP) {
     const flash = 0.2 + 0.3 * Math.sin(Date.now() / 120);
     ctx.fillStyle = `rgba(231, 76, 60, ${flash})`;
-    ctx.fillRect(x + shakeX + 2, y + shakeY + 2, size.w - 4, size.h - 4);
+    ctx.fillRect(sprX + shakeX + 4, sprY + shakeY + 4, sprW - 8, sprH - 8);
   }
 
   // Label
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Pancreas', pos.x + shakeX, pos.y - 10 + shakeY);
+  ctx.fillText('Pancreas', pos.x + shakeX, sprY - 4 + shakeY);
 
   // Degradation level
   ctx.font = '10px Arial';
@@ -241,22 +269,30 @@ function drawKidneys() {
   const kidneys = gameState.kidneys;
   const isDestroyed = kidneys && kidneys.destroyed;
 
+  // Sprite: Tower is 128x256, scale to reasonable size
+  const sprW = r * 2 + 10;
+  const sprH = sprW * (256 / 128);
+  const sprX = pos.x - sprW / 2;
+  const sprY = pos.y - sprH / 2 + 10;
+
   if (isDestroyed) {
-    // Destroyed state
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = '#3A3A3A';
-    ctx.fill();
-    ctx.strokeStyle = '#2A2A2A';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.globalAlpha = 0.4;
+    if (!drawStaticSprite(ctx, 'bld_kidneys', sprX, sprY, sprW, sprH)) {
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = '#3A3A3A';
+      ctx.fill();
+      ctx.strokeStyle = '#2A2A2A';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
 
     ctx.fillStyle = C.RED;
     ctx.font = '8px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('DAMAGED', pos.x, pos.y + 3);
 
-    // Repair bar
     if (kidneys.repairTimer > 0) {
       const repairPct = 1 - kidneys.repairTimer / CONFIG.BUILDING_REPAIR_TIME;
       ctx.fillStyle = '#2ECC71';
@@ -265,40 +301,40 @@ function drawKidneys() {
 
     ctx.fillStyle = C.WHITE;
     ctx.font = 'bold 11px Arial';
-    ctx.fillText('Kidneys', pos.x, pos.y - r - 8);
+    ctx.fillText('Kidneys', pos.x, sprY - 4);
     return;
   }
 
-  // Circle
-  ctx.beginPath();
-  ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-  ctx.fillStyle = C.TEAL;
-  ctx.fill();
-  ctx.strokeStyle = C.TEAL_DARK;
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  // Building sprite (or fallback circle)
+  if (!drawStaticSprite(ctx, 'bld_kidneys', sprX, sprY, sprW, sprH)) {
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = C.TEAL;
+    ctx.fill();
+    ctx.strokeStyle = C.TEAL_DARK;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
 
   // Under attack flash
   if (kidneys && kidneys.hp < kidneys.maxHp) {
     const flash = 0.2 + 0.3 * Math.sin(Date.now() / 120);
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r - 2, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(231, 76, 60, ${flash})`;
-    ctx.fill();
+    ctx.fillRect(sprX + 4, sprY + 4, sprW - 8, sprH - 8);
 
     // HP bar
     const hpPct = kidneys.hp / kidneys.maxHp;
     ctx.fillStyle = '#555';
-    ctx.fillRect(pos.x - r, pos.y - r - 6, r * 2, 3);
+    ctx.fillRect(pos.x - r, sprY - 6, r * 2, 3);
     ctx.fillStyle = hpPct > 0.5 ? '#2ECC71' : hpPct > 0.25 ? '#F39C12' : '#E74C3C';
-    ctx.fillRect(pos.x - r, pos.y - r - 6, r * 2 * hpPct, 3);
+    ctx.fillRect(pos.x - r, sprY - 6, r * 2 * hpPct, 3);
   }
 
   // Label
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 11px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Kidneys', pos.x, pos.y + 4);
+  ctx.fillText('Kidneys', pos.x, sprY - 4);
 
   // Auto-filtration progress bar (below kidney circle)
   if (kidneys && !kidneys.destroyed) {
@@ -346,46 +382,33 @@ function drawMines() {
   const hw = size.w / 2;
   const hh = size.h / 2;
 
+  // Mine sprite is 192x128; scale keeping aspect ratio
+  const sprW = size.w + 8;
+  const sprH = sprW * (128 / 192);
+
   for (const mine of gameState.mines) {
     const { x, y } = mine;
     const isDestroyed = mine.destroyed;
     const isDamaged = !isDestroyed && mine.hp < CONFIG.MINE_HP;
     const workerCount = mine.workers.length;
 
+    const sprX = x - sprW / 2;
+    const sprY = y - sprH / 2;
+
     if (isDestroyed) {
-      // Destroyed: dark gray with cracks
-      ctx.fillStyle = '#3A3A3A';
-      ctx.strokeStyle = '#2A2A2A';
-      ctx.lineWidth = 1;
-      ctx.fillRect(x - hw, y - hh, size.w, size.h);
-      ctx.strokeRect(x - hw, y - hh, size.w, size.h);
+      if (!drawStaticSprite(ctx, 'bld_mine_destroyed', sprX, sprY, sprW, sprH)) {
+        ctx.fillStyle = '#3A3A3A';
+        ctx.strokeStyle = '#2A2A2A';
+        ctx.lineWidth = 1;
+        ctx.fillRect(x - hw, y - hh, size.w, size.h);
+        ctx.strokeRect(x - hw, y - hh, size.w, size.h);
+      }
 
-      // Crack lines
-      ctx.strokeStyle = '#666';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x - hw + 5, y - hh + 3);
-      ctx.lineTo(x + 2, y + 4);
-      ctx.lineTo(x + hw - 4, y + hh - 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x + hw - 6, y - hh + 5);
-      ctx.lineTo(x - 3, y - 2);
-      ctx.stroke();
-
-      // Rubble dots
-      ctx.fillStyle = '#555';
-      ctx.fillRect(x - 8, y + hh - 4, 3, 3);
-      ctx.fillRect(x + 3, y + hh - 3, 2, 2);
-      ctx.fillRect(x - 2, y + hh - 5, 2, 3);
-
-      // Label
       ctx.fillStyle = C.RED;
       ctx.font = '8px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('Damaged', x, y - 2);
 
-      // Repair bar
       if (mine.repairTimer > 0) {
         const repairPct = 1 - mine.repairTimer / CONFIG.MINE_REPAIR_TIME;
         ctx.fillStyle = '#2ECC71';
@@ -394,32 +417,35 @@ function drawMines() {
     } else {
       const exerciseActive = gameState.interventions.exercise.active;
 
-      // Exercise glow: orange pulsating shadow behind mine
+      // Exercise glow
       if (exerciseActive && workerCount > 0) {
         const pulse = 6 + 3 * Math.sin(Date.now() / 300);
         ctx.save();
         ctx.shadowColor = '#F39C12';
         ctx.shadowBlur = pulse;
         ctx.fillStyle = 'rgba(243, 156, 18, 0.15)';
-        ctx.fillRect(x - hw - 2, y - hh - 2, size.w + 4, size.h + 4);
+        ctx.fillRect(sprX - 2, sprY - 2, sprW + 4, sprH + 4);
         ctx.restore();
       }
 
-      // Normal or under attack
-      ctx.fillStyle = C.ORANGE;
-      ctx.strokeStyle = exerciseActive ? '#F39C12' : '#E67E22';
-      ctx.lineWidth = exerciseActive ? (1 + Math.sin(Date.now() / 300)) : 1;
-      ctx.fillRect(x - hw, y - hh, size.w, size.h);
-      ctx.strokeRect(x - hw, y - hh, size.w, size.h);
+      // Mine sprite (active or inactive based on workers)
+      const mineKey = workerCount > 0 ? 'bld_mine_active' : 'bld_mine_inactive';
+      if (!drawStaticSprite(ctx, mineKey, sprX, sprY, sprW, sprH)) {
+        ctx.fillStyle = C.ORANGE;
+        ctx.strokeStyle = exerciseActive ? '#F39C12' : '#E67E22';
+        ctx.lineWidth = exerciseActive ? (1 + Math.sin(Date.now() / 300)) : 1;
+        ctx.fillRect(x - hw, y - hh, size.w, size.h);
+        ctx.strokeRect(x - hw, y - hh, size.w, size.h);
+      }
 
       // Under attack: red flash overlay
       if (isDamaged) {
         const flash = 0.3 + 0.3 * Math.sin(Date.now() / 150);
         ctx.fillStyle = `rgba(231, 76, 60, ${flash})`;
-        ctx.fillRect(x - hw, y - hh, size.w, size.h);
+        ctx.fillRect(sprX, sprY, sprW, sprH);
       }
 
-      // Worker count inside mine
+      // Worker count
       ctx.fillStyle = C.WHITE;
       ctx.font = '9px Arial';
       ctx.textAlign = 'center';

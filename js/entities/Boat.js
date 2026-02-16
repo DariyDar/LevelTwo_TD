@@ -3,6 +3,7 @@
 import { CONFIG } from '../config.js';
 import { gameState } from '../gameState.js';
 import { Peasant } from './Peasant.js';
+import { createAnimState } from '../spriteAnimator.js';
 
 export class Boat {
   constructor(foods) {
@@ -24,6 +25,9 @@ export class Boat {
     // Determine boat size and unload time
     this.boatSize = this._getBoatSize(this.totalPeasants);
     this.unloadTime = this._getUnloadTime(this.boatSize);
+
+    // Sprite animation
+    this.anim = createAnimState('boat_idle', 4);
 
     // State
     this.state = 'sailing'; // sailing | unloading | done
