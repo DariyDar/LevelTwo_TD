@@ -163,6 +163,8 @@ function applyPatientPhysiology(phys) {
   gameState._energyDrainMultiplier = phys.energyDrainMultiplier ?? 1.0;
   gameState._rebelDamageMultiplier = phys.rebelDamageMultiplier ?? 1.0;
   gameState._kidneyAutoFilterRate = phys.kidneyAutoFilterRate ?? 2.0;
+  gameState._kidneyAutoThreshold = phys.kidneyAutoThreshold ?? null;
+  gameState._kidneyAutoCooldown = phys.kidneyAutoCooldown ?? null;
   gameState._liverReleaseRate = phys.liverReleaseRate ?? 1.0;
   gameState._liverInitialStorage = phys.liverInitialStorage ?? 0;
   gameState._priestWaitMultiplier = phys.priestWaitMultiplier ?? 1.0;

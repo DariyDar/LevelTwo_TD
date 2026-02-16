@@ -106,6 +106,8 @@ export function createGameState() {
     _energyDrainMultiplier: 1.0,
     _rebelDamageMultiplier: 1.0,
     _kidneyAutoFilterRate: 2.0,
+    _kidneyAutoThreshold: null,   // per-patient override (null = use CONFIG)
+    _kidneyAutoCooldown: null,    // per-patient override (null = use CONFIG)
     _liverReleaseRate: 1.0,
     _liverInitialStorage: 0,
     _priestWaitMultiplier: 1.0,

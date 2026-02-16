@@ -25,8 +25,24 @@ export function updateKidneyFiltration(dt) {
 function updateExpand(circle, dt) {
   circle.radius += CONFIG.KIDNEY_CIRCLE_EXPAND_SPEED * dt;
 
-  // Capture glucose that the circle touches
+  // Only capture excess glucose — stop when BG reaches normal
+  const bg = calculateBG();
+  if (bg <= CONFIG.BG_NORMAL_HIGH) {
+    circle.phase = 'contract';
+    return;
+  }
+
+  if (circle.radius > 500) {
+    circle.phase = 'contract';
+    return;
+  }
+
+  // Capture glucose that the circle touches (only the excess above normal)
+  let captured = circle.capturedCount || 0;
+  const excess = Math.max(0, bg - CONFIG.BG_NORMAL_HIGH);
+
   for (const p of gameState.peasants) {
+    if (captured >= excess) break; // Don't capture more than the excess
     if (!p.alive) continue;
     if (p.state === PeasantState.WORKER ||
         p.state === PeasantState.BEING_ESCORTED ||
@@ -38,7 +54,6 @@ function updateExpand(circle, dt) {
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (dist <= circle.radius) {
-      // Capture this glucose
       p.state = PeasantState.FILTERING;
       p.color = 'yellow';
       p.attackTarget = null;
@@ -46,14 +61,10 @@ function updateExpand(circle, dt) {
         p.assignedPriest._resetToIdle();
         p.assignedPriest = null;
       }
+      captured++;
     }
   }
-
-  // Check if BG has dropped to normal — stop expanding
-  const bg = calculateBG();
-  if (bg <= CONFIG.BG_NORMAL_HIGH || circle.radius > 500) {
-    circle.phase = 'contract';
-  }
+  circle.capturedCount = captured;
 }
 
 function updateContract(circle, dt) {

@@ -48,13 +48,14 @@ export class KidneyTower {
 
     // Auto-filtration progress: fill when BG > threshold
     const bg = calculateBG();
-    if (bg > CONFIG.KIDNEY_AUTO_THRESHOLD) {
+    const threshold = gameState._kidneyAutoThreshold ?? CONFIG.KIDNEY_AUTO_THRESHOLD;
+    if (bg > threshold) {
       const fillRate = Math.max(0, gameState._kidneyAutoFilterRate ?? CONFIG.KIDNEY_AUTO_FILL_RATE);
       this.autoFilterProgress = Math.min(100, this.autoFilterProgress + fillRate * dt);
 
       if (this.autoFilterProgress >= 100) {
         this.autoFilterProgress = 0;
-        this.autoFilterCooldown = CONFIG.KIDNEY_AUTO_COOLDOWN;
+        this.autoFilterCooldown = gameState._kidneyAutoCooldown ?? CONFIG.KIDNEY_AUTO_COOLDOWN;
         // Auto-fire filtration (free, no energy cost)
         this.castVortex(null, true);
       }

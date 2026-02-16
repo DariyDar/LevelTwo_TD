@@ -18,7 +18,9 @@ export const PATIENTS = [
       energyDrainMultiplier: 0.3,
       rebelDamageMultiplier: 0.1,
       priestWaitMultiplier: 15.0,
-      kidneyAutoFilterRate: 2.0,
+      kidneyAutoFilterRate: 3.0,
+      kidneyAutoThreshold: 140,    // healthy kidneys activate at lower BG
+      kidneyAutoCooldown: 25,      // faster recovery between filtrations
       liverReleaseRate: 2.0,
       liverInitialStorage: 200,
       insulinCharges: null,
@@ -215,14 +217,16 @@ export const PATIENTS = [
         narrative: 'Granddaughter\'s birthday! She baked a cake herself and really wants you to eat a slice. Social pressure to eat sweets all afternoon.',
         fixedMeals: [
           { hour: 9, foodKeys: ['eggs', 'bread'] },
-          { hour: 12, foodKeys: ['sandwich', 'banana'] },
-          { hour: 15, foodKeys: ['muffin', 'iceCream'] },
-          { hour: 19, foodKeys: ['pizza', 'cola'] },
+          { hour: 12, foodKeys: ['chicken', 'salad'] },
+          { hour: 15, foodKeys: ['muffin', 'cookie'] },
+          { hour: 19, foodKeys: ['pasta', 'veggies'] },
         ],
         fixedInterventions: [
           { hour: 9, type: 'metformin' },
-          { hour: 13, type: 'walk' },
+          { hour: 10, type: 'walk' },
+          { hour: 15.5, type: 'exercise' },
           { hour: 17, type: 'semaglutide' },
+          { hour: 18, type: 'dapagliflozin' },
         ],
       },
       {

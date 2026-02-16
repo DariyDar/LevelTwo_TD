@@ -34,18 +34,12 @@ export function renderWavePreview() {
   const cx = panelX + panelW / 2;
   let y = panelY + 20;
 
-  // Current wave info
-  ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 13px Arial';
-  ctx.textAlign = 'center';
-
   const waveIdx = gameState.currentWaveIndex;
   const totalWaves = gameState.waves.length;
 
-  ctx.fillText(`Wave ${Math.min(waveIdx, totalWaves)}/${totalWaves}`, cx, y);
-  y += 20;
+  ctx.textAlign = 'center';
 
-  // Current wave time
+  // Current meal time
   if (waveIdx > 0 && waveIdx <= totalWaves) {
     const prevWave = gameState.waves[waveIdx - 1];
     if (prevWave && prevWave.time) {
@@ -115,12 +109,6 @@ export function renderWavePreview() {
     ctx.fillText('enemies to win', cx, y);
   }
 
-  // Level name at bottom
-  if (gameState.levelConfig) {
-    ctx.font = '10px Arial';
-    ctx.fillStyle = '#7F8C8D';
-    ctx.fillText(gameState.levelConfig.name, cx, panelY + panelH - 10);
-  }
 }
 
 function getSpeedColor(speed) {
