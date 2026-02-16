@@ -453,7 +453,10 @@ function drawBGMiniGraph() {
   ctx.fillStyle = 'rgba(20, 25, 40, 0.80)';
   ctx.fillRect(0, gY, CONFIG.CANVAS_WIDTH, gH);
 
-  const bgMax = 300;
+  // Dynamic scale: start at 200 so green zone (80-140) is clearly visible,
+  // expand if BG goes higher
+  const peakBG = history.reduce((mx, h) => Math.max(mx, h.bg), 0);
+  const bgMax = Math.max(200, Math.min(peakBG + 20, 300));
 
   // Zone color bands (horizontal)
   const zones = [

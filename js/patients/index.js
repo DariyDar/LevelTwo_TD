@@ -17,7 +17,7 @@ export const PATIENTS = [
       energyStartMultiplier: 1.8,
       energyDrainMultiplier: 0.3,
       rebelDamageMultiplier: 0.1,
-      priestWaitMultiplier: 3.0,
+      priestWaitMultiplier: 6.0,
       kidneyAutoFilterRate: 2.0,
       liverReleaseRate: 1.5,
       liverInitialStorage: 150,
@@ -29,7 +29,7 @@ export const PATIENTS = [
         dayId: 1, levelRef: 1, name: 'Day 1: How It Works',
         narrative: 'Your first day. Learn how food arrives as glucose, how insulin converts it to energy, and how your body stays balanced. Only healthy foods today.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['oatmeal', 'eggs'] },
+          { hour: 7, foodKeys: ['oatmeal', 'eggs'] },
           { hour: 13, foodKeys: ['chicken', 'salad'] },
           { hour: 19, foodKeys: ['fish', 'veggies'] },
         ],

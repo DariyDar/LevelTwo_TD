@@ -49,11 +49,11 @@ const TUTORIAL_STEPS = {
       pointer: null,
       pauseGame: true,
     },
-    // Step 3 (PLAYING): BG counter — after boat food lands on shore
+    // Step 3 (PLAYING): BG counter — when first glucose actually raises BG
     {
       id: 'bg_counter',
       phase: 'playing',
-      trigger: (gs) => gs.peasants.some(p => p.alive && p.x > 300),
+      trigger: () => calculateBG() > 95,
       spotlight: { x: 240, y: 0, w: 230, h: 55 },
       text: 'Watch the BG (Blood Glucose) meter — it shows how much sugar is in your blood. Green zone (80-140 mg/dL) is healthy!',
       pointer: null,
