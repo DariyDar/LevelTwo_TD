@@ -51,6 +51,30 @@ const ALL_INTERVENTION_TYPES = [
 let foodItemRects = [];
 let ivItemRects = [];
 
+// Returns true if the current day has hardcoded meals (read-only mode)
+function isFixedMealsDay() {
+  const patient = getPatient(gameState.currentPatientId);
+  if (!patient) return false;
+  const dayDef = patient.days.find(d => d.dayId === gameState.currentDay);
+  return !!(dayDef && dayDef.fixedMeals);
+}
+
+// Pre-populate plan from fixedMeals when entering planning with fixed meals
+function ensureFixedMealsPlan() {
+  const patient = getPatient(gameState.currentPatientId);
+  if (!patient) return;
+  const dayDef = patient.days.find(d => d.dayId === gameState.currentDay);
+  if (!dayDef || !dayDef.fixedMeals) return;
+
+  const plan = ensurePlan();
+  if (plan.meals.length === 0) {
+    plan.meals = dayDef.fixedMeals.map(m => ({ ...m, executed: false }));
+  }
+  if (plan.interventions.length === 0 && dayDef.fixedInterventions) {
+    plan.interventions = dayDef.fixedInterventions.map(iv => ({ ...iv, executed: false }));
+  }
+}
+
 function getAvailableInterventions() {
   const patient = getPatient(gameState.currentPatientId);
   if (!patient) return ALL_INTERVENTION_TYPES;
@@ -114,13 +138,26 @@ export function renderPlanningMode() {
     }
   }
 
-  ctx.font = '12px Arial';
-  ctx.fillStyle = '#95A5A6';
-  ctx.fillText('Click food/intervention, then click timeline to place. Right-click timeline to remove.', W / 2, 90);
+  const fixedMode = isFixedMealsDay();
+
+  if (fixedMode) {
+    ensureFixedMealsPlan();
+    ctx.font = '12px Arial';
+    ctx.fillStyle = '#7F8C8D';
+    ctx.fillText('Meals are pre-set for this day. You can add interventions below.', W / 2, 90);
+  } else {
+    ctx.font = '12px Arial';
+    ctx.fillStyle = '#95A5A6';
+    ctx.fillText('Click food/intervention, then click timeline to place. Right-click timeline to remove.', W / 2, 90);
+  }
 
   drawBackButton(C);
   drawTimeline(C, W);
-  drawFoodPalette(C, W);
+
+  if (!fixedMode) {
+    drawFoodPalette(C, W);
+  }
+
   drawInterventionPalette(C, W);
   drawStartButton(C, W, H);
 
@@ -196,6 +233,7 @@ function drawTimeline(C, W) {
   ctx.textAlign = 'left';
   ctx.fillText('Meals:', 10, mealRowY + 12);
 
+  const fixedMeals = isFixedMealsDay();
   for (let i = 0; i < plan.meals.length; i++) {
     const meal = plan.meals[i];
     const mx = hourToX(meal.hour);
@@ -203,12 +241,12 @@ function drawTimeline(C, W) {
     const emoji = foods.map(f => f.emoji).join('');
     const totalCount = foods.reduce((s, f) => s + f.count, 0);
 
-    // Meal marker
-    ctx.fillStyle = 'rgba(241, 196, 15, 0.2)';
+    // Meal marker — fixed meals have a lock-style border
+    ctx.fillStyle = fixedMeals ? 'rgba(241, 196, 15, 0.12)' : 'rgba(241, 196, 15, 0.2)';
     ctx.beginPath();
     ctx.roundRect(mx - 20, mealRowY, 40, 32, 4);
     ctx.fill();
-    ctx.strokeStyle = '#F1C40F';
+    ctx.strokeStyle = fixedMeals ? '#8B7D3A' : '#F1C40F';
     ctx.lineWidth = 1;
     ctx.stroke();
 
@@ -358,10 +396,13 @@ function drawFoodPalette(C, W) {
 function drawInterventionPalette(C, W) {
   ivItemRects = [];
 
+  // Move intervention palette up if food palette is hidden (fixed meals mode)
+  const palY = isFixedMealsDay() ? 240 : IV_PALETTE_Y;
+
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'left';
-  ctx.fillText('Interventions:', 20, IV_PALETTE_Y - 8);
+  ctx.fillText('Interventions:', 20, palY - 8);
 
   const itemW = 100;
   const itemH = 42;
@@ -376,16 +417,16 @@ function drawInterventionPalette(C, W) {
     ctx.strokeStyle = isSelected ? '#3498DB' : '#3D5A6E';
     ctx.lineWidth = isSelected ? 2 : 1;
     ctx.beginPath();
-    ctx.roundRect(cx, IV_PALETTE_Y, itemW, itemH, 5);
+    ctx.roundRect(cx, palY, itemW, itemH, 5);
     ctx.fill();
     ctx.stroke();
 
     ctx.font = '15px Arial';
     ctx.textAlign = 'center';
     ctx.fillStyle = C.WHITE;
-    ctx.fillText(`${iv.emoji} ${iv.label}`, cx + itemW / 2, IV_PALETTE_Y + 27);
+    ctx.fillText(`${iv.emoji} ${iv.label}`, cx + itemW / 2, palY + 27);
 
-    ivItemRects.push({ x: cx, y: IV_PALETTE_Y, w: itemW, h: itemH, iv });
+    ivItemRects.push({ x: cx, y: palY, w: itemW, h: itemH, iv });
 
     cx += itemW + gap;
   }
@@ -475,11 +516,16 @@ function handleClick(e) {
     return;
   }
 
+  const fixedMode = isFixedMealsDay();
+
   // Check timeline click (place selected item)
   if (selectedItem && my >= TIMELINE_Y && my <= TIMELINE_Y + TIMELINE_H && mx >= MARGIN_L && mx <= CONFIG.CANVAS_WIDTH - MARGIN_R) {
     const hour = xToHour(mx);
     if (hour >= START_HOUR && hour <= END_HOUR) {
       if (selectedItem.type === 'food') {
+        // Block food placement in fixed meals mode
+        if (fixedMode) return;
+
         // Single-use check: skip if already used in plan
         const usedKeys = getUsedFoodKeys();
         if (usedKeys.has(selectedItem.key)) return;
@@ -508,12 +554,14 @@ function handleClick(e) {
     }
   }
 
-  // Check food palette click
-  for (const fr of foodItemRects) {
-    if (fr.used) continue; // Can't select used foods
-    if (mx >= fr.x && mx <= fr.x + fr.w && my >= fr.y && my <= fr.y + fr.h) {
-      selectedItem = { type: 'food', key: fr.key };
-      return;
+  // Check food palette click (hidden in fixed meals mode, but guard anyway)
+  if (!fixedMode) {
+    for (const fr of foodItemRects) {
+      if (fr.used) continue; // Can't select used foods
+      if (mx >= fr.x && mx <= fr.x + fr.w && my >= fr.y && my <= fr.y + fr.h) {
+        selectedItem = { type: 'food', key: fr.key };
+        return;
+      }
     }
   }
 
@@ -567,6 +615,9 @@ function handleRightClick(e) {
     const ivRowY = TIMELINE_Y + 48;
 
     if (my < ivRowY) {
+      // Block meal removal in fixed meals mode
+      if (isFixedMealsDay()) return;
+
       // Remove nearest meal
       let closest = -1;
       let closestDist = Infinity;

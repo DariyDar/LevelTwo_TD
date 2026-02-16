@@ -24,6 +24,7 @@ export function initUIRenderer(context) {
 export function renderUI() {
   drawTopBar();
   drawGameTimeline();
+  drawBGMiniGraph();
   drawHypoglycemiaOverlay();
 }
 
@@ -406,6 +407,119 @@ function drawGameTimeline() {
   ctx.restore();
 }
 
+function drawBGMiniGraph() {
+  if (gameState.phase !== GamePhase.PLAYING &&
+      gameState.phase !== GamePhase.BETWEEN_WAVES) return;
+
+  const history = gameState.bgHistory;
+  if (!history || history.length === 0) return;
+
+  ctx.save();
+
+  const startHour = CONFIG.DAY_START_HOUR;
+  const endHour = CONFIG.DAY_END_HOUR;
+  const hourRange = endHour - startHour;
+
+  // Position: directly below the timeline strip
+  const gY = 78;
+  const gH = 42;
+  const marginL = 50;
+  const marginR = 10;
+  const gW = CONFIG.CANVAS_WIDTH - marginL - marginR;
+
+  const hourToX = (h) => marginL + ((h - startHour) / hourRange) * gW;
+
+  // Background
+  ctx.fillStyle = 'rgba(20, 25, 40, 0.80)';
+  ctx.fillRect(0, gY, CONFIG.CANVAS_WIDTH, gH);
+
+  const bgMax = CONFIG.BG_VERY_HIGH;
+
+  // Zone color bands (horizontal)
+  const zones = [
+    { from: bgMax,                  to: CONFIG.BG_HIGH,        color: 'rgba(231,76,60,0.12)' },
+    { from: CONFIG.BG_HIGH,         to: CONFIG.BG_ELEVATED,    color: 'rgba(230,126,34,0.10)' },
+    { from: CONFIG.BG_ELEVATED,     to: CONFIG.BG_NORMAL_HIGH, color: 'rgba(241,196,15,0.08)' },
+    { from: CONFIG.BG_NORMAL_HIGH,  to: CONFIG.BG_NORMAL_LOW,  color: 'rgba(46,204,113,0.15)' },
+    { from: CONFIG.BG_NORMAL_LOW,   to: CONFIG.BG_HYPO,        color: 'rgba(241,196,15,0.08)' },
+    { from: CONFIG.BG_HYPO,         to: 0,                     color: 'rgba(231,76,60,0.12)' },
+  ];
+
+  for (const zone of zones) {
+    const yTop = gY + (1 - zone.from / bgMax) * gH;
+    const yBot = gY + (1 - zone.to / bgMax) * gH;
+    ctx.fillStyle = zone.color;
+    ctx.fillRect(marginL, yTop, gW, yBot - yTop);
+  }
+
+  // Normal range dashed guide lines
+  ctx.strokeStyle = 'rgba(46, 204, 113, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  const normalLowY = gY + (1 - CONFIG.BG_NORMAL_LOW / bgMax) * gH;
+  const normalHighY = gY + (1 - CONFIG.BG_NORMAL_HIGH / bgMax) * gH;
+  ctx.beginPath();
+  ctx.moveTo(marginL, normalLowY);
+  ctx.lineTo(marginL + gW, normalLowY);
+  ctx.moveTo(marginL, normalHighY);
+  ctx.lineTo(marginL + gW, normalHighY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // BG to Y helper
+  const bgToY = (bg) => {
+    const clamped = Math.max(0, Math.min(bg, bgMax));
+    return gY + (1 - clamped / bgMax) * gH;
+  };
+
+  // BG trace polyline
+  if (history.length >= 2) {
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.beginPath();
+    for (let i = 0; i < history.length; i++) {
+      const px = hourToX(history[i].hour);
+      const py = bgToY(history[i].bg);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  // Current BG dot
+  if (history.length > 0) {
+    const last = history[history.length - 1];
+    const dotX = hourToX(last.hour);
+    const dotY = bgToY(last.bg);
+    ctx.fillStyle = getBGColor(last.bg);
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // BG value label next to dot
+    ctx.font = '8px Arial';
+    ctx.fillStyle = getBGColor(last.bg);
+    ctx.textAlign = 'left';
+    ctx.fillText(`${last.bg}`, dotX + 5, dotY + 3);
+  }
+
+  // Current time vertical line (gold, connecting to timeline strip above)
+  const currentHour = getVirtualHour();
+  if (currentHour >= startHour && currentHour <= endHour) {
+    const nowX = hourToX(currentHour);
+    ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(nowX, gY);
+    ctx.lineTo(nowX, gY + gH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.restore();
+}
+
 const SPEED_BUTTONS = [
   { label: '0.25x', speed: 0.25 },
   { label: '0.5x', speed: 0.5 },
@@ -467,23 +581,22 @@ function drawSpeedControls(C) {
   speedButtonRects.push({ x: cx, y: startY, w: pauseW, h: btnH, speed: 0, action: 'pause' });
 }
 
-// Bottom panel: BG graph (40px) + plan timeline (40px) = 80px total
+// Bottom panel: event timeline (40px) — BG graph is now in the top mini-graph
 export function renderBottomPanel() {
   if (gameState.phase !== GamePhase.PLAYING &&
       gameState.phase !== GamePhase.BETWEEN_WAVES &&
       gameState.phase !== GamePhase.GAME_OVER) return;
 
-  const C = CONFIG.COLORS;
-  const panelH = 80;
+  if (!gameState.bgEventLog || gameState.bgEventLog.length === 0) return;
+
+  const panelH = 40;
   const panelY = CONFIG.CANVAS_HEIGHT - panelH;
-  const graphH = 40;
-  const timelineH = 40;
-  const margin = 50; // left margin for hour labels
+  const margin = 50;
   const rightMargin = 10;
   const graphW = CONFIG.CANVAS_WIDTH - margin - rightMargin;
 
   // Panel background
-  ctx.fillStyle = 'rgba(30, 30, 50, 0.92)';
+  ctx.fillStyle = 'rgba(30, 30, 50, 0.85)';
   ctx.fillRect(0, panelY, CONFIG.CANVAS_WIDTH, panelH);
 
   // Separator line
@@ -497,138 +610,44 @@ export function renderBottomPanel() {
   const startHour = CONFIG.DAY_START_HOUR;
   const endHour = CONFIG.DAY_END_HOUR;
   const hourRange = endHour - startHour;
-
-  // Helper: hour → X pixel
   const hourToX = (h) => margin + ((h - startHour) / hourRange) * graphW;
 
-  // === BG GRAPH (upper 40px) ===
-  const gY = panelY;
-  const bgMin = 0;
-  const bgMax = CONFIG.BG_VERY_HIGH;
-
-  // Zone color backgrounds (horizontal bands)
-  const zones = [
-    { from: bgMax,              to: CONFIG.BG_HIGH,       color: 'rgba(231,76,60,0.15)' },
-    { from: CONFIG.BG_HIGH,     to: CONFIG.BG_ELEVATED,   color: 'rgba(230,126,34,0.12)' },
-    { from: CONFIG.BG_ELEVATED, to: CONFIG.BG_NORMAL_HIGH, color: 'rgba(241,196,15,0.10)' },
-    { from: CONFIG.BG_NORMAL_HIGH, to: CONFIG.BG_NORMAL_LOW, color: 'rgba(46,204,113,0.15)' },
-    { from: CONFIG.BG_NORMAL_LOW, to: CONFIG.BG_HYPO,     color: 'rgba(241,196,15,0.10)' },
-    { from: CONFIG.BG_HYPO,    to: bgMin,                 color: 'rgba(231,76,60,0.15)' },
-  ];
-
-  for (const zone of zones) {
-    const yTop = gY + (1 - zone.from / bgMax) * graphH;
-    const yBot = gY + (1 - zone.to / bgMax) * graphH;
-    ctx.fillStyle = zone.color;
-    ctx.fillRect(margin, yTop, graphW, yBot - yTop);
-  }
-
-  // Normal range horizontal guide lines
-  ctx.strokeStyle = 'rgba(46, 204, 113, 0.3)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-  const normalLowY = gY + (1 - CONFIG.BG_NORMAL_LOW / bgMax) * graphH;
-  const normalHighY = gY + (1 - CONFIG.BG_NORMAL_HIGH / bgMax) * graphH;
-  ctx.beginPath();
-  ctx.moveTo(margin, normalLowY);
-  ctx.lineTo(margin + graphW, normalLowY);
-  ctx.moveTo(margin, normalHighY);
-  ctx.lineTo(margin + graphW, normalHighY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Helper: clamp BG to valid graph range
-  const bgToY = (bg) => {
-    const clamped = Math.max(0, Math.min(bg, bgMax));
-    return gY + (1 - clamped / bgMax) * graphH;
-  };
-
-  // BG trace polyline
-  const history = gameState.bgHistory;
-  if (history.length >= 1) {
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let i = 0; i < history.length; i++) {
-      const px = hourToX(history[i].hour);
-      const py = bgToY(history[i].bg);
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    if (history.length > 1) {
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.stroke();
-    }
-  }
-
-  // Current BG dot
-  if (history.length > 0) {
-    const last = history[history.length - 1];
-    const dotX = hourToX(last.hour);
-    const dotY = bgToY(last.bg);
-    ctx.fillStyle = getBGColor(last.bg);
-    ctx.beginPath();
-    ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // BG scale labels (left margin)
+  // Hour tick marks + labels
   ctx.font = '8px Arial';
-  ctx.textAlign = 'right';
-  ctx.fillStyle = '#7F8C8D';
-  ctx.fillText('400', margin - 4, gY + 8);
-  ctx.fillText('140', margin - 4, normalHighY + 3);
-  ctx.fillText('80', margin - 4, normalLowY + 3);
-
-  // === TIMELINE (lower 40px) ===
-  const tY = panelY + graphH;
-
-  // Separator between graph and timeline
-  ctx.strokeStyle = '#3D5A6E';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(margin, tY);
-  ctx.lineTo(margin + graphW, tY);
-  ctx.stroke();
-
-  // Hour tick marks + labels (shared X-axis)
-  ctx.font = '9px Arial';
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#95A5A6';
-  for (let h = startHour; h <= endHour; h += 2) {
+  ctx.fillStyle = '#5D6D7E';
+  for (let h = startHour; h <= endHour; h += 3) {
     const tx = hourToX(h);
-    // Tick mark
-    ctx.strokeStyle = '#4A5568';
     ctx.beginPath();
-    ctx.moveTo(tx, tY);
-    ctx.lineTo(tx, tY + 6);
+    ctx.moveTo(tx, panelY);
+    ctx.lineTo(tx, panelY + 4);
     ctx.stroke();
-    // Label
-    ctx.fillStyle = '#95A5A6';
-    ctx.fillText(`${h}:00`, tx, tY + 15);
+    ctx.fillText(`${h}`, tx, panelY + 12);
   }
 
-  // Food event markers on timeline
+  // Food + intervention event markers
   for (const evt of gameState.bgEventLog) {
     const ex = hourToX(evt.hour);
     if (evt.type === 'food') {
       ctx.font = '11px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(evt.label, ex, tY + 30);
+      ctx.fillStyle = '#BDC3C7';
+      ctx.fillText(evt.label, ex, panelY + 26);
     } else if (evt.type === 'intervention') {
       ctx.font = '9px Arial';
       ctx.fillStyle = '#3498DB';
       ctx.textAlign = 'center';
-      ctx.fillText(evt.label, ex, tY + 38);
+      ctx.fillText(evt.label, ex, panelY + 36);
     }
   }
 
-  // Current time indicator (vertical gold dashed line spanning both graph + timeline)
+  // Current time indicator
   const currentHour = getVirtualHour();
   if (currentHour >= startHour && currentHour <= endHour) {
     const nowX = hourToX(currentHour);
-    ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)';
+    ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)';
     ctx.lineWidth = 1;
-    ctx.setLineDash([3, 3]);
+    ctx.setLineDash([2, 2]);
     ctx.beginPath();
     ctx.moveTo(nowX, panelY);
     ctx.lineTo(nowX, panelY + panelH);

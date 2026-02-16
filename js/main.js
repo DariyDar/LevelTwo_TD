@@ -36,6 +36,7 @@ import { initBGHistory, updateBGHistory } from './systems/bgHistory.js';
 import { initPlanningMode, renderPlanningMode } from './ui/planningMode.js';
 import { initPlanExecutor, updatePlanExecutor } from './systems/planExecutor.js';
 import { initWelcome, renderWelcome } from './ui/welcome.js';
+import { initTutorial, initTutorialForDay, updateTutorial, renderTutorial, advanceTutorial, isTutorialActive } from './ui/tutorial.js';
 
 let lastTime = 0;
 let canvas = null;
@@ -60,6 +61,7 @@ function init() {
   initMealPlan(canvas, ctx, startPlayingAfterMealPlan);
   initPlanningMode(canvas, ctx, startPlayingAfterPlanning);
   initWelcome(canvas, ctx);
+  initTutorial(canvas, ctx);
 
   // Keyboard shortcuts for core actions
   document.addEventListener('keydown', handleKeyboard);
@@ -121,7 +123,27 @@ export function startDay(patientId, dayId, levelRef) {
   // Spawn starting workers (baseline glucose pool)
   spawnStartingWorkers();
 
-  // Show planning mode (replaces old meal plan selection)
+  // Initialize tutorial for this patient+day (if tutorial steps exist)
+  initTutorialForDay(patientId, dayId);
+
+  // Check if this day has fixed meals (tutorial / narrative days)
+  const dayDef = patient ? patient.days.find(d => d.dayId === dayId) : null;
+  if (dayDef && dayDef.fixedMeals) {
+    // Auto-create plan from fixed meals — skip planning mode
+    gameState.currentPlan = {
+      levelId,
+      meals: dayDef.fixedMeals.map(m => ({ ...m, executed: false })),
+      interventions: (dayDef.fixedInterventions || []).map(iv => ({ ...iv, executed: false })),
+    };
+    initPlanExecutor();
+    gameState.waves = gameState.currentPlan.meals.map(m => ({
+      time: formatVirtualTime(m.hour), choices: [],
+    }));
+    gameState.phase = GamePhase.PLAYING;
+    return;
+  }
+
+  // Show planning mode for days without fixed meals
   gameState.phase = GamePhase.PLANNING;
 }
 
@@ -313,11 +335,19 @@ function gameLoop(timestamp) {
     renderEntities();
     renderEffects();
     renderUI();
-    renderBottomBar();
+
+    // Hide intervention bottom bar for tutorial (healthy) patient
+    const currentPatient = getPatient(gameState.currentPatientId);
+    const isTutorialDay = currentPatient && currentPatient.isTutorial;
+    if (!isTutorialDay) {
+      renderBottomBar();
+    }
+
     renderBottomPanel();
     renderWavePreview();
     renderFoodChoice();
     renderPausedOverlay();
+    renderTutorial();
   }
 
   requestAnimationFrame(gameLoop);
@@ -343,6 +373,7 @@ function update(dt) {
   updateBGHistory(dt);
   updateEffects(dt);
   cleanupDead();
+  updateTutorial();
 }
 
 function updateHypoglycemia(dt) {
@@ -467,6 +498,12 @@ function handleKeyboard(e) {
 }
 
 function handleCanvasClick(e) {
+  // Tutorial click: advance overlay and consume the click
+  if (isTutorialActive()) {
+    advanceTutorial();
+    return;
+  }
+
   if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return;
 
   const rect = canvas.getBoundingClientRect();

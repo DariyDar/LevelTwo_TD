@@ -30,9 +30,11 @@ function loadProgress() {
     // ignore
   }
   // Ensure all patients have progress entries
+  // Healthy (tutorial) starts at day 1; others start locked (day 0)
   for (const patient of PATIENTS) {
     if (!progress[patient.id]) {
-      progress[patient.id] = { unlockedDay: 1, stars: [0, 0, 0, 0, 0] };
+      const startDay = patient.id === 'healthy' ? 1 : 0;
+      progress[patient.id] = { unlockedDay: startDay, stars: [0, 0, 0, 0, 0] };
     }
   }
   // Migrate legacy progress (old single-patient system)
@@ -61,20 +63,55 @@ export function saveProgress() {
 
 export function getPatientProgress(patientId) {
   if (!progress[patientId]) {
-    progress[patientId] = { unlockedDay: 1, stars: [0, 0, 0, 0, 0] };
+    const startDay = patientId === 'healthy' ? 1 : 0;
+    progress[patientId] = { unlockedDay: startDay, stars: [0, 0, 0, 0, 0] };
   }
   return progress[patientId];
 }
 
 export function unlockNextDay(patientId, dayId, stars) {
   const p = getPatientProgress(patientId);
+  const patient = PATIENTS.find(pt => pt.id === patientId);
+  const maxDays = patient ? patient.days.length : 5;
+
   // Update stars for completed day (keep best)
-  if (dayId >= 1 && dayId <= 5) {
+  if (dayId >= 1 && dayId <= maxDays) {
     p.stars[dayId - 1] = Math.max(p.stars[dayId - 1], stars);
   }
-  // Unlock next day
-  if (dayId < 5) {
+  // Unlock next day within this patient
+  if (dayId < maxDays) {
     p.unlockedDay = Math.max(p.unlockedDay, dayId + 1);
+  }
+
+  // Cross-patient unlocks:
+  // Completing healthy tutorial (day 3) → unlock type1 + type2
+  if (patientId === 'healthy' && dayId >= 3) {
+    const t1 = getPatientProgress('type1');
+    t1.unlockedDay = Math.max(t1.unlockedDay, 1);
+    const t2 = getPatientProgress('type2');
+    t2.unlockedDay = Math.max(t2.unlockedDay, 1);
+  }
+  // Completing type2 (day 5) → unlock type2advanced
+  if (patientId === 'type2' && dayId >= 5) {
+    const t2a = getPatientProgress('type2advanced');
+    t2a.unlockedDay = Math.max(t2a.unlockedDay, 1);
+  }
+
+  saveProgress();
+}
+
+export function unlockAllLevels() {
+  for (const patient of PATIENTS) {
+    const p = getPatientProgress(patient.id);
+    p.unlockedDay = patient.days.length;
+  }
+  saveProgress();
+}
+
+export function resetAllProgress() {
+  for (const patient of PATIENTS) {
+    const startDay = patient.id === 'healthy' ? 1 : 0;
+    progress[patient.id] = { unlockedDay: startDay, stars: [0, 0, 0, 0, 0] };
   }
   saveProgress();
 }
@@ -126,9 +163,23 @@ export function renderMenu() {
     const patient = PATIENTS[pi];
     const rowY = startY + pi * rowH;
     const prog = getPatientProgress(patient.id);
+    const isPatientLocked = prog.unlockedDay === 0;
 
-    drawPatientCard(patient, cardX, rowY, cardW, rowH - 10);
-    drawDayButtons(patient, prog, dayBtnStartX, rowY, dayBtnW, dayBtnH, dayBtnGap);
+    drawPatientCard(patient, cardX, rowY, cardW, rowH - 10, isPatientLocked);
+
+    // Only draw day buttons if patient is unlocked (has at least day 1)
+    if (!isPatientLocked) {
+      drawDayButtons(patient, prog, dayBtnStartX, rowY, dayBtnW, dayBtnH, dayBtnGap);
+    } else {
+      // Show unlock hint
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#5D6D7E';
+      ctx.textAlign = 'left';
+      const hint = patient.id === 'type2advanced'
+        ? '\u{1F512} Complete Type 2 to unlock'
+        : '\u{1F512} Complete Tutorial to unlock';
+      ctx.fillText(hint, dayBtnStartX, rowY + 45);
+    }
   }
 
   // Hovered day narrative tooltip
@@ -207,7 +258,7 @@ function wrapText(text, maxWidth) {
   return lines;
 }
 
-function drawPatientCard(patient, x, y, w, h) {
+function drawPatientCard(patient, x, y, w, h, isLocked) {
   const C = CONFIG.COLORS;
   const textMaxW = w - 70; // padding: 55 left + 15 right
   const fullMaxW = w - 30; // padding: 15 left + 15 right
@@ -268,6 +319,14 @@ function drawPatientCard(patient, x, y, w, h) {
   ctx.fillStyle = '#5D7A8C';
   const ivText = patient.availableInterventions.join(', ');
   ctx.fillText(truncateText(ivText, fullMaxW), x + 15, y + h - 8);
+
+  // Locked overlay
+  if (isLocked) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 8);
+    ctx.fill();
+  }
 }
 
 function drawDayButtons(patient, prog, startX, rowY, btnW, btnH, gap) {

@@ -128,6 +128,11 @@ export function createGameState() {
     // Current plan (persists across restarts)
     currentPlan: null,
 
+    // Tutorial overlay
+    tutorialStepIndex: 0,
+    tutorialActive: false,
+    tutorialDayKey: null,
+
     // Game over
     gameOverReason: null,
   };

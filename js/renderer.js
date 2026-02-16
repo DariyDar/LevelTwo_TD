@@ -390,10 +390,23 @@ function drawMines() {
         ctx.fillRect(x - hw, y - hh - 4, size.w * repairPct, 3);
       }
     } else {
+      const exerciseActive = gameState.interventions.exercise.active;
+
+      // Exercise glow: orange pulsating shadow behind mine
+      if (exerciseActive && workerCount > 0) {
+        const pulse = 6 + 3 * Math.sin(Date.now() / 300);
+        ctx.save();
+        ctx.shadowColor = '#F39C12';
+        ctx.shadowBlur = pulse;
+        ctx.fillStyle = 'rgba(243, 156, 18, 0.15)';
+        ctx.fillRect(x - hw - 2, y - hh - 2, size.w + 4, size.h + 4);
+        ctx.restore();
+      }
+
       // Normal or under attack
       ctx.fillStyle = C.ORANGE;
-      ctx.strokeStyle = '#E67E22';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = exerciseActive ? '#F39C12' : '#E67E22';
+      ctx.lineWidth = exerciseActive ? (1 + Math.sin(Date.now() / 300)) : 1;
       ctx.fillRect(x - hw, y - hh, size.w, size.h);
       ctx.strokeRect(x - hw, y - hh, size.w, size.h);
 

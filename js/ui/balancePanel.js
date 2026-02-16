@@ -13,6 +13,7 @@ import {
   getDayDefault, saveDayBalance, resetDayBalance, copyDayBalance,
   initDayBalances,
 } from './balancePanelDay.js';
+import { unlockAllLevels, resetAllProgress } from './menu.js';
 
 const STORAGE_KEY = 'glucodefense_balance';
 
@@ -231,6 +232,8 @@ const CONTENT_H = PANEL_H - HEADER_H - TAB_H - FOOTER_H;
 let resetBtnRect = { x: 0, y: 0, w: 0, h: 0 };
 let copyBtnRect = { x: 0, y: 0, w: 0, h: 0 };
 let closeBtnRect = { x: 0, y: 0, w: 0, h: 0 };
+let unlockAllBtnRect = { x: 0, y: 0, w: 0, h: 0 };
+let resetProgressBtnRect = { x: 0, y: 0, w: 0, h: 0 };
 let copyFlashTimer = 0;
 
 export function initBalancePanel(canvasEl, context) {
@@ -397,26 +400,56 @@ export function renderBalancePanel() {
   ctx.fillStyle = '#2C3E50';
   ctx.fillRect(PANEL_X, footerY, PANEL_W, FOOTER_H);
 
-  resetBtnRect = { x: PANEL_X + PANEL_W / 2 - 200, y: footerY + 10, w: 180, h: 30 };
+  const btnW = 150;
+  const btnH = 30;
+  const btnGap = 10;
+  const totalBtnsW = 4 * btnW + 3 * btnGap;
+  const btnStartX = PANEL_X + (PANEL_W - totalBtnsW) / 2;
+
+  // Reset to Defaults
+  resetBtnRect = { x: btnStartX, y: footerY + 10, w: btnW, h: btnH };
   ctx.fillStyle = '#7D3C98';
   ctx.beginPath();
   ctx.roundRect(resetBtnRect.x, resetBtnRect.y, resetBtnRect.w, resetBtnRect.h, 4);
   ctx.fill();
   ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 12px Arial';
+  ctx.font = 'bold 11px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Reset to Defaults', resetBtnRect.x + resetBtnRect.w / 2, resetBtnRect.y + 20);
+  ctx.fillText('Reset Defaults', resetBtnRect.x + resetBtnRect.w / 2, resetBtnRect.y + 20);
 
-  copyBtnRect = { x: PANEL_X + PANEL_W / 2 + 20, y: footerY + 10, w: 180, h: 30 };
+  // Copy Settings
+  copyBtnRect = { x: btnStartX + btnW + btnGap, y: footerY + 10, w: btnW, h: btnH };
   ctx.fillStyle = copyFlashTimer > 0 ? '#27AE60' : '#2C6E8C';
   ctx.beginPath();
   ctx.roundRect(copyBtnRect.x, copyBtnRect.y, copyBtnRect.w, copyBtnRect.h, 4);
   ctx.fill();
   ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 12px Arial';
+  ctx.font = 'bold 11px Arial';
   ctx.textAlign = 'center';
   ctx.fillText(copyFlashTimer > 0 ? 'Copied!' : 'Copy Settings', copyBtnRect.x + copyBtnRect.w / 2, copyBtnRect.y + 20);
   if (copyFlashTimer > 0) copyFlashTimer -= 0.016;
+
+  // Unlock All Levels
+  unlockAllBtnRect = { x: btnStartX + 2 * (btnW + btnGap), y: footerY + 10, w: btnW, h: btnH };
+  ctx.fillStyle = '#2874A6';
+  ctx.beginPath();
+  ctx.roundRect(unlockAllBtnRect.x, unlockAllBtnRect.y, unlockAllBtnRect.w, unlockAllBtnRect.h, 4);
+  ctx.fill();
+  ctx.fillStyle = C.WHITE;
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Unlock All', unlockAllBtnRect.x + unlockAllBtnRect.w / 2, unlockAllBtnRect.y + 20);
+
+  // Reset Progress
+  resetProgressBtnRect = { x: btnStartX + 3 * (btnW + btnGap), y: footerY + 10, w: btnW, h: btnH };
+  ctx.fillStyle = '#922B21';
+  ctx.beginPath();
+  ctx.roundRect(resetProgressBtnRect.x, resetProgressBtnRect.y, resetProgressBtnRect.w, resetProgressBtnRect.h, 4);
+  ctx.fill();
+  ctx.fillStyle = C.WHITE;
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Reset Progress', resetProgressBtnRect.x + resetProgressBtnRect.w / 2, resetProgressBtnRect.y + 20);
 
   // Scrollbar
   const totalContentH = params.length * ROW_H + 20;
@@ -492,6 +525,8 @@ function handleMouseDown(e) {
   if (isInsideRect(mx, my, closeBtnRect)) { hideBalancePanel(); return; }
   if (isInsideRect(mx, my, resetBtnRect)) { resetActiveBalance(); return; }
   if (isInsideRect(mx, my, copyBtnRect)) { copyActiveBalance(); return; }
+  if (isInsideRect(mx, my, unlockAllBtnRect)) { unlockAllLevels(); return; }
+  if (isInsideRect(mx, my, resetProgressBtnRect)) { resetAllProgress(); return; }
 
   // Tab clicks
   for (const tr of tabRects) {
