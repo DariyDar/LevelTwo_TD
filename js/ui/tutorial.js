@@ -6,6 +6,7 @@ import { PeasantState } from '../entities/Peasant.js';
 import { KnightState } from '../entities/Knight.js';
 import { calculateBG } from '../systems/bgSystem.js';
 import { getVirtualHour } from '../systems/waveManager.js';
+import { speedButtonRects } from '../rendererUI.js';
 
 let ctx = null;
 let canvas = null;
@@ -124,13 +125,13 @@ const TUTORIAL_STEPS = {
       pauseGame: true,
       minDelay: 0,
     },
-    // Step 10 (PLAYING): Rebel glucose — event-driven only (delay after pancreas)
+    // Step 10 (PLAYING): Rebel glucose — triggers when a rebel attacks a building
     {
       id: 'rebel_intro',
       phase: 'playing',
-      trigger: (gs) => gs.peasants.some(p => p.alive && p.state === PeasantState.REBEL),
-      spotlight: null,
-      text: 'When glucose waits too long without insulin, it becomes "angry" (rebel). Don\'t worry — in a healthy body this is rare and not dangerous.',
+      trigger: (gs) => gs.peasants.some(p => p.alive && p.state === PeasantState.REBEL && p.attackTarget),
+      spotlight: { x: 640, y: 230, w: 460, h: 340 },
+      text: 'When glucose waits too long without insulin, it becomes "angry" (red flashing). Rebels can attack your organs! In a healthy body this is rare.',
       pointer: null,
       pauseGame: true,
       minDelay: 5,
@@ -395,12 +396,12 @@ function _renderOverlay(step) {
     ctx.textAlign = 'center';
 
     if (step.pointer.dir === 'speed_10x') {
-      // Point at the x10 speed button area from below
-      // Speed buttons: startX = 1100 - (6*33 + 33) - 8 = 861
-      // x10 button center: 861 + 5*33 + 15 = 1041
-      const approxX = 861 + 5 * 33 + 15;
+      // Find the actual x10 button from rendered speedButtonRects
+      const btn10x = speedButtonRects.find(b => b.speed === 10.0);
+      const approxX = btn10x ? btn10x.x + btn10x.w / 2 : 1041;
+      const btnBottom = btn10x ? btn10x.y + btn10x.h : 40;
       const bounce = 6 * Math.sin(Date.now() / 300);
-      ctx.fillText('\u{1F446}', approxX, py + bounce);
+      ctx.fillText('\u{1F446}', approxX, btnBottom + 30 + bounce);
     } else if (step.pointer.dir === 'down') {
       const bounce = 6 * Math.sin(Date.now() / 300);
       ctx.fillText('\u{1F447}', px, py + bounce);

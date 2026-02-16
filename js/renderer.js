@@ -147,12 +147,14 @@ function drawLiverTower() {
     const maxDots = cols * rows;
     const dotCount = Math.min(storage, maxDots);
 
-    ctx.fillStyle = CONFIG.COLORS.RED;
+    // Color dots: slow glucose = orange, fast = red
+    const slowCount = liver ? liver.slowStorage : 0;
     for (let d = 0; d < dotCount; d++) {
       const col = d % cols;
       const row = Math.floor(d / cols);
       const dotX = x + padding + col * dotGap + dotGap / 2;
       const dotY = y + padding + row * dotGap + dotGap / 2;
+      ctx.fillStyle = d < slowCount ? CONFIG.COLORS.ORANGE : CONFIG.COLORS.RED;
       ctx.beginPath();
       ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
       ctx.fill();

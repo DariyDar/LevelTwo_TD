@@ -136,7 +136,8 @@ export class LiverTower {
     peasant.speedCategory = isSlow ? 'slow' : 'fast';
     peasant.state = PeasantState.WAITING_FOR_PRIEST;
     peasant.waitTimer = 0;
-    peasant.rebelThreshold = CONFIG.PRIEST_WAIT_TIMEOUT * (0.5 + Math.random());
+    const priestMult = gameState._priestWaitMultiplier ?? 1.0;
+    peasant.rebelThreshold = CONFIG.PRIEST_WAIT_TIMEOUT * priestMult * (0.5 + Math.random());
     peasant.waypointIndex = 999;
     peasant.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
     peasant.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);

@@ -17,7 +17,7 @@ export const PATIENTS = [
       energyStartMultiplier: 1.8,
       energyDrainMultiplier: 0.3,
       rebelDamageMultiplier: 0.1,
-      priestWaitMultiplier: 10.0,
+      priestWaitMultiplier: 15.0,
       kidneyAutoFilterRate: 2.0,
       liverReleaseRate: 2.0,
       liverInitialStorage: 200,
