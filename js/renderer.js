@@ -19,8 +19,7 @@ export function getCtx() {
 }
 
 export function render() {
-  ctx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
-
+  // Note: clearRect and camera transform are handled by main.js gameLoop
   drawBackground();
   drawRoad();
   drawBuildings();
@@ -208,11 +207,11 @@ function drawPancreas() {
   const size = CONFIG.PANCREAS_SIZE;
   const deg = gameState.degradation;
 
-  // Sprite: Monastery is 192x320, scale to fit pancreas area
-  const sprW = size.w + 10;
+  // Sprite: Monastery is 192x320, scale to fit pancreas area (compact)
+  const sprW = size.w - 10;
   const sprH = sprW * (320 / 192);
   const sprX = pos.x - sprW / 2;
-  const sprY = pos.y - sprH / 2 + 10;
+  const sprY = pos.y - sprH / 2 + 20;
 
   // Fallback rect
   const x = pos.x - size.w / 2;
@@ -322,12 +321,13 @@ function drawKidneys() {
     ctx.fillStyle = `rgba(231, 76, 60, ${flash})`;
     ctx.fillRect(sprX + 4, sprY + 4, sprW - 8, sprH - 8);
 
-    // HP bar
+    // HP bar (below the sprite)
     const hpPct = kidneys.hp / kidneys.maxHp;
+    const hpBarY = sprY + sprH + 4;
     ctx.fillStyle = '#555';
-    ctx.fillRect(pos.x - r, sprY - 6, r * 2, 3);
+    ctx.fillRect(pos.x - r, hpBarY, r * 2, 3);
     ctx.fillStyle = hpPct > 0.5 ? '#2ECC71' : hpPct > 0.25 ? '#F39C12' : '#E74C3C';
-    ctx.fillRect(pos.x - r, sprY - 6, r * 2 * hpPct, 3);
+    ctx.fillRect(pos.x - r, hpBarY, r * 2 * hpPct, 3);
   }
 
   // Label

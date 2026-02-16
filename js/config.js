@@ -117,23 +117,23 @@ export const CONFIG = {
   LIVER_RELEASE_THRESHOLD_BG: 100, // BG below this triggers auto-glycogenolysis
   LIVER_AUTO_RELEASE_INTERVAL: 2,  // seconds between auto-releases
 
-  // Knight spawn positions (around liver building)
+  // Knight spawn positions (spread around liver, not overlapping sprite)
   KNIGHT_POSITIONS: [
-    { x: 455, y: 340 },
-    { x: 545, y: 340 },
-    { x: 455, y: 380 },
-    { x: 545, y: 380 },
-    { x: 470, y: 325 },
-    { x: 530, y: 325 },
-    { x: 470, y: 395 },
-    { x: 530, y: 395 },
-    { x: 460, y: 360 },
-    { x: 540, y: 360 },
-    { x: 485, y: 320 },
-    { x: 515, y: 320 },
-    { x: 485, y: 400 },
-    { x: 515, y: 400 },
-    { x: 500, y: 410 },
+    { x: 420, y: 330 },
+    { x: 580, y: 330 },
+    { x: 420, y: 390 },
+    { x: 580, y: 390 },
+    { x: 430, y: 310 },
+    { x: 570, y: 310 },
+    { x: 430, y: 410 },
+    { x: 570, y: 410 },
+    { x: 410, y: 360 },
+    { x: 590, y: 360 },
+    { x: 440, y: 300 },
+    { x: 560, y: 300 },
+    { x: 440, y: 420 },
+    { x: 560, y: 420 },
+    { x: 500, y: 430 },
   ],
   KNIGHT_SPEED: 20,
   KNIGHT_SCAN_RANGE: 140,
@@ -159,6 +159,13 @@ export const CONFIG = {
   LIVER_HP: 200,
   KIDNEY_HP: 150,
   BUILDING_REPAIR_TIME: 15,
+
+  // Camera
+  CAMERA_DEFAULT_ZOOM: 1.8,
+  CAMERA_MIN_ZOOM: 1.0,
+  CAMERA_MAX_ZOOM: 3.0,
+  CAMERA_START_X: 250,
+  CAMERA_START_Y: 80,
 
   // Sprite rendering
   SPRITE_SIZE_PEASANT: 24,

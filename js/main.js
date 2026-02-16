@@ -29,7 +29,7 @@ import { initBottomBar, renderBottomBar } from './ui/bottomBar.js';
 import { initMenu, renderMenu, unlockNextDay } from './ui/menu.js';
 import { getPatient } from './patients/index.js';
 import { initGameOver, renderGameOver } from './ui/gameOver.js';
-import { initWavePreview, renderWavePreview } from './ui/wavePreview.js';
+// import { initWavePreview, renderWavePreview } from './ui/wavePreview.js';
 import { initMealPlan, renderMealPlan } from './ui/mealPlan.js';
 import { updateKidneyFiltration } from './systems/kidneyFiltration.js';
 import { initBGHistory, updateBGHistory } from './systems/bgHistory.js';
@@ -39,6 +39,7 @@ import { initWelcome, renderWelcome } from './ui/welcome.js';
 import { initTutorial, initTutorialForDay, updateTutorial, renderTutorial, advanceTutorial, isTutorialActive } from './ui/tutorial.js';
 import { loadAllSprites } from './spriteLoader.js';
 import { updateAnim } from './spriteAnimator.js';
+import { initCamera, applyCamera, resetCamera, screenToWorld, handleZoom, startDrag, updateDrag, endDrag, isDragging } from './camera.js';
 
 let lastTime = 0;
 let canvas = null;
@@ -59,7 +60,7 @@ function init() {
   initBottomBar(canvas, ctx);
   initMenu(canvas, ctx, startDay);
   initGameOver(canvas, ctx, handleGameOverAction);
-  initWavePreview(ctx);
+  // initWavePreview(ctx);
   initMealPlan(canvas, ctx, startPlayingAfterMealPlan);
   initPlanningMode(canvas, ctx, startPlayingAfterPlanning);
   initWelcome(canvas, ctx);
@@ -71,6 +72,13 @@ function init() {
   // Restart button click + mouse tracking for building hover
   canvas.addEventListener('click', handleCanvasClick);
   canvas.addEventListener('mousemove', handleCanvasMouseMove);
+
+  // Camera: zoom + pan
+  initCamera();
+  canvas.addEventListener('wheel', handleWheel, { passive: false });
+  canvas.addEventListener('mousedown', handleMouseDown);
+  canvas.addEventListener('mouseup', handleMouseUp);
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
 
   // Load sprite assets (fire-and-forget — fallback to circles if it fails)
   loadAllSprites();
@@ -339,25 +347,38 @@ function gameLoop(timestamp) {
   // Update sprite animations (real-time, not game-speed affected)
   updateAllAnimations(cappedDt);
 
-  // Render
+  // Render — clear in screen space, then apply camera for world
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+
+  // World rendering (with camera transform)
+  applyCamera(ctx);
   renderMap();
 
   if (gameState.phase === GamePhase.WELCOME) {
+    resetCamera(ctx);
     renderWelcome();
   } else if (gameState.phase === GamePhase.MENU) {
+    resetCamera(ctx);
     renderMenu();
   } else if (gameState.phase === GamePhase.PLANNING) {
+    resetCamera(ctx);
     renderPlanningMode();
   } else if (gameState.phase === GamePhase.MEAL_PLAN) {
+    resetCamera(ctx);
     renderMealPlan();
   } else if (gameState.phase === GamePhase.GAME_OVER) {
     renderEntities();
     renderEffects();
+    resetCamera(ctx);
     renderUI();
     renderGameOver();
   } else {
     renderEntities();
     renderEffects();
+    resetCamera(ctx);
+
+    // UI rendering (screen space — no camera)
     renderUI();
 
     // Hide intervention bottom bar for tutorial (healthy) patient
@@ -367,7 +388,6 @@ function gameLoop(timestamp) {
       renderBottomBar();
     }
 
-    renderWavePreview();
     renderFoodChoice();
     renderPausedOverlay();
     renderTutorial();
@@ -520,6 +540,16 @@ function handleKeyboard(e) {
   }
 }
 
+function getScreenCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = CONFIG.CANVAS_WIDTH / rect.width;
+  const scaleY = CONFIG.CANVAS_HEIGHT / rect.height;
+  return {
+    sx: (e.clientX - rect.left) * scaleX,
+    sy: (e.clientY - rect.top) * scaleY,
+  };
+}
+
 function handleCanvasClick(e) {
   // Tutorial click: advance overlay and consume the click
   if (isTutorialActive()) {
@@ -527,17 +557,16 @@ function handleCanvasClick(e) {
     return;
   }
 
+  // Ignore click if we just finished dragging
+  if (isDragging()) return;
+
   if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = CONFIG.CANVAS_WIDTH / rect.width;
-  const scaleY = CONFIG.CANVAS_HEIGHT / rect.height;
-  const mx = (e.clientX - rect.left) * scaleX;
-  const my = (e.clientY - rect.top) * scaleY;
+  const { sx, sy } = getScreenCoords(e);
 
-  // Speed control buttons
+  // Screen-space UI buttons (top bar)
   for (const sb of speedButtonRects) {
-    if (mx >= sb.x && mx <= sb.x + sb.w && my >= sb.y && my <= sb.y + sb.h) {
+    if (sx >= sb.x && sx <= sb.x + sb.w && sy >= sb.y && sy <= sb.y + sb.h) {
       if (sb.action === 'pause') {
         gameState.paused = !gameState.paused;
       } else {
@@ -548,81 +577,102 @@ function handleCanvasClick(e) {
     }
   }
 
-  // "Send Now" button (next meal)
+  const btn = restartButtonRect;
+  if (sx >= btn.x && sx <= btn.x + btn.w && sy >= btn.y && sy <= btn.y + btn.h) {
+    startDay(gameState.currentPatientId, gameState.currentDay, gameState.level);
+    return;
+  }
+
+  const mbtn = menuButtonRect;
+  if (sx >= mbtn.x && sx <= mbtn.x + mbtn.w && sy >= mbtn.y && sy <= mbtn.y + mbtn.h) {
+    fullReset();
+    gameState.phase = GamePhase.MENU;
+    return;
+  }
+
+  // World-space buttons (converted from screen to world coords)
+  const { x: wx, y: wy } = screenToWorld(sx, sy);
+
   if (nextMealBtnRect.visible) {
     const nb = nextMealBtnRect;
-    if (mx >= nb.x && mx <= nb.x + nb.w && my >= nb.y && my <= nb.y + nb.h) {
+    if (wx >= nb.x && wx <= nb.x + nb.w && wy >= nb.y && wy <= nb.y + nb.h) {
       triggerEarlyWave();
       return;
     }
   }
 
-  // "Drink Juice" button
   if (juiceBtnRect.visible) {
     const jb = juiceBtnRect;
-    if (mx >= jb.x && mx <= jb.x + jb.w && my >= jb.y && my <= jb.y + jb.h) {
+    if (wx >= jb.x && wx <= jb.x + jb.w && wy >= jb.y && wy <= jb.y + jb.h) {
       spawnJuice();
       return;
     }
   }
+}
 
-  const btn = restartButtonRect;
-  if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
-    startDay(gameState.currentPatientId, gameState.currentDay, gameState.level);
-    return;
+function handleWheel(e) {
+  e.preventDefault();
+  const { sx, sy } = getScreenCoords(e);
+  const delta = -Math.sign(e.deltaY) * 0.15;
+  handleZoom(sx, sy, delta);
+}
+
+function handleMouseDown(e) {
+  if (e.button === 2) {
+    const { sx, sy } = getScreenCoords(e);
+    startDrag(sx, sy);
   }
+}
 
-  // Menu button — return to main menu
-  const mbtn = menuButtonRect;
-  if (mx >= mbtn.x && mx <= mbtn.x + mbtn.w && my >= mbtn.y && my <= mbtn.y + mbtn.h) {
-    fullReset();
-    gameState.phase = GamePhase.MENU;
+function handleMouseUp(e) {
+  if (e.button === 2) {
+    endDrag();
   }
 }
 
 function handleCanvasMouseMove(e) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = CONFIG.CANVAS_WIDTH / rect.width;
-  const scaleY = CONFIG.CANVAS_HEIGHT / rect.height;
-  const mx = (e.clientX - rect.left) * scaleX;
-  const my = (e.clientY - rect.top) * scaleY;
+  const { sx, sy } = getScreenCoords(e);
 
-  gameState.mouseX = mx;
-  gameState.mouseY = my;
+  // Update camera drag
+  updateDrag(sx, sy);
 
-  // Detect building hover
+  // Convert to world coordinates for game logic
+  const { x: wx, y: wy } = screenToWorld(sx, sy);
+  gameState.mouseX = wx;
+  gameState.mouseY = wy;
+
+  // Detect building hover (world coords)
   gameState.hoveredBuilding = null;
 
   if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return;
 
   const liver = CONFIG.LIVER_POS;
   const liverS = CONFIG.LIVER_SIZE;
-  if (mx >= liver.x - liverS.w / 2 && mx <= liver.x + liverS.w / 2 &&
-      my >= liver.y - liverS.h / 2 && my <= liver.y + liverS.h / 2) {
+  if (wx >= liver.x - liverS.w / 2 && wx <= liver.x + liverS.w / 2 &&
+      wy >= liver.y - liverS.h / 2 && wy <= liver.y + liverS.h / 2) {
     gameState.hoveredBuilding = 'liver';
     return;
   }
 
   const panc = CONFIG.PANCREAS_POS;
   const pancS = CONFIG.PANCREAS_SIZE;
-  if (mx >= panc.x - pancS.w / 2 && mx <= panc.x + pancS.w / 2 &&
-      my >= panc.y - pancS.h / 2 && my <= panc.y + pancS.h / 2) {
+  if (wx >= panc.x - pancS.w / 2 && wx <= panc.x + pancS.w / 2 &&
+      wy >= panc.y - pancS.h / 2 && wy <= panc.y + pancS.h / 2) {
     gameState.hoveredBuilding = 'pancreas';
     return;
   }
 
   const kid = CONFIG.KIDNEYS_POS;
   const kidR = CONFIG.KIDNEYS_RADIUS;
-  const kdx = mx - kid.x;
-  const kdy = my - kid.y;
+  const kdx = wx - kid.x;
+  const kdy = wy - kid.y;
   if (kdx * kdx + kdy * kdy <= kidR * kidR) {
     gameState.hoveredBuilding = 'kidneys';
     return;
   }
 
-  // Mine grid area
   const zone = CONFIG.MUSCLE_ZONE;
-  if (mx >= zone.x1 && mx <= zone.x2 && my >= zone.y1 && my <= zone.y2) {
+  if (wx >= zone.x1 && wx <= zone.x2 && wy >= zone.y1 && wy <= zone.y2) {
     gameState.hoveredBuilding = 'mines';
   }
 }
