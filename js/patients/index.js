@@ -29,7 +29,7 @@ export const PATIENTS = [
         dayId: 1, levelRef: 1, name: 'Day 1: How It Works',
         narrative: 'Your first day. Learn how food arrives as glucose, how insulin converts it to energy, and how your body stays balanced. Only healthy foods today.',
         fixedMeals: [
-          { hour: 9, foodKeys: ['oatmeal', 'eggs'] },
+          { hour: 8, foodKeys: ['oatmeal', 'eggs'] },
           { hour: 13, foodKeys: ['chicken', 'salad'] },
           { hour: 19, foodKeys: ['fish', 'veggies'] },
         ],

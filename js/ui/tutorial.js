@@ -3,6 +3,7 @@
 import { CONFIG } from '../config.js';
 import { gameState } from '../gameState.js';
 import { PeasantState } from '../entities/Peasant.js';
+import { KnightState } from '../entities/Knight.js';
 import { calculateBG } from '../systems/bgSystem.js';
 import { getVirtualHour } from '../systems/waveManager.js';
 
@@ -49,13 +50,23 @@ const TUTORIAL_STEPS = {
       pointer: null,
       pauseGame: true,
     },
-    // Step 3 (PLAYING): Boat arrival — when first meal boat appears
+    // Step 3 (PLAYING): Comfort message — things look confusing at first
+    {
+      id: 'early_comfort',
+      phase: 'playing',
+      trigger: () => getVirtualHour() >= 7.5,
+      spotlight: null,
+      text: 'Everything looks quiet now, but don\'t worry — at 8:00 AM breakfast will arrive and things will start making sense!',
+      pointer: null,
+      pauseGame: true,
+    },
+    // Step 4 (PLAYING): Boat arrival — when glucose from boat starts walking
     {
       id: 'boat_arrival',
       phase: 'playing',
-      trigger: (gs) => gs.boats.length > 0,
+      trigger: (gs) => gs.peasants.some(p => p.alive && p.state === PeasantState.WALKING_TO_VILLAGE),
       spotlight: { x: 0, y: 250, w: 300, h: 200 },
-      text: 'A meal has arrived! The boat delivers glucose to your bloodstream. Watch the glucose units walk from shore into your body.',
+      text: 'Food has arrived! Glucose units are walking from shore into your body. Watch them travel through your bloodstream.',
       pointer: null,
       pauseGame: true,
     },
@@ -69,11 +80,11 @@ const TUTORIAL_STEPS = {
       pointer: null,
       pauseGame: true,
     },
-    // Step 4 (PLAYING): Liver — after knight catches first glucose
+    // Step 5 (PLAYING): Liver — when knight grabs glucose
     {
       id: 'liver_intro',
       phase: 'playing',
-      trigger: (gs) => gs.liverTower && gs.liverTower.storage > (gs._liverInitialStorage + 5),
+      trigger: (gs) => gs.knights.some(k => k.state === KnightState.ESCORTING),
       spotlight: { x: 420, y: 290, w: 160, h: 140 },
       text: 'The Liver stores excess glucose. Green knights intercept glucose and escort it to storage for later use.',
       pointer: null,
