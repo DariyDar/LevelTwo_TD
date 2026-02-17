@@ -57,21 +57,37 @@ function drawPeasant(p) {
   const size = CONFIG.SPRITE_SIZE_PEASANT;
   const half = size / 2;
 
-  // Determine correct sprite key + fps based on state
+  // Determine sprite key based on state + speed category
   let targetKey = 'pawn_red_run';
   let targetFps = CONFIG.SPRITE_FPS_DEFAULT;
+  let outlineColor = null; // color tint for outline
 
   if (isRebel) {
-    targetKey = 'pawn_black_interact';
+    // Rebels attack with hammer
+    targetKey = p.attackTarget ? 'pawn_black_interact' : 'pawn_black_run_hammer';
     targetFps = CONFIG.SPRITE_FPS_REBEL;
+    outlineColor = '#E74C3C'; // red outline
   } else if (isWorker) {
     const exerciseActive = gameState.interventions.exercise.active;
     targetKey = 'pawn_purple_interact';
     targetFps = exerciseActive ? CONFIG.SPRITE_FPS_REBEL : CONFIG.SPRITE_FPS_WORKER;
+    outlineColor = '#9B59B6'; // purple outline
   } else if (p.state === PeasantState.WALKING_TO_MINE || p.color === 'purple') {
-    targetKey = 'pawn_purple_run';
+    // Walking to mine — purple with pickaxe
+    targetKey = 'pawn_purple_run_pickaxe';
+    outlineColor = '#9B59B6';
+  } else if (p.state === PeasantState.BEING_ESCORTED) {
+    // Being escorted to liver — use color-appropriate run with pickaxe
+    targetKey = p.speedCategory === 'slow' ? 'pawn_yellow_run_pickaxe' : 'pawn_red_run_pickaxe';
+    outlineColor = p.speedCategory === 'slow' ? '#F39C12' : '#E74C3C';
   } else if (p.speedCategory === 'slow') {
+    // Free slow glucose — empty hands run (orange)
     targetKey = 'pawn_yellow_run';
+    outlineColor = '#F39C12'; // orange outline
+  } else {
+    // Free fast glucose — empty hands run (red)
+    targetKey = 'pawn_red_run';
+    outlineColor = '#E74C3C'; // red outline
   }
 
   // Update animation key if changed
@@ -86,6 +102,17 @@ function drawPeasant(p) {
     const phase = p.x * 7 + p.y * 13;
     drawX += Math.sin(Date.now() / 40 + phase) * 1.5;
     drawY += Math.cos(Date.now() / 50 + phase) * 1.5;
+  }
+
+  // Color outline/shadow beneath sprite for visibility
+  if (outlineColor) {
+    ctx.save();
+    ctx.fillStyle = outlineColor;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.ellipse(drawX, drawY + half * 0.6, half * 0.45, half * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   // Try sprite rendering, fall back to circles
@@ -288,23 +315,25 @@ function drawKnightFallback(k) {
 
 function drawBoat(boat) {
   const C = CONFIG.COLORS;
-  const boatSize = 60;
+  const boatSize = CONFIG.BOAT_SIZE || 256;
 
   // Try animated sprite
   const spriteDrawn = boat.anim && drawSprite(ctx, boat.anim, boat.x, boat.y, boatSize);
 
   if (!spriteDrawn) {
-    // Fallback: simple hull
-    const bx = boat.x - 20;
-    const by = boat.y - 10;
+    // Fallback: simple hull (scaled)
+    const hw = boatSize * 0.4;
+    const hh = boatSize * 0.2;
+    const bx = boat.x - hw;
+    const by = boat.y - hh;
     ctx.fillStyle = '#8B4513';
     ctx.strokeStyle = '#5D3A1A';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(bx, by);
-    ctx.lineTo(bx + 40, by);
-    ctx.lineTo(bx + 35, by + 20);
-    ctx.lineTo(bx + 5, by + 20);
+    ctx.lineTo(bx + hw * 2, by);
+    ctx.lineTo(bx + hw * 1.8, by + hh * 2);
+    ctx.lineTo(bx + hw * 0.2, by + hh * 2);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -312,20 +341,21 @@ function drawBoat(boat) {
 
   // Food emoji above
   if (boat.emoji) {
-    ctx.font = '20px serif';
+    ctx.font = `${Math.round(boatSize * 0.25)}px serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(boat.emoji, boat.x, boat.y - 28);
+    ctx.fillText(boat.emoji, boat.x, boat.y - boatSize * 0.35);
   }
 
   // Unload progress bar
   if (boat.state === 'unloading' && boat.totalPeasants > 0) {
     const pct = boat.unloadedCount / boat.totalPeasants;
-    const bx = boat.x - 20;
-    const by = boat.y + 20;
+    const barW = boatSize * 0.5;
+    const barX = boat.x - barW / 2;
+    const barY = boat.y + boatSize * 0.25;
     ctx.fillStyle = C.GOLD;
-    ctx.fillRect(bx + 5, by, 30 * pct, 3);
+    ctx.fillRect(barX, barY, barW * pct, 5);
     ctx.strokeStyle = C.GOLD_DARK;
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(bx + 5, by, 30, 3);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, 5);
   }
 }

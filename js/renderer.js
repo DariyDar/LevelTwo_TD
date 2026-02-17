@@ -2,7 +2,7 @@
 
 import { CONFIG } from './config.js';
 import { gameState } from './gameState.js';
-import { drawStaticSprite } from './spriteLoader.js';
+import { drawStaticSprite, getSprite } from './spriteLoader.js';
 import { drawSprite } from './spriteAnimator.js';
 import { calculateBG } from './systems/bgSystem.js';
 
@@ -43,30 +43,64 @@ function drawBackground() {
   const bottom = CONFIG.CANVAS_HEIGHT + pad;
   const fullH = bottom - top;
 
-  // Sea
-  ctx.fillStyle = C.SEA;
-  ctx.fillRect(left, top, CONFIG.SEA_X_END - left, fullH);
+  // Water — tiled texture or fallback
+  const waterSprite = getSprite('terrain_water');
+  if (waterSprite) {
+    const pattern = ctx.createPattern(waterSprite.img, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(left, top, CONFIG.SEA_X_END - left, fullH);
+  } else {
+    ctx.fillStyle = C.SEA;
+    ctx.fillRect(left, top, CONFIG.SEA_X_END - left, fullH);
+  }
 
-  // Shore
+  // Shore — sand color (no good sand tile available)
   ctx.fillStyle = C.SAND;
   ctx.fillRect(CONFIG.SEA_X_END, top, CONFIG.SHORE_X_END - CONFIG.SEA_X_END, fullH);
 
-  // Main ground (between shore and village)
-  ctx.fillStyle = '#A8D5A2';
-  ctx.fillRect(CONFIG.SHORE_X_END, top, CONFIG.VILLAGE_X_END - CONFIG.SHORE_X_END, fullH);
+  // Grass — extract a grass tile from Tilemap_color1 (top-left 64x64 patch)
+  const grassSprite = getSprite('terrain_grass');
+  if (grassSprite) {
+    // Create offscreen canvas with a 64x64 grass tile from tilemap
+    if (!drawBackground._grassPattern) {
+      const tile = document.createElement('canvas');
+      tile.width = 64;
+      tile.height = 64;
+      const tc = tile.getContext('2d');
+      // Top-left corner of tilemap is a full grass tile
+      tc.drawImage(grassSprite.img, 64, 64, 64, 64, 0, 0, 64, 64);
+      drawBackground._grassPattern = ctx.createPattern(tile, 'repeat');
+    }
+    ctx.fillStyle = drawBackground._grassPattern;
+    ctx.fillRect(CONFIG.SHORE_X_END, top, right - CONFIG.SHORE_X_END, fullH);
+  } else {
+    ctx.fillStyle = '#A8D5A2';
+    ctx.fillRect(CONFIG.SHORE_X_END, top, CONFIG.VILLAGE_X_END - CONFIG.SHORE_X_END, fullH);
+    ctx.fillStyle = C.GRASS;
+    ctx.fillRect(CONFIG.VILLAGE_X_END, top, right - CONFIG.VILLAGE_X_END, fullH);
+  }
 
-  // Village area
-  ctx.fillStyle = C.GRASS;
-  ctx.fillRect(CONFIG.VILLAGE_X_END, top, right - CONFIG.VILLAGE_X_END, fullH);
-
-  // Shore waves
-  ctx.strokeStyle = '#5DADE2';
-  ctx.lineWidth = 2;
-  for (let y = 50; y < CONFIG.CANVAS_HEIGHT; y += 80) {
-    ctx.beginPath();
-    ctx.moveTo(180, y);
-    ctx.quadraticCurveTo(190, y - 10, 200, y);
-    ctx.stroke();
+  // Shore waves (water foam sprites)
+  const foamSprite = getSprite('terrain_foam');
+  if (foamSprite) {
+    const foamFrame = Math.floor(Date.now() / 200) % foamSprite.frameCount;
+    const fw = foamSprite.frameW;
+    const fh = foamSprite.frameH;
+    const sx = foamFrame * fw;
+    const foamSize = 48;
+    for (let y = -20; y < CONFIG.CANVAS_HEIGHT + 40; y += foamSize - 4) {
+      ctx.drawImage(foamSprite.img, sx, 0, fw, fh,
+        CONFIG.SEA_X_END - foamSize / 2, y, foamSize, foamSize);
+    }
+  } else {
+    ctx.strokeStyle = '#5DADE2';
+    ctx.lineWidth = 2;
+    for (let y = 50; y < CONFIG.CANVAS_HEIGHT; y += 80) {
+      ctx.beginPath();
+      ctx.moveTo(180, y);
+      ctx.quadraticCurveTo(190, y - 10, 200, y);
+      ctx.stroke();
+    }
   }
 }
 
@@ -85,11 +119,11 @@ function drawCastle() {
   const liver = gameState.liverTower;
   const isDestroyed = liver && liver.destroyed;
 
-  // Sprite render size (building sprite is 128x192, scale to fit new larger size)
+  // Castle sprite is 320x256 — scale proportionally
   const sprW = size.w;
-  const sprH = sprW * (192 / 128);
+  const sprH = sprW * (256 / 320);
   const sprX = pos.x - sprW / 2;
-  const sprY = pos.y - sprH / 2 + 20;
+  const sprY = pos.y - sprH / 2 + 10;
 
   // Fallback rect position
   const x = pos.x - size.w / 2;
@@ -97,7 +131,7 @@ function drawCastle() {
 
   if (isDestroyed) {
     ctx.globalAlpha = 0.4;
-    if (!drawStaticSprite(ctx, 'bld_liver', sprX, sprY, sprW, sprH)) {
+    if (!drawStaticSprite(ctx, 'bld_castle', sprX, sprY, sprW, sprH)) {
       ctx.fillStyle = '#3A3A3A';
       ctx.strokeStyle = '#2A2A2A';
       ctx.lineWidth = 2;
@@ -119,12 +153,12 @@ function drawCastle() {
     // Label below
     ctx.fillStyle = C.WHITE;
     ctx.font = 'bold 13px Arial';
-    ctx.fillText('Castle', pos.x, sprY + sprH + 16);
+    ctx.fillText('Liver', pos.x, sprY + sprH + 16);
     return;
   }
 
-  // Building sprite
-  if (!drawStaticSprite(ctx, 'bld_liver', sprX, sprY, sprW, sprH)) {
+  // Building sprite — Castle asset
+  if (!drawStaticSprite(ctx, 'bld_castle', sprX, sprY, sprW, sprH)) {
     ctx.fillStyle = C.GREEN;
     ctx.strokeStyle = C.GREEN_DARK;
     ctx.lineWidth = 2;
@@ -144,7 +178,6 @@ function drawCastle() {
     const roofSpriteSize = 20;
     for (const g of liver.roofGlucose) {
       const sprKey = g.speedCategory === 'slow' ? 'pawn_yellow_run' : 'pawn_red_run';
-      // Draw first frame of Run sprite as idle
       if (!drawStaticSprite(ctx, sprKey, g.x - roofSpriteSize / 2, g.y - roofSpriteSize / 2, roofSpriteSize, roofSpriteSize)) {
         const color = g.speedCategory === 'slow' ? C.ORANGE : C.RED;
         ctx.fillStyle = color;
@@ -180,7 +213,7 @@ function drawCastle() {
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Castle', pos.x, sprY + sprH + 16);
+  ctx.fillText('Liver', pos.x, sprY + sprH + 16);
 
   // Storage counter
   const storage = liver ? liver.storage : 0;

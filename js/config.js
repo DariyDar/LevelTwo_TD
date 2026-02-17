@@ -40,23 +40,23 @@ export const CONFIG = {
     BLACK: '#000000',
   },
 
-  // Building positions (repositioned per medical accuracy layout)
-  LIVER_POS: { x: 700, y: 580 },
-  LIVER_SIZE: { w: 180, h: 180 },
-  CASTLE_ROOF: { x: 620, y: 500, w: 160, h: 50 },
-
-  PANCREAS_POS: { x: 820, y: 150 },
+  // Building positions — right column layout (pancreas top, kidney mid, liver bottom)
+  PANCREAS_POS: { x: 1050, y: 120 },
   PANCREAS_SIZE: { w: 120, h: 100 },
 
-  KIDNEYS_POS: { x: 1100, y: 400 },
+  KIDNEYS_POS: { x: 1050, y: 370 },
   KIDNEYS_RADIUS: 55,
 
-  // Mines grid (3 cols × 3 rows = 9 mines, centered)
+  LIVER_POS: { x: 1050, y: 600 },
+  LIVER_SIZE: { w: 200, h: 160 },
+  CASTLE_ROOF: { x: 970, y: 530, w: 160, h: 50 },
+
+  // Mines grid (3 cols × 5 rows = 15 mines, center-left area)
   MINES_GRID: {
-    startX: 500,
-    startY: 220,
+    startX: 430,
+    startY: 100,
     cols: 3,
-    rows: 3,
+    rows: 5,
     gapX: 130,
     gapY: 110,
   },
@@ -64,7 +64,7 @@ export const CONFIG = {
   MINE_MAX_WORKERS: 8,
   MINE_WALK_WORKERS: 15,
   MINE_EXERCISE_WORKERS: 20,
-  MINE_TOTAL_COUNT: 9,
+  MINE_TOTAL_COUNT: 15,
   MINE_HP: 80,
   MINE_REPAIR_TIME: 12,
   MINE_ENERGY_PER_WORKER: 0.50,
@@ -120,16 +120,16 @@ export const CONFIG = {
   LIVER_HGP_SENSITIVITY_CUTOFF: 0.85,  // if _insulinSensitivity < this → hepatic leak
   LIVER_HGP_RELEASE_CHANCE: 0.3,        // 30% chance per tick
 
-  // Knight spawn positions (around liver at bottom)
+  // Knight spawn positions (around liver at bottom-right)
   KNIGHT_POSITIONS: [
-    { x: 600, y: 530 }, { x: 800, y: 530 },
-    { x: 600, y: 580 }, { x: 800, y: 580 },
-    { x: 600, y: 630 }, { x: 800, y: 630 },
-    { x: 650, y: 510 }, { x: 750, y: 510 },
-    { x: 650, y: 650 }, { x: 750, y: 650 },
-    { x: 700, y: 490 }, { x: 700, y: 670 },
-    { x: 560, y: 570 }, { x: 840, y: 570 },
-    { x: 700, y: 610 },
+    { x: 950, y: 560 }, { x: 1150, y: 560 },
+    { x: 950, y: 600 }, { x: 1150, y: 600 },
+    { x: 950, y: 640 }, { x: 1150, y: 640 },
+    { x: 1000, y: 540 }, { x: 1100, y: 540 },
+    { x: 1000, y: 660 }, { x: 1100, y: 660 },
+    { x: 1050, y: 520 }, { x: 1050, y: 680 },
+    { x: 920, y: 590 }, { x: 1180, y: 590 },
+    { x: 1050, y: 620 },
   ],
   KNIGHT_SPEED: 30,
   KNIGHT_SCAN_RANGE: 500,
@@ -143,7 +143,7 @@ export const CONFIG = {
   KIDNEY_ACTIVATION_THRESHOLD: 40,
   KIDNEY_CIRCLE_EXPAND_SPEED: 120,
   KIDNEY_CIRCLE_CONTRACT_SPEED: 150,
-  KIDNEY_CIRCLE_ORIGIN: { x: 1000, y: 400 },
+  KIDNEY_CIRCLE_ORIGIN: { x: 950, y: 370 },
   KIDNEY_EJECT_SPEED: 400,
 
   // Kidney auto-filtration (game-time based cooldown)
@@ -202,7 +202,7 @@ export const CONFIG = {
   SEMAGLUTIDE_MINE_COUNT: 18,
   SEMAGLUTIDE_MINE_DURATION: 20,
   SEMAGLUTIDE_MINE_X_MIN: 300,
-  SEMAGLUTIDE_MINE_X_MAX: 1200,
+  SEMAGLUTIDE_MINE_X_MAX: 900,
   SEMAGLUTIDE_MINE_Y_MIN: 50,
   SEMAGLUTIDE_MINE_Y_MAX: 700,
 
@@ -254,7 +254,7 @@ export const CONFIG = {
   UNLOAD_TIME_L: 15,
 
   // Muscle zone (whole green area — priests & knights hunt here)
-  MUSCLE_ZONE: { x1: 300, y1: 50, x2: 1200, y2: 700 },
+  MUSCLE_ZONE: { x1: 300, y1: 50, x2: 900, y2: 700 },
 
   // Waypoints (simplified — no road, just shore → advance → muscle)
   WAYPOINTS: {
@@ -263,6 +263,7 @@ export const CONFIG = {
   },
 
   // Boat
-  BOAT_SPAWN: { x: -50, y: 380 },
-  BOAT_DEST: { x: 250, y: 380 },
+  BOAT_SIZE: 256,
+  BOAT_SPAWN: { x: -80, y: 350 },
+  BOAT_DEST: { x: 200, y: 350 },
 };

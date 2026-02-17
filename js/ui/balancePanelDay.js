@@ -4,7 +4,7 @@ import { LEVELS, getLevel } from '../levels/index.js';
 
 // Adjustable per-day/level parameters
 export const DAY_PARAMS = [
-  { key: 'mineCount', label: 'Muscle Cells', min: 3, max: 9, step: 1 },
+  { key: 'mineCount', label: 'Muscle Cells', min: 3, max: 15, step: 1 },
 ];
 
 const STORAGE_PREFIX = 'glucodefense_balance_day_';

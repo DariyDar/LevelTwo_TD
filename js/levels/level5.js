@@ -6,7 +6,7 @@ export const level5 = {
   id: 5,
   name: 'Living With Diabetes',
   description: 'Significant degradation. Use all tools wisely.',
-  mineCount: 9,
+  mineCount: 15,
 
   interventions: {
     exercise: true,

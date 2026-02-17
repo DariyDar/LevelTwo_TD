@@ -6,7 +6,7 @@ export const level1 = {
   id: 1,
   name: 'First Day',
   description: 'Learn the basics of glucose metabolism.',
-  mineCount: 9,
+  mineCount: 15,
 
   interventions: {
     exercise: false,

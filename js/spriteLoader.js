@@ -4,13 +4,26 @@ const spriteCache = new Map();
 let loaded = false;
 
 const SPRITE_MANIFEST = [
-  // Pawn (Pickaxe) — glucose entities
-  { key: 'pawn_red_run',         src: 'assets/sprites/pawn/red/Run.png',         frameW: 192, frameH: 192, frameCount: 6 },
-  { key: 'pawn_yellow_run',      src: 'assets/sprites/pawn/yellow/Run.png',      frameW: 192, frameH: 192, frameCount: 6 },
-  { key: 'pawn_purple_run',      src: 'assets/sprites/pawn/purple/Run.png',      frameW: 192, frameH: 192, frameCount: 6 },
-  { key: 'pawn_purple_interact', src: 'assets/sprites/pawn/purple/Interact.png', frameW: 192, frameH: 192, frameCount: 6 },
-  { key: 'pawn_black_run',       src: 'assets/sprites/pawn/black/Run.png',       frameW: 192, frameH: 192, frameCount: 6 },
-  { key: 'pawn_black_interact',  src: 'assets/sprites/pawn/black/Interact.png',  frameW: 192, frameH: 192, frameCount: 6 },
+  // Pawn — glucose entities (multiple variants per color)
+  // Red (fast glucose): run empty-hands, run pickaxe (walking to mine), interact hammer (rebel attack)
+  { key: 'pawn_red_run',              src: 'assets/sprites/pawn/red/Run.png',              frameW: 192, frameH: 192, frameCount: 6 },
+  { key: 'pawn_red_run_pickaxe',      src: 'assets/sprites/pawn/red/Run_Pickaxe.png',      frameW: 192, frameH: 192, frameCount: 6 },
+  { key: 'pawn_red_interact_hammer',  src: 'assets/sprites/pawn/red/Interact_Hammer.png',  frameW: 192, frameH: 192, frameCount: 3 },
+
+  // Yellow/orange (slow glucose): same variants
+  { key: 'pawn_yellow_run',              src: 'assets/sprites/pawn/yellow/Run.png',              frameW: 192, frameH: 192, frameCount: 6 },
+  { key: 'pawn_yellow_run_pickaxe',      src: 'assets/sprites/pawn/yellow/Run_Pickaxe.png',      frameW: 192, frameH: 192, frameCount: 6 },
+  { key: 'pawn_yellow_interact_hammer',  src: 'assets/sprites/pawn/yellow/Interact_Hammer.png',  frameW: 192, frameH: 192, frameCount: 3 },
+
+  // Purple (workers): run pickaxe (walking to mine), interact pickaxe (mining)
+  { key: 'pawn_purple_run',      src: 'assets/sprites/pawn/purple/Run.png',          frameW: 192, frameH: 192, frameCount: 6 },
+  { key: 'pawn_purple_run_pickaxe', src: 'assets/sprites/pawn/purple/Run_Pickaxe.png', frameW: 192, frameH: 192, frameCount: 6 },
+  { key: 'pawn_purple_interact', src: 'assets/sprites/pawn/purple/Interact.png',     frameW: 192, frameH: 192, frameCount: 6 },
+
+  // Black (rebels): run hammer, interact hammer (attacking buildings)
+  { key: 'pawn_black_run',             src: 'assets/sprites/pawn/black/Run.png',             frameW: 192, frameH: 192, frameCount: 6 },
+  { key: 'pawn_black_run_hammer',      src: 'assets/sprites/pawn/black/Run_Hammer.png',      frameW: 192, frameH: 192, frameCount: 6 },
+  { key: 'pawn_black_interact',        src: 'assets/sprites/pawn/black/Interact_Hammer.png', frameW: 192, frameH: 192, frameCount: 3 },
 
   // Monk — insulin priests
   { key: 'monk_idle',        src: 'assets/sprites/monk/Idle.png',       frameW: 192, frameH: 192, frameCount: 6 },
@@ -26,12 +39,18 @@ const SPRITE_MANIFEST = [
   { key: 'bld_mine_active',    src: 'assets/sprites/buildings/GoldMine_Active.png',    frameW: 192, frameH: 128, frameCount: 1 },
   { key: 'bld_mine_inactive',  src: 'assets/sprites/buildings/GoldMine_Inactive.png',  frameW: 192, frameH: 128, frameCount: 1 },
   { key: 'bld_mine_destroyed', src: 'assets/sprites/buildings/GoldMine_Destroyed.png', frameW: 192, frameH: 128, frameCount: 1 },
+  { key: 'bld_castle',         src: 'assets/sprites/buildings/Castle.png',             frameW: 320, frameH: 256, frameCount: 1 },
   { key: 'bld_liver',          src: 'assets/sprites/buildings/Liver.png',              frameW: 128, frameH: 192, frameCount: 1 },
   { key: 'bld_pancreas',       src: 'assets/sprites/buildings/Pancreas.png',           frameW: 192, frameH: 320, frameCount: 1 },
   { key: 'bld_kidneys',        src: 'assets/sprites/buildings/Kidneys.png',            frameW: 128, frameH: 256, frameCount: 1 },
 
   // Boat (animated)
   { key: 'boat_idle', src: 'assets/sprites/boat/Boat_Idle.png', frameW: 256, frameH: 256, frameCount: 8 },
+
+  // Terrain textures (static tiling)
+  { key: 'terrain_grass',  src: 'assets/sprites/terrain/Tilemap_color1.png',  frameW: 576, frameH: 384, frameCount: 1 },
+  { key: 'terrain_water',  src: 'assets/sprites/terrain/Water_Background.png', frameW: 64,  frameH: 64,  frameCount: 1 },
+  { key: 'terrain_foam',   src: 'assets/sprites/terrain/Water_Foam.png',       frameW: 192, frameH: 192, frameCount: 16 },
 
   // Effects
   { key: 'fx_poof',      src: 'assets/sprites/effects/Puf_effect.png',  frameW: 64,  frameH: 64,  frameCount: 10 },
