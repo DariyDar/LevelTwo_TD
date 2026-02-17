@@ -263,7 +263,7 @@ function drawPhysActivityMenu(parentBtn) {
     {
       key: 'exercise',
       label: '\u{1F3CB} Training',
-      desc: `${CONFIG.EXERCISE_COST}\u26A1 x2 ATP ${CONFIG.EXERCISE_DURATION}s`,
+      desc: `${CONFIG.EXERCISE_COST}\u26A1 x2 ATP ${CONFIG.EXERCISE_DURATION_HOURS}h`,
       cost: CONFIG.EXERCISE_COST,
       cooldown: iv.exercise.cooldown,
       available: !iv.exercise.active,

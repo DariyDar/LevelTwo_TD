@@ -12,11 +12,14 @@ export class Mine {
     this.maxHp = CONFIG.MINE_HP;
     this.repairTimer = 0;
     this.destroyed = false;
+    this.plusTimer = 0; // timer for energy plus effects
   }
 
   get maxSlots() {
-    const exerciseActive = gameState.interventions.exercise.active;
-    return exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS : CONFIG.MINE_MAX_WORKERS;
+    const iv = gameState.interventions;
+    if (iv.exercise.active) return CONFIG.MINE_EXERCISE_WORKERS;
+    if (iv.walk.active) return CONFIG.MINE_WALK_WORKERS;
+    return CONFIG.MINE_MAX_WORKERS;
   }
 
   get freeSlots() {
@@ -34,6 +37,25 @@ export class Mine {
         this.destroyed = false;
         this.hp = this.maxHp;
         this.repairTimer = 0;
+      }
+      return;
+    }
+
+    // Energy plus effects — one yellow + per worker every 2 seconds
+    if (this.workers.length > 0) {
+      this.plusTimer -= dt;
+      if (this.plusTimer <= 0) {
+        this.plusTimer = 2.0;
+        for (const w of this.workers) {
+          if (!w.alive) continue;
+          gameState.effects.push({
+            type: 'mine_energy_plus',
+            x: this.x + (Math.random() - 0.5) * 40,
+            y: this.y - 20,
+            timer: 0.8,
+            maxTimer: 0.8,
+          });
+        }
       }
     }
   }
@@ -71,18 +93,11 @@ export class Mine {
   }
 }
 
-// Find least-filled operational mine (spreads glucose evenly across all cells)
+// Find first mine with free slots (sequential: top-left first, row by row)
 export function findLeastFilledMine(mines) {
-  let best = null;
-  let mostFree = 0;
-
   for (const mine of mines) {
     if (!mine.isOperational || mine.freeSlots <= 0) continue;
-    if (mine.freeSlots > mostFree) {
-      mostFree = mine.freeSlots;
-      best = mine;
-    }
+    return mine;
   }
-
-  return best;
+  return null;
 }

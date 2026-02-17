@@ -45,7 +45,7 @@ export const CONFIG = {
   LIVER_SIZE: { w: 180, h: 180 },
   CASTLE_ROOF: { x: 620, y: 500, w: 160, h: 50 },
 
-  PANCREAS_POS: { x: 700, y: 110 },
+  PANCREAS_POS: { x: 820, y: 150 },
   PANCREAS_SIZE: { w: 120, h: 100 },
 
   KIDNEYS_POS: { x: 1100, y: 400 },
@@ -61,8 +61,9 @@ export const CONFIG = {
     gapY: 110,
   },
   MINE_SIZE: { w: 90, h: 65 },
-  MINE_MAX_WORKERS: 17,
-  MINE_EXERCISE_WORKERS: 25,
+  MINE_MAX_WORKERS: 8,
+  MINE_WALK_WORKERS: 15,
+  MINE_EXERCISE_WORKERS: 20,
   MINE_TOTAL_COUNT: 9,
   MINE_HP: 80,
   MINE_REPAIR_TIME: 12,
@@ -76,7 +77,7 @@ export const CONFIG = {
   BOAT_SPEED: 80,
 
   // Peasant
-  PEASANT_RADIUS: 4,
+  PEASANT_RADIUS: 8,
   REBEL_HP: 80,
   REBEL_HP_DECAY: 1.0,
   REBEL_BUILDING_DPS: 5,
@@ -85,7 +86,7 @@ export const CONFIG = {
   // Priest
   PRIEST_CAST_TIME: 2,
   PRIEST_CAST_RADIUS: 50,
-  PRIEST_RADIUS: 5,
+  PRIEST_RADIUS: 10,
   PRIEST_WAIT_TIMEOUT: 24,
 
   // Resistance by degradation level (0-4)
@@ -168,8 +169,8 @@ export const CONFIG = {
   CAMERA_START_Y: 50,
 
   // Sprite rendering
-  SPRITE_SIZE_PEASANT: 32,
-  SPRITE_SIZE_PRIEST: 36,
+  SPRITE_SIZE_PEASANT: 64,
+  SPRITE_SIZE_PRIEST: 72,
   SPRITE_FPS_DEFAULT: 8,
   SPRITE_FPS_WORKER: 5,
   SPRITE_FPS_REBEL: 10,
@@ -195,7 +196,7 @@ export const CONFIG = {
 
   EXERCISE_COST: 70,
   EXERCISE_COOLDOWN: 60,
-  EXERCISE_DURATION: 25,
+  EXERCISE_DURATION_HOURS: 1,   // 1 game hour
 
   SEMAGLUTIDE_COST: 30,
   SEMAGLUTIDE_MINE_COUNT: 18,
@@ -214,6 +215,7 @@ export const CONFIG = {
 
   WALK_COST: 20,
   WALK_COOLDOWN: 25,
+  WALK_DURATION_HOURS: 2,       // 2 game hours
   WALK_REBELS_MIN: 15,
   WALK_REBELS_MAX: 40,
 

@@ -23,11 +23,15 @@ export function getCtx() {
 export function render() {
   drawBackground();
   drawBuildings();
-  drawMines();
   drawTrainingEffect();
   drawBuildingHighlights();
   drawBuildingHoverInfo();
   drawNextWaveCountdown();
+}
+
+// Mines rendered as overlay (above entities for z-order)
+export function renderMinesOverlay() {
+  drawMines();
 }
 
 function drawBackground() {
@@ -137,12 +141,17 @@ function drawCastle() {
   // Roof glucose sprites (visible on top of castle)
   if (liver && liver.roofGlucose.length > 0) {
     const roof = CONFIG.CASTLE_ROOF;
+    const roofSpriteSize = 20;
     for (const g of liver.roofGlucose) {
-      const color = g.speedCategory === 'slow' ? C.ORANGE : C.RED;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(g.x, g.y, 3, 0, Math.PI * 2);
-      ctx.fill();
+      const sprKey = g.speedCategory === 'slow' ? 'pawn_yellow_run' : 'pawn_red_run';
+      // Draw first frame of Run sprite as idle
+      if (!drawStaticSprite(ctx, sprKey, g.x - roofSpriteSize / 2, g.y - roofSpriteSize / 2, roofSpriteSize, roofSpriteSize)) {
+        const color = g.speedCategory === 'slow' ? C.ORANGE : C.RED;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     // Overflow flash
@@ -326,9 +335,9 @@ function drawKidneys() {
   ctx.textAlign = 'center';
   ctx.fillText('Kidneys', pos.x, sprY + sprH + 16);
 
-  // Kidney status display: cooldown timer + BG/threshold + dapagliflozin
+  // Kidney status display: cooldown + BG/threshold + dapagliflozin
   if (kidneys && !kidneys.destroyed) {
-    const infoY = sprY + sprH + 22;
+    const infoY = sprY + sprH + 28;
     ctx.textAlign = 'center';
 
     // Dapagliflozin pulsing glow around tower
@@ -343,9 +352,8 @@ function drawKidneys() {
       ctx.restore();
     }
 
-    // Line 1: Cooldown timer
-    const cdDisplay = kidneys.getCooldownDisplay();
-    const isReady = cdDisplay === 'READY';
+    // Line 1: Cooldown in real seconds (at 1x speed)
+    const isReady = kidneys.cooldownRemaining <= 0;
     ctx.font = 'bold 10px Arial';
     if (isReady) {
       const readyPulse = 0.6 + 0.4 * Math.abs(Math.sin(Date.now() / 400));
@@ -353,35 +361,29 @@ function drawKidneys() {
       ctx.fillText('READY', pos.x, infoY);
     } else {
       ctx.fillStyle = '#F39C12';
-      ctx.fillText(`COOLDOWN: ${cdDisplay}`, pos.x, infoY);
+      const secs = Math.ceil(kidneys.cooldownRemaining);
+      ctx.fillText(`${secs}s`, pos.x, infoY);
     }
 
     // Line 2: BG / threshold
     const bg = Math.round(calculateBG());
     const threshold = Math.round(gameState._kidneyAutoThreshold ?? CONFIG.KIDNEY_AUTO_THRESHOLD);
     ctx.font = '9px Arial';
-    const bgColor = bg > threshold ? '#E74C3C' : '#7F8C8D';
-    ctx.fillStyle = bgColor;
-    const thresholdColor = kidneys.dapagliflozinActive ? '#2ECC71' : '#BDC3C7';
-    // Draw "BG " + value + "/" + threshold with colors
-    const bgText = `BG ${bg}`;
-    const slashText = '/';
-    const threshText = `${threshold}`;
-    const fullText = `${bgText}${slashText}${threshText}`;
+    const fullText = `BG ${bg}/${threshold}`;
     // Simple: just draw the full text, threshold color when dapa active
     if (kidneys.dapagliflozinActive) {
       ctx.fillStyle = '#2ECC71';
     } else {
       ctx.fillStyle = bg > threshold ? '#E74C3C' : '#95A5A6';
     }
-    ctx.fillText(fullText, pos.x, infoY + 13);
+    ctx.fillText(fullText, pos.x, infoY + 14);
 
     // Line 3: Dapagliflozin active indicator
     if (kidneys.dapagliflozinActive) {
-      const dapaDisplay = kidneys.getDapagliflozinDisplay();
+      const dapaSecs = Math.ceil(kidneys.dapagliflozinTimer);
       ctx.font = 'bold 9px Arial';
       ctx.fillStyle = '#2ECC71';
-      ctx.fillText(`SGLT2i \u23F1 ${dapaDisplay}`, pos.x, infoY + 26);
+      ctx.fillText(`SGLT2i ${dapaSecs}s`, pos.x, infoY + 27);
     }
   }
 }
@@ -398,8 +400,12 @@ function drawMines() {
   const sprW = size.w;
   const sprH = sprW * (128 / 192);
 
-  const exerciseActive = gameState.interventions.exercise.active;
-  const maxSlots = exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS : CONFIG.MINE_MAX_WORKERS;
+  const iv = gameState.interventions;
+  const exerciseActive = iv.exercise.active;
+  const walkActive = iv.walk.active;
+  const maxSlots = exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS
+    : walkActive ? CONFIG.MINE_WALK_WORKERS
+    : CONFIG.MINE_MAX_WORKERS;
 
   for (const mine of gameState.mines) {
     const { x, y } = mine;
@@ -430,8 +436,8 @@ function drawMines() {
         ctx.fillRect(x - hw, y - hh - 4, size.w * repairPct, 3);
       }
     } else {
-      // Exercise glow
-      if (exerciseActive && workerCount > 0) {
+      // Activity glow (exercise or walk)
+      if ((exerciseActive || walkActive) && workerCount > 0) {
         const pulse = 6 + 3 * Math.sin(Date.now() / 300);
         ctx.save();
         ctx.shadowColor = '#F39C12';
@@ -708,8 +714,10 @@ function drawBuildingHoverInfo() {
     }
   } else if (building === 'mines') {
     const totalWorkers = gameState.mines.reduce((sum, m) => sum + m.workers.length, 0);
-    const exerciseActive = gameState.interventions.exercise.active;
-    const slotsPerMine = exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS : CONFIG.MINE_MAX_WORKERS;
+    const mineIv = gameState.interventions;
+    const slotsPerMine = mineIv.exercise.active ? CONFIG.MINE_EXERCISE_WORKERS
+      : mineIv.walk.active ? CONFIG.MINE_WALK_WORKERS
+      : CONFIG.MINE_MAX_WORKERS;
     const totalSlots = gameState.mines.length * slotsPerMine;
     const destroyed = gameState.mines.filter(m => m.destroyed).length;
     lines = [

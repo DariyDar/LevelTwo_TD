@@ -30,6 +30,13 @@ export function updateInterventions(dt) {
     }
   }
 
+  if (iv.walk.active) {
+    iv.walk.timer -= dt;
+    if (iv.walk.timer <= 0) {
+      iv.walk.active = false;
+    }
+  }
+
   if (iv.metformin.active) {
     iv.metformin.timer -= dt;
     if (iv.metformin.timer <= 0) {
@@ -162,6 +169,8 @@ export function activateWalk() {
   if (!spendEnergy(CONFIG.WALK_COST)) return false;
 
   iv.cooldown = CONFIG.WALK_COOLDOWN;
+  iv.active = true;
+  iv.timer = (CONFIG.WALK_DURATION_HOURS * 60) / CONFIG.DAY_SPEED;
   recordEvent('intervention', '\u{1F6B6} Walk');
 
   // Collect convertible glucose: waiting, rebels, walking
@@ -225,7 +234,7 @@ export function activateExercise() {
   if (!spendEnergy(CONFIG.EXERCISE_COST)) return false;
 
   iv.active = true;
-  iv.timer = CONFIG.EXERCISE_DURATION;
+  iv.timer = (CONFIG.EXERCISE_DURATION_HOURS * 60) / CONFIG.DAY_SPEED;
   iv.cooldown = CONFIG.EXERCISE_COOLDOWN;
   recordEvent('intervention', '\u{1F3CB} Exercise');
 

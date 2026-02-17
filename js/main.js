@@ -4,7 +4,7 @@ import { CONFIG } from './config.js';
 import { gameState, GamePhase, resetGameState, fullReset } from './gameState.js';
 import { Peasant, PeasantState } from './entities/Peasant.js';
 import { findLeastFilledMine } from './buildings/Mine.js';
-import { initRenderer, render as renderMap, nextMealBtnRect } from './renderer.js';
+import { initRenderer, render as renderMap, renderMinesOverlay, nextMealBtnRect } from './renderer.js';
 import { initEntityRenderer, renderEntities } from './rendererEntities.js';
 import { initUIRenderer, renderUI, renderPausedOverlay, restartButtonRect, speedButtonRects, menuButtonRect } from './rendererUI.js';
 import { initEffectsRenderer, renderEffects } from './rendererEffects.js';
@@ -303,6 +303,36 @@ function separatePeasants() {
   }
 }
 
+function pushPeasantsFromMines() {
+  const mineSize = CONFIG.MINE_SIZE;
+  const hw = mineSize.w / 2 + 4;
+  const hh = mineSize.h / 2 + 4;
+
+  for (const p of gameState.peasants) {
+    if (!p.alive) continue;
+    // Workers and those walking to mine are allowed inside
+    if (p.state === PeasantState.WORKER ||
+        p.state === PeasantState.WALKING_TO_MINE ||
+        p.state === PeasantState.BEING_ESCORTED) continue;
+
+    for (const mine of gameState.mines) {
+      if (mine.destroyed) continue;
+      const dx = p.x - mine.x;
+      const dy = p.y - mine.y;
+      if (Math.abs(dx) < hw && Math.abs(dy) < hh) {
+        // Push out in the direction of least overlap
+        const overlapX = hw - Math.abs(dx);
+        const overlapY = hh - Math.abs(dy);
+        if (overlapX < overlapY) {
+          p.x += (dx > 0 ? overlapX : -overlapX) * 0.5;
+        } else {
+          p.y += (dy > 0 ? overlapY : -overlapY) * 0.5;
+        }
+      }
+    }
+  }
+}
+
 function spawnStartingWorkers() {
   const count = CONFIG.STARTING_WORKERS;
   for (let i = 0; i < count; i++) {
@@ -375,12 +405,14 @@ function gameLoop(timestamp) {
     renderMealPlan();
   } else if (gameState.phase === GamePhase.GAME_OVER) {
     renderEntities();
+    renderMinesOverlay();
     renderEffects();
     resetCamera(ctx);
     renderUI();
     renderGameOver();
   } else {
     renderEntities();
+    renderMinesOverlay();
     renderEffects();
     resetCamera(ctx);
 
@@ -408,6 +440,7 @@ function update(dt) {
   updateBoats(dt);
   updatePeasants(dt);
   separatePeasants();
+  pushPeasantsFromMines();
   updatePriests(dt);
   updatePancreas(dt);
   updateMines(dt);

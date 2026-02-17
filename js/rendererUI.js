@@ -171,8 +171,10 @@ function drawTopBar() {
   // Workers count
   let workerCount = 0;
   let totalSlots = 0;
-  const exerciseActive = gameState.interventions.exercise.active;
-  const slotsPerMine = exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS : CONFIG.MINE_MAX_WORKERS;
+  const iv = gameState.interventions;
+  const slotsPerMine = iv.exercise.active ? CONFIG.MINE_EXERCISE_WORKERS
+    : iv.walk.active ? CONFIG.MINE_WALK_WORKERS
+    : CONFIG.MINE_MAX_WORKERS;
   for (const mine of gameState.mines) {
     workerCount += mine.workers.length;
     if (mine.isOperational) {

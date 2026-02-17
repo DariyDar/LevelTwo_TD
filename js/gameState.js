@@ -78,7 +78,7 @@ export function createGameState() {
       semaglutide: { charges: 0 },
       dapagliflozin: { charges: 0 },
       metformin: { active: false, charges: 0, timer: 0 },
-      walk: { cooldown: 0 },
+      walk: { cooldown: 0, active: false, timer: 0 },
     },
 
     // Stats
