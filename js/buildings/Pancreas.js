@@ -4,6 +4,7 @@ import { CONFIG } from '../config.js';
 import { gameState, GamePhase } from '../gameState.js';
 import { Priest } from '../entities/Priest.js';
 import { playDegradation, playDefeat } from '../audio.js';
+import { calculateBG } from '../systems/bgSystem.js';
 
 export class Pancreas {
   constructor() {
@@ -22,7 +23,16 @@ export class Pancreas {
     // insulinProductionRate < 1.0 → longer intervals (less insulin)
     const baseInterval = CONFIG.PANCREAS_AUTO_SPAWN_INTERVAL[Math.min(deg, 4)];
     const rate = gameState._insulinProductionRate ?? 1.0;
-    const interval = rate > 0 ? baseInterval / rate : 999;
+
+    // GSIS: higher BG → faster insulin production (beta cells sense glucose)
+    const bg = calculateBG();
+    let bgStim = 1.0;
+    for (const zone of CONFIG.PANCREAS_BG_STIM_ZONES) {
+      if (bg >= zone.threshold) bgStim = zone.multiplier;
+    }
+    this._lastBgStim = bgStim; // exposed for UI tooltip
+
+    const interval = rate > 0 ? baseInterval / (rate * bgStim) : 999;
     this.spawnTimer -= dt;
     if (this.spawnTimer <= 0) {
       this.spawnTimer = interval;

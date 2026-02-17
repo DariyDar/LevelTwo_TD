@@ -31,6 +31,8 @@ function renderBoats() {
 function renderPeasants() {
   for (const p of gameState.peasants) {
     if (!p.alive) continue;
+    // Workers are inside mines — don't render them
+    if (p.state === PeasantState.WORKER) continue;
     drawPeasant(p);
   }
 }

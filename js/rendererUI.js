@@ -171,10 +171,12 @@ function drawTopBar() {
   // Workers count
   let workerCount = 0;
   let totalSlots = 0;
+  const exerciseActive = gameState.interventions.exercise.active;
+  const slotsPerMine = exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS : CONFIG.MINE_MAX_WORKERS;
   for (const mine of gameState.mines) {
     workerCount += mine.workers.length;
     if (mine.isOperational) {
-      totalSlots += CONFIG.MINE_MAX_WORKERS;
+      totalSlots += slotsPerMine;
     }
   }
   ctx.font = 'bold 12px Arial';

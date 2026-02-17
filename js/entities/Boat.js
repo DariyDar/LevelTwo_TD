@@ -109,9 +109,10 @@ export class Boat {
   }
 
   _spawnPeasant() {
-    // Spread spawn across a wider area to avoid traffic jams
+    // Spread glucose across full shore height
     const x = this.x + Math.random() * 40;
-    const y = this.y + (Math.random() - 0.5) * 80;
+    const y = CONFIG.SHORE_SPAWN_Y_MIN
+      + Math.random() * (CONFIG.SHORE_SPAWN_Y_MAX - CONFIG.SHORE_SPAWN_Y_MIN);
     const peasant = new Peasant(x, y, this.peasantSpeed);
     peasant.speedCategory = this.speedCategory;
     gameState.peasants.push(peasant);

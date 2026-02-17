@@ -107,7 +107,8 @@ export function createGameState() {
     _rebelDamageMultiplier: 1.0,
     _kidneyAutoFilterRate: 2.0,
     _kidneyAutoThreshold: null,   // per-patient override (null = use CONFIG)
-    _kidneyAutoCooldown: null,    // per-patient override (null = use CONFIG)
+    _kidneyAutoCooldown: null,    // per-patient override (null = use CONFIG hours)
+    _kidneyBaseThreshold: null,   // original threshold before dapagliflozin
     _liverReleaseRate: 1.0,
     _liverInitialStorage: 0,
     _priestWaitMultiplier: 1.0,
@@ -118,8 +119,8 @@ export function createGameState() {
     // Hypoglycemia tracking
     hypoDuration: 0,
 
-    // Juice/snack cooldown
-    juiceCooldown: 0,
+    // Snack cooldown
+    snackCooldown: 0,
 
     // Day clock (seconds elapsed since 6:00)
     dayClock: 0,

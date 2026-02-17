@@ -59,13 +59,12 @@ export class Peasant {
 
   _buildWaypoints() {
     const wp = CONFIG.WAYPOINTS;
-    const randY = (base, spread) => base + (Math.random() - 0.5) * 2 * spread;
+    const zone = CONFIG.MUSCLE_ZONE;
 
     return [
-      { x: wp.SHORE.x, y: randY(wp.SHORE.y, 30) },
-      { x: wp.BEFORE_LIVER.x, y: randY(wp.BEFORE_LIVER.y, 20) },
-      { x: wp.AFTER_LIVER.x, y: randY(wp.AFTER_LIVER.y, 20) },
-      { x: wp.VILLAGE_SQUARE.x, y: randY(wp.VILLAGE_SQUARE.y, 40) },
+      { x: wp.ADVANCE_X, y: this.y },
+      { x: zone.x1 + Math.random() * (zone.x2 - zone.x1),
+        y: zone.y1 + Math.random() * (zone.y2 - zone.y1) },
     ];
   }
 
@@ -227,11 +226,10 @@ export class Peasant {
     this.workHp = CONFIG.WORKER_LIFETIME;
   }
 
-  assignToMine(mine, slotIndex) {
+  assignToMine(mine) {
     this.assignedMine = mine;
-    const offset = CONFIG.WORKER_OFFSETS[slotIndex];
-    this.targetX = mine.x + offset.dx;
-    this.targetY = mine.y + offset.dy;
+    this.targetX = mine.x;
+    this.targetY = mine.y;
   }
 
   die() {

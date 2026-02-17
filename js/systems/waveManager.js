@@ -39,8 +39,8 @@ export function updateWaveManager(dt) {
   const maxDayClock = ((CONFIG.DAY_END_HOUR - CONFIG.DAY_START_HOUR) * 60) / CONFIG.DAY_SPEED;
   gameState.dayClock = Math.min(gameState.dayClock + dt, maxDayClock);
 
-  // Juice cooldown
-  if (gameState.juiceCooldown > 0) gameState.juiceCooldown -= dt;
+  // Snack cooldown
+  if (gameState.snackCooldown > 0) gameState.snackCooldown -= dt;
 
   // Time-based wave scheduling (skipped when plan executor handles meals)
   if (!gameState.allWavesSent && !gameState.currentPlan) {
@@ -151,7 +151,7 @@ export function loadLevel(levelId) {
   gameState.allWavesSent = false;
   gameState.nextWaveCountdown = 0;
   gameState.dayClock = 0;
-  gameState.juiceCooldown = 0;
+  gameState.snackCooldown = 0;
 
   // Set up interventions from level config
   const iv = gameState.interventions;
@@ -176,12 +176,10 @@ export function loadLevel(levelId) {
   return true;
 }
 
-// Spawn an unplanned juice/snack boat (fast glucose spike)
-export function spawnJuice() {
+// Snack: Juice — 80 fast glucose
+export function spawnSnackJuice() {
   if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return false;
-
-  const juiceCd = gameState.juiceCooldown || 0;
-  if (juiceCd > 0) return false;
+  if ((gameState.snackCooldown || 0) > 0) return false;
 
   let juiceFood;
   try {
@@ -193,9 +191,34 @@ export function spawnJuice() {
   playFoodSelect();
   const boat = new Boat([juiceFood]);
   gameState.boats.push(boat);
-  gameState.juiceCooldown = CONFIG.JUICE_COOLDOWN;
+  gameState.snackCooldown = CONFIG.SNACK_COOLDOWN;
   recordEvent('food', '\u{1F9C3} Juice');
+  return true;
+}
 
+// Snack: Chocolate — 60 fast + 60 slow glucose (two boats)
+export function spawnSnackChocolate() {
+  if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return false;
+  if ((gameState.snackCooldown || 0) > 0) return false;
+
+  playFoodSelect();
+
+  // Fast glucose boat
+  const fastFood = {
+    name: 'Chocolate (fast)', emoji: '\u{1F36B}',
+    count: CONFIG.SNACK_CHOCOLATE_FAST, speed: 'fast',
+  };
+  gameState.boats.push(new Boat([fastFood]));
+
+  // Slow glucose boat
+  const slowFood = {
+    name: 'Chocolate (slow)', emoji: '\u{1F36B}',
+    count: CONFIG.SNACK_CHOCOLATE_SLOW, speed: 'slow',
+  };
+  gameState.boats.push(new Boat([slowFood]));
+
+  gameState.snackCooldown = CONFIG.SNACK_COOLDOWN;
+  recordEvent('food', '\u{1F36B} Chocolate');
   return true;
 }
 

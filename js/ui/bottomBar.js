@@ -8,6 +8,7 @@ import {
   activateWalk,
   activateExercise,
 } from '../systems/interventions.js';
+import { spawnSnackJuice, spawnSnackChocolate } from '../systems/waveManager.js';
 
 let ctx = null;
 let canvas = null;
@@ -25,6 +26,7 @@ const TOOLTIPS = {
   semaglutide: 'GLP-1 receptor agonist: slows gastric emptying, reduces appetite.',
   dapagliflozin: 'SGLT2 inhibitor: blocks renal glucose reabsorption in proximal tubule.',
   metformin: 'Biguanide: suppresses hepatic glucose output, improves insulin sensitivity.',
+  snack: 'Emergency snack: Juice (fast glucose) or Chocolate (fast + slow glucose).',
 };
 
 const INSULIN_DOSES = [5, 10, 20, 30];
@@ -158,7 +160,7 @@ function drawButton(iv, x, y, w, h, isHovered) {
   }
   if (iv.cost > 0) {
     infoText += `${iv.cost}\u26A1`;
-  } else if (iv.key === 'spawnPriest' || iv.key === 'physicalActivity') {
+  } else if (iv.key === 'spawnPriest' || iv.key === 'physicalActivity' || iv.key === 'snack') {
     infoText += 'click to choose';
   } else {
     infoText += 'FREE';
@@ -181,7 +183,7 @@ function drawButton(iv, x, y, w, h, isHovered) {
   if (iv.isCoreAction) {
     ctx.font = '9px Arial';
     ctx.fillStyle = '#7F8C8D';
-    const hints = { spawnKnight: '1', physicalActivity: '2', spawnPriest: '3', kidneyVortex: '4' };
+    const hints = { spawnKnight: '1', physicalActivity: '2', spawnPriest: '3', kidneyVortex: '4', snack: '5' };
     if (hints[iv.key]) {
       ctx.fillText(`[${hints[iv.key]}]`, x + w / 2, y + h - 5);
     }
@@ -200,6 +202,8 @@ function drawSubMenu() {
     drawInsulinDoseMenu(parentBtn);
   } else if (subMenu.type === 'physicalActivity') {
     drawPhysActivityMenu(parentBtn);
+  } else if (subMenu.type === 'snack') {
+    drawSnackMenu(parentBtn);
   }
 }
 
@@ -313,6 +317,69 @@ function drawPhysActivityMenu(parentBtn) {
   }
 }
 
+function drawSnackMenu(parentBtn) {
+  const C = CONFIG.COLORS;
+  const snackCd = gameState.snackCooldown || 0;
+  const onCooldown = snackCd > 0;
+
+  const optW = 120;
+  const optH = 48;
+  const optGap = 4;
+  const options = [
+    {
+      key: 'juice',
+      label: '\u{1F9C3} Juice',
+      desc: '80 fast glucose',
+    },
+    {
+      key: 'chocolate',
+      label: '\u{1F36B} Chocolate',
+      desc: '60 fast + 60 slow',
+    },
+  ];
+
+  const totalOptW = options.length * optW + (options.length - 1) * optGap;
+  const startX = parentBtn.x + parentBtn.w / 2 - totalOptW / 2;
+  const optY = parentBtn.y - optH - 8;
+
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    const isReady = !onCooldown;
+    const x = startX + i * (optW + optGap);
+
+    const isHovered = gameState.mouseX >= x && gameState.mouseX <= x + optW &&
+                      gameState.mouseY >= optY && gameState.mouseY <= optY + optH;
+
+    ctx.fillStyle = isHovered && isReady ? '#4A90A4' : isReady ? '#3D5A6E' : '#2C3E50';
+    ctx.strokeStyle = isHovered && isReady ? '#F1C40F' : '#5D7A8C';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, optY, optW, optH, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    if (!isReady) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(x, optY, optW, optH);
+    }
+
+    ctx.fillStyle = isReady ? C.WHITE : C.GRAY;
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(opt.label, x + optW / 2, optY + 18);
+
+    ctx.font = '10px Arial';
+    ctx.fillStyle = isReady ? C.GOLD : C.GRAY;
+    if (onCooldown) {
+      ctx.fillText(`${Math.ceil(snackCd)}s`, x + optW / 2, optY + 33);
+    } else {
+      ctx.fillText(opt.desc, x + optW / 2, optY + 33);
+    }
+
+    subMenu.rects.push({ x, y: optY, w: optW, h: optH, snackKey: opt.key });
+  }
+}
+
 function drawTooltip() {
   // Don't show tooltip if sub-menu is open
   if (subMenu.type) return;
@@ -414,6 +481,9 @@ function handleClick(e) {
         } else if (subMenu.type === 'physicalActivity') {
           if (sr.actionKey === 'walk') activateWalk();
           else if (sr.actionKey === 'exercise') activateExercise();
+        } else if (subMenu.type === 'snack') {
+          if (sr.snackKey === 'juice') spawnSnackJuice();
+          else if (sr.snackKey === 'chocolate') spawnSnackChocolate();
         }
         subMenu.type = null;
         return;
@@ -428,7 +498,7 @@ function handleClick(e) {
     if (mx >= btn.x && mx <= btn.x + btn.w &&
         my >= btn.y && my <= btn.y + btn.h) {
       const key = btn.intervention.key;
-      if (key === 'spawnPriest' || key === 'physicalActivity') {
+      if (key === 'spawnPriest' || key === 'physicalActivity' || key === 'snack') {
         // Toggle sub-menu
         if (subMenu.type === key) {
           subMenu.type = null;

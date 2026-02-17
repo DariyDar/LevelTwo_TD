@@ -3,6 +3,7 @@
 import { CONFIG } from './config.js';
 import { gameState } from './gameState.js';
 import { PriestState } from './entities/Priest.js';
+import { getSprite } from './spriteLoader.js';
 
 let ctx = null;
 
@@ -139,37 +140,72 @@ function drawPriestConvert(effect) {
 }
 
 function drawSemaglutideExplosion(effect) {
+  const sprite = getSprite('fx_explosion');
   const progress = 1 - effect.timer / effect.maxTimer;
-  const alpha = 1 - progress;
 
-  for (const p of effect.particles) {
-    const px = effect.x + p.dx * progress;
-    const py = effect.y + p.dy * progress;
-    const r = 3 * (1 - progress);
+  if (sprite) {
+    // Play through all 9 frames over the effect duration
+    const frameIdx = Math.min(
+      sprite.frameCount - 1,
+      Math.floor(progress * sprite.frameCount)
+    );
+    const sx = frameIdx * sprite.frameW;
+    const size = 64;
+    const half = size / 2;
 
-    ctx.beginPath();
-    ctx.arc(px, py, Math.max(0.5, r), 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(230, 126, 34, ${alpha})`;
-    ctx.fill();
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - progress * 0.5);
+    ctx.drawImage(sprite.img, sx, 0, sprite.frameW, sprite.frameH,
+      effect.x - half, effect.y - half, size, size);
+    ctx.restore();
+  } else {
+    // Fallback: orange particles
+    const alpha = 1 - progress;
+    for (const p of effect.particles) {
+      const px = effect.x + p.dx * progress;
+      const py = effect.y + p.dy * progress;
+      const r = 3 * (1 - progress);
+
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(0.5, r), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(230, 126, 34, ${alpha})`;
+      ctx.fill();
+    }
   }
 }
 
 function renderSemaglutideMines() {
+  const sprite = getSprite('fx_poof');
+
   for (const mine of gameState.semaglutideMines) {
     const fadeAlpha = Math.min(1, mine.timer / 3);
     const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 300 + mine.x);
 
-    ctx.beginPath();
-    ctx.arc(mine.x, mine.y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(230, 126, 34, ${fadeAlpha * pulse})`;
-    ctx.fill();
+    if (sprite) {
+      // Draw poof sprite idle frame (pulsing between frames 0-2)
+      const frameIdx = Math.floor((Date.now() / 200 + mine.x) % 3);
+      const sx = frameIdx * sprite.frameW;
+      const size = 32;
+      const half = size / 2;
 
-    // Outer glow
-    ctx.beginPath();
-    ctx.arc(mine.x, mine.y, 8, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(243, 156, 18, ${fadeAlpha * 0.3})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * pulse;
+      ctx.drawImage(sprite.img, sx, 0, sprite.frameW, sprite.frameH,
+        mine.x - half, mine.y - half, size, size);
+      ctx.restore();
+    } else {
+      // Fallback: orange circles
+      ctx.beginPath();
+      ctx.arc(mine.x, mine.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(230, 126, 34, ${fadeAlpha * pulse})`;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(mine.x, mine.y, 8, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(243, 156, 18, ${fadeAlpha * 0.3})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
   }
 }
 

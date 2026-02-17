@@ -4,11 +4,11 @@ import { CONFIG } from './config.js';
 import { gameState, GamePhase, resetGameState, fullReset } from './gameState.js';
 import { Peasant, PeasantState } from './entities/Peasant.js';
 import { findLeastFilledMine } from './buildings/Mine.js';
-import { initRenderer, render as renderMap, nextMealBtnRect, juiceBtnRect } from './renderer.js';
+import { initRenderer, render as renderMap, nextMealBtnRect } from './renderer.js';
 import { initEntityRenderer, renderEntities } from './rendererEntities.js';
 import { initUIRenderer, renderUI, renderPausedOverlay, restartButtonRect, speedButtonRects, menuButtonRect } from './rendererUI.js';
 import { initEffectsRenderer, renderEffects } from './rendererEffects.js';
-import { updateWaveManager, loadLevel, triggerNextWave, triggerEarlyWave, spawnJuice, formatVirtualTime } from './systems/waveManager.js';
+import { updateWaveManager, loadLevel, triggerNextWave, triggerEarlyWave, formatVirtualTime } from './systems/waveManager.js';
 import { updateEnergy } from './systems/energySystem.js';
 import { calculateBG } from './systems/bgSystem.js';
 import { playBlackout } from './audio.js';
@@ -116,7 +116,7 @@ export function startDay(patientId, dayId, levelRef) {
   loadLevel(levelId);
 
   // Initialize buildings
-  const mineCount = gameState.levelConfig ? gameState.levelConfig.mineCount : 20;
+  const mineCount = gameState.levelConfig ? gameState.levelConfig.mineCount : CONFIG.MINE_TOTAL_COUNT;
   initMines(mineCount);
   gameState.pancreas = new Pancreas();
   gameState.liverTower = new LiverTower();
@@ -128,8 +128,9 @@ export function startDay(patientId, dayId, levelRef) {
       gameState._liverInitialStorage,
       gameState.liverTower.maxStorage
     );
-    gameState.liverTower.storage = amount;
-    gameState.liverTower.slowStorage = amount;
+    for (let i = 0; i < amount; i++) {
+      gameState.liverTower.addToRoof('slow');
+    }
   }
 
   // Initialize BG history tracking
@@ -177,6 +178,7 @@ function applyPatientPhysiology(phys) {
   gameState._rebelDamageMultiplier = phys.rebelDamageMultiplier ?? 1.0;
   gameState._kidneyAutoFilterRate = phys.kidneyAutoFilterRate ?? 2.0;
   gameState._kidneyAutoThreshold = phys.kidneyAutoThreshold ?? null;
+  gameState._kidneyBaseThreshold = phys.kidneyAutoThreshold ?? null;
   gameState._kidneyAutoCooldown = phys.kidneyAutoCooldown ?? null;
   gameState._liverReleaseRate = phys.liverReleaseRate ?? 1.0;
   gameState._liverInitialStorage = phys.liverInitialStorage ?? 0;
@@ -605,13 +607,17 @@ function handleCanvasClick(e) {
     }
   }
 
-  if (juiceBtnRect.visible) {
-    const jb = juiceBtnRect;
-    if (wx >= jb.x && wx <= jb.x + jb.w && wy >= jb.y && wy <= jb.y + jb.h) {
-      spawnJuice();
+  // Kidney building click — manual flush when ready
+  const kidPos = CONFIG.KIDNEYS_POS;
+  const kidR = CONFIG.KIDNEYS_RADIUS;
+  const kdx = wx - kidPos.x;
+  const kdy = wy - kidPos.y;
+  if (kdx * kdx + kdy * kdy <= (kidR + 10) * (kidR + 10)) {
+    if (gameState.kidneys && gameState.kidneys.manualFlush()) {
       return;
     }
   }
+
 }
 
 function handleWheel(e) {

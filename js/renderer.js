@@ -3,6 +3,8 @@
 import { CONFIG } from './config.js';
 import { gameState } from './gameState.js';
 import { drawStaticSprite } from './spriteLoader.js';
+import { drawSprite } from './spriteAnimator.js';
+import { calculateBG } from './systems/bgSystem.js';
 
 let ctx = null;
 let canvas = null;
@@ -19,9 +21,7 @@ export function getCtx() {
 }
 
 export function render() {
-  // Note: clearRect and camera transform are handled by main.js gameLoop
   drawBackground();
-  drawRoad();
   drawBuildings();
   drawMines();
   drawTrainingEffect();
@@ -32,7 +32,6 @@ export function render() {
 
 function drawBackground() {
   const C = CONFIG.COLORS;
-  // Oversized bounds so camera never reveals empty canvas
   const pad = 400;
   const left = -pad;
   const top = -pad;
@@ -40,7 +39,7 @@ function drawBackground() {
   const bottom = CONFIG.CANVAS_HEIGHT + pad;
   const fullH = bottom - top;
 
-  // Sea (extends left infinitely)
+  // Sea
   ctx.fillStyle = C.SEA;
   ctx.fillRect(left, top, CONFIG.SEA_X_END - left, fullH);
 
@@ -52,11 +51,11 @@ function drawBackground() {
   ctx.fillStyle = '#A8D5A2';
   ctx.fillRect(CONFIG.SHORE_X_END, top, CONFIG.VILLAGE_X_END - CONFIG.SHORE_X_END, fullH);
 
-  // Village (extends right infinitely)
+  // Village area
   ctx.fillStyle = C.GRASS;
-  ctx.fillRect(650, top, right - 650, fullH);
+  ctx.fillRect(CONFIG.VILLAGE_X_END, top, right - CONFIG.VILLAGE_X_END, fullH);
 
-  // Shore waves (decorative lines)
+  // Shore waves
   ctx.strokeStyle = '#5DADE2';
   ctx.lineWidth = 2;
   for (let y = 50; y < CONFIG.CANVAS_HEIGHT; y += 80) {
@@ -67,43 +66,26 @@ function drawBackground() {
   }
 }
 
-function drawRoad() {
-  const C = CONFIG.COLORS;
-  const roadY = CONFIG.ROAD_Y_CENTER - CONFIG.ROAD_HEIGHT / 2;
-
-  // Main road
-  ctx.fillStyle = C.ROAD;
-  ctx.fillRect(CONFIG.SEA_X_END, roadY, 650 - CONFIG.SEA_X_END, CONFIG.ROAD_HEIGHT);
-
-  // Road border lines
-  ctx.strokeStyle = '#95A5A6';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([8, 4]);
-  ctx.beginPath();
-  ctx.moveTo(CONFIG.SHORE_X_END, CONFIG.ROAD_Y_CENTER);
-  ctx.lineTo(650, CONFIG.ROAD_Y_CENTER);
-  ctx.stroke();
-  ctx.setLineDash([]);
-}
-
 function drawBuildings() {
-  drawLiverTower();
+  drawCastle();
   drawPancreas();
   drawKidneys();
 }
 
-function drawLiverTower() {
+// --- Castle (former Liver Tower) ---
+
+function drawCastle() {
   const C = CONFIG.COLORS;
   const pos = CONFIG.LIVER_POS;
   const size = CONFIG.LIVER_SIZE;
   const liver = gameState.liverTower;
   const isDestroyed = liver && liver.destroyed;
 
-  // Sprite render size (building sprite is 128x192, scale to fit)
-  const sprW = size.w + 20;
+  // Sprite render size (building sprite is 128x192, scale to fit new larger size)
+  const sprW = size.w;
   const sprH = sprW * (192 / 128);
   const sprX = pos.x - sprW / 2;
-  const sprY = pos.y - sprH / 2 + 10;
+  const sprY = pos.y - sprH / 2 + 20;
 
   // Fallback rect position
   const x = pos.x - size.w / 2;
@@ -120,23 +102,24 @@ function drawLiverTower() {
     ctx.globalAlpha = 1.0;
 
     ctx.fillStyle = C.RED;
-    ctx.font = '9px Arial';
+    ctx.font = '11px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('DAMAGED', pos.x, pos.y);
 
     if (liver.repairTimer > 0) {
       const repairPct = 1 - liver.repairTimer / CONFIG.BUILDING_REPAIR_TIME;
       ctx.fillStyle = '#2ECC71';
-      ctx.fillRect(x, y - 6, size.w * repairPct, 3);
+      ctx.fillRect(x, sprY - 8, size.w * repairPct, 4);
     }
 
+    // Label below
     ctx.fillStyle = C.WHITE;
-    ctx.font = 'bold 12px Arial';
-    ctx.fillText('Liver', pos.x, sprY - 4);
+    ctx.font = 'bold 13px Arial';
+    ctx.fillText('Castle', pos.x, sprY + sprH + 16);
     return;
   }
 
-  // Building sprite (or fallback green rect)
+  // Building sprite
   if (!drawStaticSprite(ctx, 'bld_liver', sprX, sprY, sprW, sprH)) {
     ctx.fillStyle = C.GREEN;
     ctx.strokeStyle = C.GREEN_DARK;
@@ -151,33 +134,20 @@ function drawLiverTower() {
     ctx.fillRect(sprX + 4, sprY + 4, sprW - 8, sprH - 8);
   }
 
-  // Draw stored glucose as dots overlaid on building
-  const storage = liver ? liver.storage : 0;
-  const maxStorage = CONFIG.LIVER_STORAGE[gameState.degradation] || 100;
-
-  if (storage > 0) {
-    const padding = 4;
-    const dotR = 2.5;
-    const dotGap = 7;
-    const innerW = size.w - padding * 2;
-    const innerH = size.h - padding * 2;
-    const cols = Math.floor(innerW / dotGap);
-    const rows = Math.floor(innerH / dotGap);
-    const maxDots = cols * rows;
-    const dotCount = Math.min(storage, maxDots);
-
-    const slowCount = liver ? liver.slowStorage : 0;
-    for (let d = 0; d < dotCount; d++) {
-      const col = d % cols;
-      const row = Math.floor(d / cols);
-      const dotX = x + padding + col * dotGap + dotGap / 2;
-      const dotY = y + padding + row * dotGap + dotGap / 2;
-      ctx.fillStyle = d < slowCount ? CONFIG.COLORS.ORANGE : CONFIG.COLORS.RED;
+  // Roof glucose sprites (visible on top of castle)
+  if (liver && liver.roofGlucose.length > 0) {
+    const roof = CONFIG.CASTLE_ROOF;
+    for (const g of liver.roofGlucose) {
+      const color = g.speedCategory === 'slow' ? C.ORANGE : C.RED;
+      ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
+      ctx.arc(g.x, g.y, 3, 0, Math.PI * 2);
       ctx.fill();
     }
 
+    // Overflow flash
+    const storage = liver.storage;
+    const maxStorage = liver.maxStorage;
     if (storage / maxStorage >= 0.85) {
       const flash = 0.3 + 0.4 * Math.sin(Date.now() / 200);
       ctx.strokeStyle = `rgba(231, 76, 60, ${flash})`;
@@ -188,25 +158,29 @@ function drawLiverTower() {
     }
   }
 
-  // HP bar
+  // HP bar ABOVE
   if (liver && liver.hp < liver.maxHp) {
     const hpPct = liver.hp / liver.maxHp;
     ctx.fillStyle = '#555';
-    ctx.fillRect(x, sprY - 6, size.w, 3);
+    ctx.fillRect(x, sprY - 8, size.w, 4);
     ctx.fillStyle = hpPct > 0.5 ? '#2ECC71' : hpPct > 0.25 ? '#F39C12' : '#E74C3C';
-    ctx.fillRect(x, sprY - 6, size.w * hpPct, 3);
+    ctx.fillRect(x, sprY - 8, size.w * hpPct, 4);
   }
 
-  // Label
+  // Label BELOW
   ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 12px Arial';
+  ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Liver', pos.x, sprY - 4);
+  ctx.fillText('Castle', pos.x, sprY + sprH + 16);
 
   // Storage counter
-  ctx.font = '10px Arial';
-  ctx.fillText(`${storage}/${maxStorage}`, pos.x, pos.y + size.h / 2 + 12);
+  const storage = liver ? liver.storage : 0;
+  const maxStorage = liver ? liver.maxStorage : 100;
+  ctx.font = '11px Arial';
+  ctx.fillText(`${storage}/${maxStorage}`, pos.x, sprY + sprH + 30);
 }
+
+// --- Pancreas ---
 
 function drawPancreas() {
   const C = CONFIG.COLORS;
@@ -214,8 +188,8 @@ function drawPancreas() {
   const size = CONFIG.PANCREAS_SIZE;
   const deg = gameState.degradation;
 
-  // Sprite: Monastery is 192x320, scale to fit pancreas area (compact)
-  const sprW = size.w - 10;
+  // Sprite: Monastery is 192x320
+  const sprW = size.w;
   const sprH = sprW * (320 / 192);
   const sprX = pos.x - sprW / 2;
   const sprY = pos.y - sprH / 2 + 20;
@@ -256,17 +230,26 @@ function drawPancreas() {
     ctx.fillRect(sprX + shakeX + 4, sprY + shakeY + 4, sprW - 8, sprH - 8);
   }
 
-  // Label
+  // Label BELOW
   ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 12px Arial';
+  ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Pancreas', pos.x + shakeX, sprY - 4 + shakeY);
+  ctx.fillText('Pancreas', pos.x + shakeX, sprY + sprH + 16 + shakeY);
 
-  // Degradation level
+  // Degradation level with descriptive label
+  const degLabels = [
+    'Healthy \u03B2-cells',
+    'Mild IR',
+    'Moderate IR',
+    'Severe IR \u2014 liver leaks',
+    'Critical \u2014 near failure',
+  ];
   ctx.font = '10px Arial';
-  ctx.fillStyle = deg >= 3 ? C.RED : C.WHITE;
-  ctx.fillText(`IR: ${deg}`, pos.x + shakeX, pos.y + 8 + shakeY);
+  ctx.fillStyle = deg >= 3 ? C.RED : deg >= 1 ? '#F39C12' : '#2ECC71';
+  ctx.fillText(degLabels[Math.min(deg, 4)], pos.x + shakeX, sprY + sprH + 30 + shakeY);
 }
+
+// --- Kidneys ---
 
 function drawKidneys() {
   const C = CONFIG.COLORS;
@@ -275,8 +258,8 @@ function drawKidneys() {
   const kidneys = gameState.kidneys;
   const isDestroyed = kidneys && kidneys.destroyed;
 
-  // Sprite: Tower is 128x256, scale to reasonable size
-  const sprW = r * 2 + 10;
+  // Sprite: Tower is 128x256
+  const sprW = r * 2 + 20;
   const sprH = sprW * (256 / 128);
   const sprX = pos.x - sprW / 2;
   const sprY = pos.y - sprH / 2 + 10;
@@ -295,23 +278,24 @@ function drawKidneys() {
     ctx.globalAlpha = 1.0;
 
     ctx.fillStyle = C.RED;
-    ctx.font = '8px Arial';
+    ctx.font = '10px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('DAMAGED', pos.x, pos.y + 3);
 
     if (kidneys.repairTimer > 0) {
       const repairPct = 1 - kidneys.repairTimer / CONFIG.BUILDING_REPAIR_TIME;
       ctx.fillStyle = '#2ECC71';
-      ctx.fillRect(pos.x - r, pos.y - r - 6, r * 2 * repairPct, 3);
+      ctx.fillRect(pos.x - r, sprY - 8, r * 2 * repairPct, 4);
     }
 
+    // Label BELOW
     ctx.fillStyle = C.WHITE;
-    ctx.font = 'bold 11px Arial';
-    ctx.fillText('Kidneys', pos.x, sprY - 4);
+    ctx.font = 'bold 13px Arial';
+    ctx.fillText('Kidneys', pos.x, sprY + sprH + 16);
     return;
   }
 
-  // Building sprite (or fallback circle)
+  // Building sprite
   if (!drawStaticSprite(ctx, 'bld_kidneys', sprX, sprY, sprW, sprH)) {
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
@@ -328,60 +312,81 @@ function drawKidneys() {
     ctx.fillStyle = `rgba(231, 76, 60, ${flash})`;
     ctx.fillRect(sprX + 4, sprY + 4, sprW - 8, sprH - 8);
 
-    // HP bar (below the sprite)
+    // HP bar ABOVE
     const hpPct = kidneys.hp / kidneys.maxHp;
-    const hpBarY = sprY + sprH + 4;
     ctx.fillStyle = '#555';
-    ctx.fillRect(pos.x - r, hpBarY, r * 2, 3);
+    ctx.fillRect(pos.x - r, sprY - 8, r * 2, 4);
     ctx.fillStyle = hpPct > 0.5 ? '#2ECC71' : hpPct > 0.25 ? '#F39C12' : '#E74C3C';
-    ctx.fillRect(pos.x - r, hpBarY, r * 2 * hpPct, 3);
+    ctx.fillRect(pos.x - r, sprY - 8, r * 2 * hpPct, 4);
   }
 
-  // Label
+  // Label BELOW
   ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 11px Arial';
+  ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Kidneys', pos.x, sprY - 4);
+  ctx.fillText('Kidneys', pos.x, sprY + sprH + 16);
 
-  // Auto-filtration progress bar (below kidney circle)
+  // Kidney status display: cooldown timer + BG/threshold + dapagliflozin
   if (kidneys && !kidneys.destroyed) {
-    const barW = r * 2;
-    const barH = 4;
-    const barX = pos.x - r;
-    const barY = pos.y + r + 6;
+    const infoY = sprY + sprH + 22;
+    ctx.textAlign = 'center';
 
-    if (kidneys.autoFilterCooldown > 0) {
-      // Cooldown state: grey bar with countdown
-      ctx.fillStyle = '#333';
-      ctx.fillRect(barX, barY, barW, barH);
-      ctx.strokeStyle = '#555';
-      ctx.lineWidth = 0.5;
-      ctx.strokeRect(barX, barY, barW, barH);
+    // Dapagliflozin pulsing glow around tower
+    if (kidneys.dapagliflozinActive) {
+      const pulse = 0.3 + 0.7 * Math.abs(Math.sin(Date.now() / 300));
+      ctx.save();
+      ctx.strokeStyle = `rgba(46, 204, 113, ${pulse})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r + 14, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
 
-      ctx.font = '7px Arial';
-      ctx.fillStyle = '#7F8C8D';
-      ctx.fillText(`${Math.ceil(kidneys.autoFilterCooldown)}s`, pos.x, barY + barH + 8);
-    } else if (kidneys.autoFilterProgress > 0) {
-      // Filling state: yellow progress bar
-      const pct = kidneys.autoFilterProgress / 100;
-      ctx.fillStyle = '#333';
-      ctx.fillRect(barX, barY, barW, barH);
-      ctx.fillStyle = pct >= 0.8 ? '#F1C40F' : '#D4AC0D';
-      ctx.fillRect(barX, barY, barW * pct, barH);
-      ctx.strokeStyle = '#5D6D7E';
-      ctx.lineWidth = 0.5;
-      ctx.strokeRect(barX, barY, barW, barH);
+    // Line 1: Cooldown timer
+    const cdDisplay = kidneys.getCooldownDisplay();
+    const isReady = cdDisplay === 'READY';
+    ctx.font = 'bold 10px Arial';
+    if (isReady) {
+      const readyPulse = 0.6 + 0.4 * Math.abs(Math.sin(Date.now() / 400));
+      ctx.fillStyle = `rgba(46, 204, 113, ${readyPulse})`;
+      ctx.fillText('READY', pos.x, infoY);
+    } else {
+      ctx.fillStyle = '#F39C12';
+      ctx.fillText(`COOLDOWN: ${cdDisplay}`, pos.x, infoY);
+    }
 
-      // Pulse when near full
-      if (pct >= 0.9) {
-        const pulse = 0.3 + 0.7 * Math.abs(Math.sin(Date.now() / 200));
-        ctx.strokeStyle = `rgba(241, 196, 15, ${pulse})`;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(barX - 1, barY - 1, barW + 2, barH + 2);
-      }
+    // Line 2: BG / threshold
+    const bg = Math.round(calculateBG());
+    const threshold = Math.round(gameState._kidneyAutoThreshold ?? CONFIG.KIDNEY_AUTO_THRESHOLD);
+    ctx.font = '9px Arial';
+    const bgColor = bg > threshold ? '#E74C3C' : '#7F8C8D';
+    ctx.fillStyle = bgColor;
+    const thresholdColor = kidneys.dapagliflozinActive ? '#2ECC71' : '#BDC3C7';
+    // Draw "BG " + value + "/" + threshold with colors
+    const bgText = `BG ${bg}`;
+    const slashText = '/';
+    const threshText = `${threshold}`;
+    const fullText = `${bgText}${slashText}${threshText}`;
+    // Simple: just draw the full text, threshold color when dapa active
+    if (kidneys.dapagliflozinActive) {
+      ctx.fillStyle = '#2ECC71';
+    } else {
+      ctx.fillStyle = bg > threshold ? '#E74C3C' : '#95A5A6';
+    }
+    ctx.fillText(fullText, pos.x, infoY + 13);
+
+    // Line 3: Dapagliflozin active indicator
+    if (kidneys.dapagliflozinActive) {
+      const dapaDisplay = kidneys.getDapagliflozinDisplay();
+      ctx.font = 'bold 9px Arial';
+      ctx.fillStyle = '#2ECC71';
+      ctx.fillText(`SGLT2i \u23F1 ${dapaDisplay}`, pos.x, infoY + 26);
     }
   }
 }
+
+// --- Mines (9 mines with visual slots) ---
 
 function drawMines() {
   const C = CONFIG.COLORS;
@@ -389,9 +394,12 @@ function drawMines() {
   const hw = size.w / 2;
   const hh = size.h / 2;
 
-  // Mine sprite is 192x128; scale keeping aspect ratio
-  const sprW = size.w + 8;
+  // Mine sprite is 192x128; scale to fit new larger size
+  const sprW = size.w;
   const sprH = sprW * (128 / 192);
+
+  const exerciseActive = gameState.interventions.exercise.active;
+  const maxSlots = exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS : CONFIG.MINE_MAX_WORKERS;
 
   for (const mine of gameState.mines) {
     const { x, y } = mine;
@@ -412,7 +420,7 @@ function drawMines() {
       }
 
       ctx.fillStyle = C.RED;
-      ctx.font = '8px Arial';
+      ctx.font = '9px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('Damaged', x, y - 2);
 
@@ -422,8 +430,6 @@ function drawMines() {
         ctx.fillRect(x - hw, y - hh - 4, size.w * repairPct, 3);
       }
     } else {
-      const exerciseActive = gameState.interventions.exercise.active;
-
       // Exercise glow
       if (exerciseActive && workerCount > 0) {
         const pulse = 6 + 3 * Math.sin(Date.now() / 300);
@@ -435,7 +441,7 @@ function drawMines() {
         ctx.restore();
       }
 
-      // Mine sprite (active or inactive based on workers)
+      // Mine sprite (active or inactive)
       const mineKey = workerCount > 0 ? 'bld_mine_active' : 'bld_mine_inactive';
       if (!drawStaticSprite(ctx, mineKey, sprX, sprY, sprW, sprH)) {
         ctx.fillStyle = C.ORANGE;
@@ -445,21 +451,47 @@ function drawMines() {
         ctx.strokeRect(x - hw, y - hh, size.w, size.h);
       }
 
-      // Under attack: red flash overlay
+      // Under attack flash
       if (isDamaged) {
         const flash = 0.3 + 0.3 * Math.sin(Date.now() / 150);
         ctx.fillStyle = `rgba(231, 76, 60, ${flash})`;
         ctx.fillRect(sprX, sprY, sprW, sprH);
       }
 
-      // Worker count
-      ctx.fillStyle = C.WHITE;
-      ctx.font = '9px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${workerCount}/${CONFIG.MINE_MAX_WORKERS}`, x, y + 4);
+      // Visual slots (circles below mine)
+      _drawMineSlots(x, y + hh + 6, maxSlots, workerCount, exerciseActive);
     }
   }
 }
+
+function _drawMineSlots(cx, startY, maxSlots, filledCount, exerciseActive) {
+  const normalSlots = CONFIG.MINE_MAX_WORKERS;
+  const slotR = 3;
+  const slotGap = 9;
+  const totalW = maxSlots * slotGap;
+  let sx = cx - totalW / 2 + slotGap / 2;
+
+  for (let i = 0; i < maxSlots; i++) {
+    const isExerciseSlot = i >= normalSlots;
+    const isFilled = i < filledCount;
+
+    ctx.beginPath();
+    ctx.arc(sx + i * slotGap, startY, slotR, 0, Math.PI * 2);
+
+    if (isFilled) {
+      ctx.fillStyle = isExerciseSlot ? '#F39C12' : CONFIG.COLORS.PURPLE;
+      ctx.fill();
+    } else {
+      ctx.fillStyle = isExerciseSlot ? 'rgba(243, 156, 18, 0.3)' : 'rgba(155, 89, 182, 0.3)';
+      ctx.fill();
+      ctx.strokeStyle = isExerciseSlot ? '#F39C12' : '#7D3C98';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+  }
+}
+
+// --- Building highlights ---
 
 function drawBuildingHighlights() {
   const hovered = gameState.hoveredAction;
@@ -533,20 +565,20 @@ function drawBuildingHighlights() {
   }
 
   if (hovered === 'semaglutide') {
-    const roadY = CONFIG.ROAD_Y_CENTER;
     const xMin = CONFIG.SEMAGLUTIDE_MINE_X_MIN;
     const xMax = CONFIG.SEMAGLUTIDE_MINE_X_MAX;
-    const ySpread = CONFIG.SEMAGLUTIDE_MINE_Y_SPREAD;
+    const yMin = CONFIG.SEMAGLUTIDE_MINE_Y_MIN;
+    const yMax = CONFIG.SEMAGLUTIDE_MINE_Y_MAX;
     ctx.fillStyle = `rgba(230, 126, 34, ${pulse * 0.25})`;
     ctx.strokeStyle = `rgba(230, 126, 34, ${pulse})`;
     ctx.lineWidth = 3;
     ctx.setLineDash([6, 4]);
     ctx.beginPath();
-    ctx.roundRect(xMin - 8, roadY - ySpread - 8, xMax - xMin + 16, ySpread * 2 + 16, 8);
+    ctx.roundRect(xMin - 8, yMin - 8, xMax - xMin + 16, yMax - yMin + 16, 8);
     ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]);
-    _drawHighlightLabel((xMin + xMax) / 2, roadY - ySpread - 16,
+    _drawHighlightLabel((xMin + xMax) / 2, yMin - 16,
       'GI Tract (GLP-1)', 'Slows gastric emptying, reduces appetite');
   }
 }
@@ -556,7 +588,6 @@ function _drawHighlightLabel(x, y, title, desc) {
   ctx.textAlign = 'center';
   ctx.font = 'bold 13px Arial';
 
-  // Measure text for background box
   const titleW = ctx.measureText(title).width;
   ctx.font = '11px Arial';
   const descW = ctx.measureText(desc).width;
@@ -565,7 +596,6 @@ function _drawHighlightLabel(x, y, title, desc) {
   const boxX = x - boxW / 2;
   const boxY = y - 14;
 
-  // Solid dark background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
   ctx.beginPath();
   ctx.roundRect(boxX, boxY, boxW, boxH, 5);
@@ -574,12 +604,10 @@ function _drawHighlightLabel(x, y, title, desc) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // Title — always fully visible
   ctx.font = 'bold 13px Arial';
   ctx.fillStyle = '#F1C40F';
   ctx.fillText(title, x, y);
 
-  // Description
   ctx.font = '11px Arial';
   ctx.fillStyle = '#FFFFFF';
   ctx.fillText(desc, x, y + 15);
@@ -587,29 +615,29 @@ function _drawHighlightLabel(x, y, title, desc) {
   ctx.restore();
 }
 
-// Training visual feedback (exercise active)
+// --- Training effect ---
+
 function drawTrainingEffect() {
   if (!gameState.interventions.exercise.active) return;
 
   const zone = CONFIG.MUSCLE_ZONE;
 
-  // Orange glow overlay on muscle zone
   const pulse = 0.3 + 0.15 * Math.sin(Date.now() / 400);
   ctx.fillStyle = `rgba(243, 156, 18, ${pulse * 0.12})`;
   ctx.fillRect(zone.x1, zone.y1, zone.x2 - zone.x1, zone.y2 - zone.y1);
 
-  // "x2 ATP" floating text
   const bounce = Math.sin(Date.now() / 500) * 3;
   ctx.fillStyle = '#F39C12';
   ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
   ctx.fillText('x2 ATP', (zone.x1 + zone.x2) / 2, zone.y1 - 10 + bounce);
 
-  // Timer countdown
   const remaining = Math.ceil(gameState.interventions.exercise.timer);
   ctx.font = '12px Arial';
   ctx.fillText(`${remaining}s`, (zone.x1 + zone.x2) / 2, zone.y1 - 28);
 }
+
+// --- Building hover info ---
 
 function drawBuildingHoverInfo() {
   const building = gameState.hoveredBuilding;
@@ -623,10 +651,10 @@ function drawBuildingHoverInfo() {
   if (building === 'liver') {
     const liver = gameState.liverTower;
     if (!liver) return;
-    const maxStorage = CONFIG.LIVER_STORAGE[Math.min(gameState.degradation, 5)];
+    const maxStorage = liver.maxStorage;
     const knightCount = gameState.knights.filter(k => k.alive).length;
     lines = [
-      'Liver (Hepatocytes)',
+      'Castle (Hepatocytes)',
       'Stores glucose as glycogen.',
       'Auto-releases when BG drops.',
       `Glycogen: ${liver.storage}/${maxStorage}`,
@@ -634,6 +662,12 @@ function drawBuildingHoverInfo() {
       `HP: ${Math.round(liver.hp)}/${liver.maxHp}`,
     ];
     if (liver.destroyed) lines.push('Necrosis - repairing...');
+    if (gameState._insulinSensitivity < CONFIG.LIVER_HGP_SENSITIVITY_CUTOFF) {
+      lines.push('Hepatic IR: liver leaks glucose');
+    }
+    if (gameState.interventions.metformin.active) {
+      lines.push('Metformin: suppressing liver output');
+    }
   } else if (building === 'pancreas') {
     const panc = gameState.pancreas;
     if (!panc) return;
@@ -641,27 +675,41 @@ function drawBuildingHoverInfo() {
     const activePriests = gameState.priests.filter(p => p.alive).length;
     const maxPriests = CONFIG.PANCREAS_MAX_PRIESTS[Math.min(deg, 4)];
     const resistance = CONFIG.RESISTANCE_BY_DEGRADATION[Math.min(deg, 4)];
+    const bgStim = panc._lastBgStim || 1.0;
     lines = [
       'Pancreas (Beta Cells)',
       'Secretes insulin for glucose uptake.',
       `Active Insulin: ${activePriests}/${maxPriests}`,
       `IR Stage: ${deg}`,
       `Uptake Efficacy: ${Math.round(resistance * 100)}%`,
+      `GSIS: x${bgStim.toFixed(1)}`,
       `Beta Cell HP: ${Math.round(panc.hp)}/${panc.maxHp}`,
     ];
   } else if (building === 'kidneys') {
     const kid = gameState.kidneys;
     if (!kid) return;
+    const threshold = Math.round(gameState._kidneyAutoThreshold ?? CONFIG.KIDNEY_AUTO_THRESHOLD);
+    const bg = Math.round(calculateBG());
     lines = [
       'Kidneys (Nephrons)',
-      'Filter excess glucose from blood.',
-      `GFR Cooldown: ${kid.cooldown > 0 ? Math.ceil(kid.cooldown) + 's' : 'Ready'}`,
+      'Filter excess glucose when BG > threshold.',
+      `Auto-flush threshold: ${threshold} mg/dL`,
+      `Current BG: ${bg} mg/dL`,
+      `Cooldown: ${kid.getCooldownDisplay()}`,
       `HP: ${Math.round(kid.hp)}/${kid.maxHp}`,
     ];
+    if (kid.dapagliflozinActive) {
+      lines.push(`SGLT2i active: threshold lowered (${kid.getDapagliflozinDisplay()} left)`);
+    }
     if (kid.destroyed) lines.push('Nephropathy - repairing...');
+    if (kid.cooldownRemaining <= 0 && !kid.destroyed) {
+      lines.push('Click to flush manually');
+    }
   } else if (building === 'mines') {
     const totalWorkers = gameState.mines.reduce((sum, m) => sum + m.workers.length, 0);
-    const totalSlots = gameState.mines.length * CONFIG.MINE_MAX_WORKERS;
+    const exerciseActive = gameState.interventions.exercise.active;
+    const slotsPerMine = exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS : CONFIG.MINE_MAX_WORKERS;
+    const totalSlots = gameState.mines.length * slotsPerMine;
     const destroyed = gameState.mines.filter(m => m.destroyed).length;
     lines = [
       'Skeletal Muscles (Myocytes)',
@@ -677,7 +725,6 @@ function drawBuildingHoverInfo() {
   const lineH = 16;
   const panelH = lines.length * lineH + 12;
 
-  // Keep panel on screen
   if (panelX + panelW > CONFIG.CANVAS_WIDTH - 5) panelX = gameState.mouseX - panelW - 15;
   if (panelY + panelH > CONFIG.CANVAS_HEIGHT - 5) panelY = CONFIG.CANVAS_HEIGHT - panelH - 5;
 
@@ -697,12 +744,12 @@ function drawBuildingHoverInfo() {
   }
 }
 
+// --- Next wave countdown (no juice button — snack moved to bottom bar) ---
+
 export const nextMealBtnRect = { x: 0, y: 0, w: 0, h: 0, visible: false };
-export const juiceBtnRect = { x: 0, y: 0, w: 0, h: 0, visible: false };
 
 function drawNextWaveCountdown() {
   nextMealBtnRect.visible = false;
-  juiceBtnRect.visible = false;
 
   if (gameState.phase !== 'playing' && gameState.phase !== 'between_waves') return;
 
@@ -710,7 +757,6 @@ function drawNextWaveCountdown() {
   const hasNextWave = !gameState.allWavesSent &&
     gameState.currentWaveIndex < gameState.waves.length;
 
-  // Next meal panel (when next meal is pending)
   if (hasNextWave && gameState.nextWaveCountdown > 0) {
     const countdown = gameState.nextWaveCountdown;
     const nextWave = gameState.waves[gameState.currentWaveIndex];
@@ -719,7 +765,7 @@ function drawNextWaveCountdown() {
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.beginPath();
-    ctx.roundRect(cx - 70, cy - 30, 140, 95, 6);
+    ctx.roundRect(cx - 70, cy - 30, 140, 70, 6);
     ctx.fill();
 
     ctx.fillStyle = CONFIG.COLORS.WHITE;
@@ -756,61 +802,10 @@ function drawNextWaveCountdown() {
     ctx.font = 'bold 11px Arial';
     ctx.fillText('Send Now', cx, btnY + 16);
   }
-
-  // "Drink Juice" button (always visible during gameplay)
-  drawJuiceButton(cx);
 }
 
-function drawJuiceButton(cx) {
-  const juiceCd = gameState.juiceCooldown || 0;
-  const onCooldown = juiceCd > 0;
-  const btnW = 100;
-  const btnH = 28;
-  const btnX = cx - btnW / 2;
-  const btnY = 260;
+// --- Utility ---
 
-  Object.assign(juiceBtnRect, { x: btnX, y: btnY, w: btnW, h: btnH, visible: true });
-
-  const isHovered = gameState.mouseX >= btnX && gameState.mouseX <= btnX + btnW &&
-                    gameState.mouseY >= btnY && gameState.mouseY <= btnY + btnH;
-
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-  ctx.beginPath();
-  ctx.roundRect(btnX, btnY - 16, btnW, btnH + 20, 6);
-  ctx.fill();
-
-  // Label
-  ctx.fillStyle = CONFIG.COLORS.WHITE;
-  ctx.font = '10px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('Unplanned snack', cx, btnY - 4);
-
-  // Button
-  if (onCooldown) {
-    ctx.fillStyle = '#2C3E50';
-  } else {
-    ctx.fillStyle = isHovered ? '#8E44AD' : '#6C3483';
-  }
-  ctx.beginPath();
-  ctx.roundRect(btnX, btnY, btnW, btnH, 4);
-  ctx.fill();
-
-  ctx.fillStyle = onCooldown ? '#7F8C8D' : CONFIG.COLORS.WHITE;
-  ctx.font = 'bold 11px Arial';
-  ctx.fillText('\u{1F9C3} Juice', cx, btnY + 12);
-
-  if (onCooldown) {
-    ctx.font = '9px Arial';
-    ctx.fillStyle = '#E74C3C';
-    ctx.fillText(`${Math.ceil(juiceCd)}s`, cx, btnY + 24);
-  } else {
-    ctx.font = '9px Arial';
-    ctx.fillStyle = '#95A5A6';
-    ctx.fillText('80 fast glucose', cx, btnY + 24);
-  }
-}
-
-// Utility: rounded rectangle
 function roundRect(x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);

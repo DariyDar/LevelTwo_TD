@@ -62,10 +62,8 @@ export class Knight {
     const maxStorage = CONFIG.LIVER_STORAGE[Math.min(gameState.degradation, 5)];
     if (liver.storage >= maxStorage * CONFIG.LIVER_OVERFLOW_THRESHOLD) return;
 
-    // Knights scan the road near liver for passing peasants
+    // Knights scan from their own position (full height patrol)
     const scanRange = CONFIG.KNIGHT_SCAN_RANGE;
-    const roadY = CONFIG.ROAD_Y_CENTER;
-    const liverX = CONFIG.LIVER_POS.x;
     let nearest = null;
     let nearestDist = Infinity;
 
@@ -78,8 +76,8 @@ export class Knight {
       // Roll once per peasant per knight idle cycle (not per frame)
       if (this._evaluatedPeasants.has(p)) continue;
 
-      const dx = p.x - liverX;
-      const dy = p.y - roadY;
+      const dx = p.x - this.x;
+      const dy = p.y - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < scanRange) {
@@ -114,11 +112,11 @@ export class Knight {
       return;
     }
 
-    // Lose interest if target moved too far from liver
-    const liverDx = this.target.x - CONFIG.LIVER_POS.x;
-    const liverDy = this.target.y - CONFIG.LIVER_POS.y;
+    // Lose interest if target moved too far from knight's home
+    const liverDx = this.target.x - this.homeX;
+    const liverDy = this.target.y - this.homeY;
     const liverDist = Math.sqrt(liverDx * liverDx + liverDy * liverDy);
-    if (liverDist > CONFIG.KNIGHT_SCAN_RANGE * 1.5) {
+    if (liverDist > CONFIG.KNIGHT_SCAN_RANGE * 2) {
       this._returnHome();
       return;
     }
@@ -178,13 +176,10 @@ export class Knight {
 
     // Absorb when at liver — knight survives and returns home
     if (dist <= 10) {
-      if (this.target.speedCategory === 'slow') {
-        liver.slowStorage++;
-      }
+      liver.addToRoof(this.target.speedCategory);
       this.target.alive = false;
       this.target.assignedKnight = null;
       this.target = null;
-      liver.storage++;
 
       // Knight returns home (NOT consumed — transporters are reusable)
       this.state = KnightState.RETURNING;

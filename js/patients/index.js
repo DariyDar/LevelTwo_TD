@@ -169,11 +169,11 @@ export const PATIENTS = [
     name: 'Type 2 Diabetes',
     emoji: '\u{1FA7A}',
     color: '#F39C12',
-    description: 'Insulin resistance develops over time.',
+    description: 'Insulin resistance develops over time. Liver releases excess glucose.',
     physiology: {
       startingDegradation: 0,
       insulinProductionRate: 1.0,
-      insulinSensitivity: 1.0,
+      insulinSensitivity: 0.85,
       degradationEnabled: true,
       liverStorageMultiplier: 1.0,
       energyStartMultiplier: 1.0,
@@ -269,7 +269,7 @@ export const PATIENTS = [
     name: 'Type 2 Advanced',
     emoji: '\u26A0\uFE0F',
     color: '#E74C3C',
-    description: 'Significant organ degradation already present.',
+    description: 'Severe insulin resistance. Liver leaks glucose, pancreas weakened.',
     physiology: {
       startingDegradation: 2,
       insulinProductionRate: 0.7,

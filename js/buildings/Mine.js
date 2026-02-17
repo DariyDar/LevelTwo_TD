@@ -1,6 +1,7 @@
 // GlucoDefense — Mine building (Muscles)
 
 import { CONFIG } from '../config.js';
+import { gameState } from '../gameState.js';
 
 export class Mine {
   constructor(x, y) {
@@ -13,8 +14,13 @@ export class Mine {
     this.destroyed = false;
   }
 
+  get maxSlots() {
+    const exerciseActive = gameState.interventions.exercise.active;
+    return exerciseActive ? CONFIG.MINE_EXERCISE_WORKERS : CONFIG.MINE_MAX_WORKERS;
+  }
+
   get freeSlots() {
-    return CONFIG.MINE_MAX_WORKERS - this.workers.length;
+    return this.maxSlots - this.workers.length;
   }
 
   get isOperational() {
@@ -45,9 +51,8 @@ export class Mine {
 
   addWorker(peasant) {
     if (this.freeSlots <= 0 || !this.isOperational) return false;
-    const slotIndex = this.workers.length;
     this.workers.push(peasant);
-    peasant.assignToMine(this, slotIndex);
+    peasant.assignToMine(this);
     return true;
   }
 
@@ -63,12 +68,6 @@ export class Mine {
       worker.die();
     }
     this.workers = [];
-  }
-
-  getWorkerPosition(slotIndex) {
-    const offset = CONFIG.WORKER_OFFSETS[slotIndex];
-    if (!offset) return { x: this.x, y: this.y + 24 };
-    return { x: this.x + offset.dx, y: this.y + offset.dy };
   }
 }
 

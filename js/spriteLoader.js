@@ -32,6 +32,10 @@ const SPRITE_MANIFEST = [
 
   // Boat (animated)
   { key: 'boat_idle', src: 'assets/sprites/boat/Boat_Idle.png', frameW: 256, frameH: 256, frameCount: 8 },
+
+  // Effects
+  { key: 'fx_poof',      src: 'assets/sprites/effects/Puf_effect.png',  frameW: 64,  frameH: 64,  frameCount: 10 },
+  { key: 'fx_explosion', src: 'assets/sprites/effects/Explosions.png',  frameW: 192, frameH: 192, frameCount: 9 },
 ];
 
 function loadImage(src) {

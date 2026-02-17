@@ -16,6 +16,9 @@ export class LiverTower {
     this.spawnTimer = CONFIG.LIVER_AUTO_SPAWN_INTERVAL;
     this.releaseTimer = 0; // auto-glycogenolysis cooldown
 
+    // Roof glucose sprites (visual representation of stored glucose)
+    this.roofGlucose = [];
+
     // HP for rebel attacks
     this.hp = CONFIG.LIVER_HP;
     this.maxHp = CONFIG.LIVER_HP;
@@ -58,6 +61,14 @@ export class LiverTower {
       if (bg < CONFIG.LIVER_RELEASE_THRESHOLD_BG && !gameState.interventions.metformin.active) {
         const count = Math.min(Math.max(1, Math.round(CONFIG.LIVER_RELEASE_RATE * rateMult)), this.storage);
         for (let i = 0; i < count; i++) {
+          this._releasePeasant();
+        }
+      }
+      // Hepatic insulin resistance: liver "leaks" glucose even at high BG
+      // Metformin suppresses hepatic glucose production
+      else if (gameState._insulinSensitivity < CONFIG.LIVER_HGP_SENSITIVITY_CUTOFF
+               && !gameState.interventions.metformin.active) {
+        if (Math.random() < CONFIG.LIVER_HGP_RELEASE_CHANCE) {
           this._releasePeasant();
         }
       }
@@ -121,17 +132,40 @@ export class LiverTower {
     return released > 0;
   }
 
+  // Called by knights when they deliver glucose to the castle
+  addToRoof(speedCategory) {
+    this.storage++;
+    if (speedCategory === 'slow') this.slowStorage++;
+
+    // Place glucose sprite on roof
+    const roof = CONFIG.CASTLE_ROOF;
+    this.roofGlucose.push({
+      x: roof.x + Math.random() * roof.w,
+      y: roof.y + Math.random() * roof.h,
+      speedCategory,
+    });
+  }
+
   _releasePeasant() {
     if (this.storage <= 0) return false;
 
-    // Determine speed category from stored mix
-    const isSlow = this.slowStorage > 0;
-    this.storage--;
-    if (isSlow) this.slowStorage--;
+    // Determine speed category — prefer removing from roof in FIFO order
+    let isSlow = false;
+    if (this.roofGlucose.length > 0) {
+      const removed = this.roofGlucose.shift();
+      isSlow = removed.speedCategory === 'slow';
+    } else {
+      isSlow = this.slowStorage > 0;
+    }
 
-    // Released glucose goes to muscle zone — needs priest to convert
+    this.storage--;
+    if (isSlow) this.slowStorage = Math.max(0, this.slowStorage - 1);
+
+    // Released glucose spawns from behind the castle (right side)
+    const spawnX = CONFIG.LIVER_POS.x + CONFIG.LIVER_SIZE.w / 2 + 20;
+    const spawnY = this.y + (Math.random() - 0.5) * 30;
     const zone = CONFIG.MUSCLE_ZONE;
-    const peasant = new Peasant(this.x + 50, this.y + (Math.random() - 0.5) * 30, CONFIG.SPEED_MEDIUM);
+    const peasant = new Peasant(spawnX, spawnY, CONFIG.SPEED_MEDIUM);
     peasant.color = 'red';
     peasant.speedCategory = isSlow ? 'slow' : 'fast';
     peasant.state = PeasantState.WAITING_FOR_PRIEST;

@@ -7,6 +7,7 @@ import { PeasantState } from '../entities/Peasant.js';
 import { spendEnergy } from './energySystem.js';
 import { findLeastFilledMine } from '../buildings/Mine.js';
 import { recordEvent } from './bgHistory.js';
+import { calculateBG } from './bgSystem.js';
 
 export function updateInterventions(dt) {
   const iv = gameState.interventions;
@@ -231,7 +232,7 @@ export function activateExercise() {
   return true;
 }
 
-// Semaglutide (GLP-1 agonist) — places minefield on road
+// Semaglutide (GLP-1 agonist) — places mines along glucose path
 export function activateSemaglutide() {
   const iv = gameState.interventions.semaglutide;
   if (iv.charges <= 0) return false;
@@ -239,15 +240,15 @@ export function activateSemaglutide() {
   iv.charges--;
   recordEvent('intervention', '\u{1F48A} Semaglutide');
 
-  const roadY = CONFIG.ROAD_Y_CENTER;
   const xMin = CONFIG.SEMAGLUTIDE_MINE_X_MIN;
   const xMax = CONFIG.SEMAGLUTIDE_MINE_X_MAX;
-  const ySpread = CONFIG.SEMAGLUTIDE_MINE_Y_SPREAD;
+  const yMin = CONFIG.SEMAGLUTIDE_MINE_Y_MIN;
+  const yMax = CONFIG.SEMAGLUTIDE_MINE_Y_MAX;
 
   for (let i = 0; i < CONFIG.SEMAGLUTIDE_MINE_COUNT; i++) {
     gameState.semaglutideMines.push({
       x: xMin + Math.random() * (xMax - xMin),
-      y: roadY + (Math.random() - 0.5) * 2 * ySpread,
+      y: yMin + Math.random() * (yMax - yMin),
       timer: CONFIG.SEMAGLUTIDE_MINE_DURATION,
       maxTimer: CONFIG.SEMAGLUTIDE_MINE_DURATION,
     });
@@ -256,26 +257,33 @@ export function activateSemaglutide() {
   return true;
 }
 
-// Dapagliflozin — boosted kidney filtration circle
+// Dapagliflozin — lowers kidney threshold + speeds up cooldown
 export function activateDapagliflozin() {
   const iv = gameState.interventions.dapagliflozin;
   if (iv.charges <= 0) return false;
-
-  // Check if there's any glucose the circle could capture
-  const filterable = gameState.peasants.some(
-    p => p.alive &&
-         p.state !== PeasantState.WORKER &&
-         p.state !== PeasantState.BEING_ESCORTED &&
-         p.state !== PeasantState.WALKING_TO_MINE &&
-         p.state !== PeasantState.FILTERING
-  );
-  if (!filterable) return false;
 
   iv.charges--;
   recordEvent('intervention', '\u{1F9EA} SGLT2');
 
   if (gameState.kidneys) {
-    gameState.kidneys.castVortex([], true);
+    const kid = gameState.kidneys;
+
+    // Save original threshold before lowering
+    gameState._kidneyBaseThreshold = gameState._kidneyAutoThreshold ?? CONFIG.KIDNEY_AUTO_THRESHOLD;
+    gameState._kidneyAutoThreshold = CONFIG.DAPAGLIFLOZIN_THRESHOLD;
+
+    // Set dapagliflozin timer (real seconds from game hours)
+    kid.dapagliflozinTimer = (CONFIG.DAPAGLIFLOZIN_DURATION_HOURS * 60) / CONFIG.DAY_SPEED;
+    kid.dapagliflozinActive = true;
+
+    // Speed up remaining cooldown
+    kid.cooldownRemaining *= CONFIG.DAPAGLIFLOZIN_COOLDOWN_SPEEDUP;
+
+    // Trigger immediate flush if BG > new threshold and ready
+    const bg = calculateBG();
+    if (bg > CONFIG.DAPAGLIFLOZIN_THRESHOLD && kid.cooldownRemaining <= 0) {
+      kid._autoFlush();
+    }
   }
 
   return true;
@@ -358,6 +366,19 @@ export function getInterventionStatus() {
       hasCharges: false,
       isCoreAction: true,
       activate: activateKidneyVortex,
+    },
+    {
+      key: 'snack',
+      name: 'Snack',
+      emoji: '\u{1F36B}',
+      cost: 0,
+      charges: null,
+      cooldown: Math.max(0, gameState.snackCooldown || 0),
+      maxCooldown: CONFIG.SNACK_COOLDOWN,
+      active: false,
+      hasCharges: false,
+      isCoreAction: true,
+      activate: () => {}, // handled by sub-menu in bottomBar
     },
   ];
 
