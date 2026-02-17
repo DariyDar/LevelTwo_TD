@@ -465,30 +465,31 @@ function drawMines() {
 }
 
 function _drawMineSlots(cx, startY, maxSlots, filledCount, exerciseActive) {
-  const normalSlots = CONFIG.MINE_MAX_WORKERS;
-  const slotR = 3;
-  const slotGap = 9;
-  const totalW = maxSlots * slotGap;
-  let sx = cx - totalW / 2 + slotGap / 2;
+  const barW = CONFIG.MINE_SIZE.w * 0.8;
+  const barH = 4;
+  const barX = cx - barW / 2;
+  const pct = maxSlots > 0 ? filledCount / maxSlots : 0;
 
-  for (let i = 0; i < maxSlots; i++) {
-    const isExerciseSlot = i >= normalSlots;
-    const isFilled = i < filledCount;
+  // Background
+  ctx.fillStyle = 'rgba(155, 89, 182, 0.2)';
+  ctx.fillRect(barX, startY - barH / 2, barW, barH);
 
-    ctx.beginPath();
-    ctx.arc(sx + i * slotGap, startY, slotR, 0, Math.PI * 2);
-
-    if (isFilled) {
-      ctx.fillStyle = isExerciseSlot ? '#F39C12' : CONFIG.COLORS.PURPLE;
-      ctx.fill();
-    } else {
-      ctx.fillStyle = isExerciseSlot ? 'rgba(243, 156, 18, 0.3)' : 'rgba(155, 89, 182, 0.3)';
-      ctx.fill();
-      ctx.strokeStyle = isExerciseSlot ? '#F39C12' : '#7D3C98';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-    }
+  // Filled portion
+  if (filledCount > 0) {
+    ctx.fillStyle = exerciseActive ? '#F39C12' : CONFIG.COLORS.PURPLE;
+    ctx.fillRect(barX, startY - barH / 2, barW * pct, barH);
   }
+
+  // Border
+  ctx.strokeStyle = exerciseActive ? '#F39C12' : '#7D3C98';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(barX, startY - barH / 2, barW, barH);
+
+  // Count text
+  ctx.font = '8px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = filledCount > 0 ? CONFIG.COLORS.PURPLE : '#7F8C8D';
+  ctx.fillText(`${filledCount}/${maxSlots}`, cx, startY + barH / 2 + 9);
 }
 
 // --- Building highlights ---

@@ -6,7 +6,7 @@ export const level3 = {
   id: 3,
   name: 'Birthday Party',
   description: 'Survive the temptations of a birthday celebration.',
-  mineCount: 25,
+  mineCount: 9,
 
   interventions: {
     exercise: true,

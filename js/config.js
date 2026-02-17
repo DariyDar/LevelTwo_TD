@@ -41,28 +41,28 @@ export const CONFIG = {
   },
 
   // Building positions (repositioned per medical accuracy layout)
-  LIVER_POS: { x: 700, y: 650 },
-  LIVER_SIZE: { w: 200, h: 200 },
-  CASTLE_ROOF: { x: 620, y: 560, w: 160, h: 50 },
+  LIVER_POS: { x: 700, y: 580 },
+  LIVER_SIZE: { w: 180, h: 180 },
+  CASTLE_ROOF: { x: 620, y: 500, w: 160, h: 50 },
 
-  PANCREAS_POS: { x: 750, y: 100 },
+  PANCREAS_POS: { x: 700, y: 110 },
   PANCREAS_SIZE: { w: 120, h: 100 },
 
-  KIDNEYS_POS: { x: 1050, y: 430 },
-  KIDNEYS_RADIUS: 60,
+  KIDNEYS_POS: { x: 1100, y: 400 },
+  KIDNEYS_RADIUS: 55,
 
   // Mines grid (3 cols × 3 rows = 9 mines, centered)
   MINES_GRID: {
     startX: 500,
-    startY: 260,
+    startY: 220,
     cols: 3,
     rows: 3,
-    gapX: 110,
-    gapY: 100,
+    gapX: 130,
+    gapY: 110,
   },
-  MINE_SIZE: { w: 80, h: 60 },
-  MINE_MAX_WORKERS: 5,
-  MINE_EXERCISE_WORKERS: 10,
+  MINE_SIZE: { w: 90, h: 65 },
+  MINE_MAX_WORKERS: 17,
+  MINE_EXERCISE_WORKERS: 25,
   MINE_TOTAL_COUNT: 9,
   MINE_HP: 80,
   MINE_REPAIR_TIME: 12,
@@ -121,14 +121,14 @@ export const CONFIG = {
 
   // Knight spawn positions (around liver at bottom)
   KNIGHT_POSITIONS: [
-    { x: 600, y: 600 }, { x: 800, y: 600 },
-    { x: 600, y: 650 }, { x: 800, y: 650 },
-    { x: 600, y: 700 }, { x: 800, y: 700 },
-    { x: 650, y: 580 }, { x: 750, y: 580 },
-    { x: 650, y: 720 }, { x: 750, y: 720 },
-    { x: 700, y: 560 }, { x: 700, y: 740 },
-    { x: 560, y: 640 }, { x: 840, y: 640 },
-    { x: 700, y: 680 },
+    { x: 600, y: 530 }, { x: 800, y: 530 },
+    { x: 600, y: 580 }, { x: 800, y: 580 },
+    { x: 600, y: 630 }, { x: 800, y: 630 },
+    { x: 650, y: 510 }, { x: 750, y: 510 },
+    { x: 650, y: 650 }, { x: 750, y: 650 },
+    { x: 700, y: 490 }, { x: 700, y: 670 },
+    { x: 560, y: 570 }, { x: 840, y: 570 },
+    { x: 700, y: 610 },
   ],
   KNIGHT_SPEED: 30,
   KNIGHT_SCAN_RANGE: 500,
@@ -142,7 +142,7 @@ export const CONFIG = {
   KIDNEY_ACTIVATION_THRESHOLD: 40,
   KIDNEY_CIRCLE_EXPAND_SPEED: 120,
   KIDNEY_CIRCLE_CONTRACT_SPEED: 150,
-  KIDNEY_CIRCLE_ORIGIN: { x: 950, y: 430 },
+  KIDNEY_CIRCLE_ORIGIN: { x: 1000, y: 400 },
   KIDNEY_EJECT_SPEED: 400,
 
   // Kidney auto-filtration (game-time based cooldown)

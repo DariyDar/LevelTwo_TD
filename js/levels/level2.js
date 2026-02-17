@@ -6,7 +6,7 @@ export const level2 = {
   id: 2,
   name: 'Office Lunch',
   description: 'Navigate temptation at work.',
-  mineCount: 28,
+  mineCount: 9,
 
   interventions: {
     exercise: false,
