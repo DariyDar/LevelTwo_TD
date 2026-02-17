@@ -92,7 +92,7 @@ export function renderWavePreview() {
 
       ctx.font = '10px Arial';
       ctx.fillStyle = speedColor;
-      ctx.fillText(`${totalCount} units`, cx, y);
+      ctx.fillText(`${totalCount * CONFIG.GLUCOSE_PER_UNIT} mg/dL`, cx, y);
       y += 14;
     }
   } else {

@@ -19,7 +19,7 @@ const STORAGE_KEY = 'glucodefense_balance';
 
 // Global params (CONFIG-level)
 const BALANCE_PARAMS = [
-  { key: 'STARTING_WORKERS', label: 'Starting Glycogen Pool', desc: 'Initial glucose stored in muscle cells', min: 10, max: 200, step: 5 },
+  { key: 'STARTING_WORKERS', label: 'Starting Glycogen Pool', desc: 'Initial glucose stored in muscle cells', min: 2, max: 40, step: 1 },
   { key: 'ENERGY_START', label: 'Starting ATP', desc: 'Initial energy reserves', min: 50, max: 500, step: 10 },
   { key: 'ENERGY_BASAL_DRAIN', label: 'Basal Metabolic Rate', desc: 'Resting energy consumption per second', min: 4, max: 30, step: 1 },
   { key: 'WORKER_LIFETIME', label: 'Cellular Glucose Uptake Duration', desc: 'Seconds before a muscle cell consumes its glucose', min: 3, max: 60, step: 1 },

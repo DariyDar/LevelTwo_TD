@@ -61,10 +61,16 @@ export class Peasant {
     const wp = CONFIG.WAYPOINTS;
     const zone = CONFIG.MUSCLE_ZONE;
 
+    // Spread glucose across the ENTIRE map with varied paths
+    // Each peasant picks a random intermediate point then a random final destination
+    const midX = wp.ADVANCE_X + Math.random() * (zone.x2 - wp.ADVANCE_X);
+    const midY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
+    const finalX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
+    const finalY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
+
     return [
-      { x: wp.ADVANCE_X, y: this.y },
-      { x: zone.x1 + Math.random() * (zone.x2 - zone.x1),
-        y: zone.y1 + Math.random() * (zone.y2 - zone.y1) },
+      { x: midX, y: midY },
+      { x: finalX, y: finalY },
     ];
   }
 
@@ -169,24 +175,31 @@ export class Peasant {
 
   _roamMuscleZone(dt) {
     this.roamTimer -= dt;
-    if (this.roamTimer <= 0) {
+    if (this.roamTimer <= 0 || this._reachedRoamTarget()) {
       const zone = CONFIG.MUSCLE_ZONE;
+      // Pick a random point across the full muscle zone for wide spread
       this.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
       this.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
-      this.roamTimer = 1.5 + Math.random() * 2;
+      this.roamTimer = 0.8 + Math.random() * 1.5;
     }
     this.moveToward(this.roamTargetX, this.roamTargetY, dt);
   }
 
   _roam(dt) {
     this.roamTimer -= dt;
-    if (this.roamTimer <= 0) {
+    if (this.roamTimer <= 0 || this._reachedRoamTarget()) {
       const zone = CONFIG.MUSCLE_ZONE;
       this.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
       this.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
-      this.roamTimer = 1 + Math.random() * 2;
+      this.roamTimer = 0.6 + Math.random() * 1.5;
     }
     this.moveToward(this.roamTargetX, this.roamTargetY, dt);
+  }
+
+  _reachedRoamTarget() {
+    const dx = this.roamTargetX - this.x;
+    const dy = this.roamTargetY - this.y;
+    return dx * dx + dy * dy < 100; // within 10px
   }
 
   moveToward(tx, ty, dt) {
@@ -228,8 +241,10 @@ export class Peasant {
 
   assignToMine(mine) {
     this.assignedMine = mine;
+    // Walk to bottom of mine sprite (where the door is)
+    const sprH = CONFIG.MINE_SIZE.w * (128 / 192);
     this.targetX = mine.x;
-    this.targetY = mine.y;
+    this.targetY = mine.y + sprH / 2 + 4;
   }
 
   die() {

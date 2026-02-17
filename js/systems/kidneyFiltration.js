@@ -39,7 +39,8 @@ function updateExpand(circle, dt) {
 
   // Capture glucose that the circle touches (only the excess above normal)
   let captured = circle.capturedCount || 0;
-  const excess = Math.max(0, bg - CONFIG.BG_NORMAL_HIGH);
+  const excessMgDl = Math.max(0, bg - CONFIG.BG_NORMAL_HIGH);
+  const excess = Math.ceil(excessMgDl / CONFIG.GLUCOSE_PER_UNIT);
 
   for (const p of gameState.peasants) {
     if (captured >= excess) break; // Don't capture more than the excess
@@ -106,26 +107,27 @@ function updateContract(circle, dt) {
 }
 
 function updateEject(circle, dt) {
-  // Shoot all filtering peasants to the right
+  // Shoot all filtering peasants to the right off-screen
   let anyAlive = false;
 
   for (const p of gameState.peasants) {
     if (!p.alive || p.state !== PeasantState.FILTERING) continue;
-    anyAlive = true;
 
     p.x += CONFIG.KIDNEY_EJECT_SPEED * dt;
 
-    // Off-screen: die
-    if (p.x > CONFIG.CANVAS_WIDTH + 20) {
+    // Kill once past visible area (village edge + margin)
+    if (p.x > CONFIG.VILLAGE_X_END + 50) {
       p.alive = false;
 
       gameState.effects.push({
         type: 'kidney_eject',
-        x: CONFIG.CANVAS_WIDTH,
+        x: CONFIG.VILLAGE_X_END,
         y: p.y,
         timer: 0.3,
       });
     }
+
+    if (p.alive) anyAlive = true;
   }
 
   // When all filtering peasants are gone, end circle

@@ -22,16 +22,21 @@ export function getCtx() {
 
 export function render() {
   drawBackground();
-  drawBuildings();
   drawTrainingEffect();
   drawBuildingHighlights();
-  drawBuildingHoverInfo();
   drawNextWaveCountdown();
 }
 
-// Mines rendered as overlay (above entities for z-order)
-export function renderMinesOverlay() {
+// All buildings rendered as overlay ABOVE entities for z-order
+export function renderBuildingsOverlay() {
+  drawBuildings();
   drawMines();
+  drawBuildingHoverInfo();
+}
+
+// Legacy alias
+export function renderMinesOverlay() {
+  renderBuildingsOverlay();
 }
 
 function drawBackground() {
@@ -215,11 +220,12 @@ function drawCastle() {
   ctx.textAlign = 'center';
   ctx.fillText('Liver', pos.x, sprY + sprH + 16);
 
-  // Storage counter
+  // Storage counter (display in mg/dL equivalents)
   const storage = liver ? liver.storage : 0;
   const maxStorage = liver ? liver.maxStorage : 100;
+  const gpu = CONFIG.GLUCOSE_PER_UNIT;
   ctx.font = '11px Arial';
-  ctx.fillText(`${storage}/${maxStorage}`, pos.x, sprY + sprH + 30);
+  ctx.fillText(`${storage * gpu}/${maxStorage * gpu}`, pos.x, sprY + sprH + 30);
 }
 
 // --- Pancreas ---
@@ -368,9 +374,8 @@ function drawKidneys() {
   ctx.textAlign = 'center';
   ctx.fillText('Kidneys', pos.x, sprY + sprH + 16);
 
-  // Kidney status display: cooldown + BG/threshold + dapagliflozin
+  // Kidney status plaque ON the building
   if (kidneys && !kidneys.destroyed) {
-    const infoY = sprY + sprH + 28;
     ctx.textAlign = 'center';
 
     // Dapagliflozin pulsing glow around tower
@@ -385,38 +390,49 @@ function drawKidneys() {
       ctx.restore();
     }
 
-    // Line 1: Cooldown in real seconds (at 1x speed)
+    // Dark plaque overlay on the building
+    const plaqueW = sprW - 4;
+    const plaqueH = kidneys.dapagliflozinActive ? 42 : 30;
+    const plaqueX = pos.x - plaqueW / 2;
+    const plaqueY = pos.y - plaqueH / 2;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(plaqueX, plaqueY, plaqueW, plaqueH);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(plaqueX, plaqueY, plaqueW, plaqueH);
+
+    // Line 1: Cooldown
     const isReady = kidneys.cooldownRemaining <= 0;
-    ctx.font = 'bold 10px Arial';
+    const line1Y = plaqueY + 12;
+    ctx.font = 'bold 11px Arial';
     if (isReady) {
       const readyPulse = 0.6 + 0.4 * Math.abs(Math.sin(Date.now() / 400));
       ctx.fillStyle = `rgba(46, 204, 113, ${readyPulse})`;
-      ctx.fillText('READY', pos.x, infoY);
+      ctx.fillText('READY', pos.x, line1Y);
     } else {
       ctx.fillStyle = '#F39C12';
       const secs = Math.ceil(kidneys.cooldownRemaining);
-      ctx.fillText(`${secs}s`, pos.x, infoY);
+      ctx.fillText(`CD ${secs}s`, pos.x, line1Y);
     }
 
     // Line 2: BG / threshold
     const bg = Math.round(calculateBG());
     const threshold = Math.round(gameState._kidneyAutoThreshold ?? CONFIG.KIDNEY_AUTO_THRESHOLD);
-    ctx.font = '9px Arial';
+    ctx.font = 'bold 10px Arial';
     const fullText = `BG ${bg}/${threshold}`;
-    // Simple: just draw the full text, threshold color when dapa active
     if (kidneys.dapagliflozinActive) {
       ctx.fillStyle = '#2ECC71';
     } else {
-      ctx.fillStyle = bg > threshold ? '#E74C3C' : '#95A5A6';
+      ctx.fillStyle = bg > threshold ? '#E74C3C' : '#FFFFFF';
     }
-    ctx.fillText(fullText, pos.x, infoY + 14);
+    ctx.fillText(fullText, pos.x, line1Y + 14);
 
     // Line 3: Dapagliflozin active indicator
     if (kidneys.dapagliflozinActive) {
       const dapaSecs = Math.ceil(kidneys.dapagliflozinTimer);
       ctx.font = 'bold 9px Arial';
       ctx.fillStyle = '#2ECC71';
-      ctx.fillText(`SGLT2i ${dapaSecs}s`, pos.x, infoY + 27);
+      ctx.fillText(`SGLT2i ${dapaSecs}s`, pos.x, line1Y + 27);
     }
   }
 }
@@ -697,7 +713,7 @@ function drawBuildingHoverInfo() {
       'Castle (Hepatocytes)',
       'Stores glucose as glycogen.',
       'Auto-releases when BG drops.',
-      `Glycogen: ${liver.storage}/${maxStorage}`,
+      `Glycogen: ${liver.storage * CONFIG.GLUCOSE_PER_UNIT}/${maxStorage * CONFIG.GLUCOSE_PER_UNIT}`,
       `GLUT2: ${knightCount}/${CONFIG.LIVER_MAX_KNIGHTS}`,
       `HP: ${Math.round(liver.hp)}/${liver.maxHp}`,
     ];

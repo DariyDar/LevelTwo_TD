@@ -46,10 +46,20 @@ export class Pancreas {
     const activePriests = gameState.priests.filter(p => p.alive).length;
     if (activePriests >= maxPriests) return;
 
-    const offsetX = (Math.random() - 0.5) * 40;
-    const offsetY = (Math.random() - 0.5) * 30;
-    const priest = new Priest(this.x + offsetX, this.y + offsetY + 40);
+    // Spawn priests OUTSIDE the pancreas building (to the left, in patrol area)
+    const spawnPos = this._getOutsideSpawnPos();
+    const priest = new Priest(spawnPos.x, spawnPos.y);
     gameState.priests.push(priest);
+  }
+
+  _getOutsideSpawnPos() {
+    // Spawn in a semicircle to the left of the pancreas
+    const angle = Math.random() * Math.PI + Math.PI / 2; // left half (90-270 degrees)
+    const dist = 100 + Math.random() * 60;
+    return {
+      x: this.x + Math.cos(angle) * dist,
+      y: this.y + Math.sin(angle) * dist,
+    };
   }
 
   // Called from manual "Bonus Priests" button — spawns insulin burst
@@ -64,9 +74,8 @@ export class Pancreas {
     for (let i = 0; i < count; i++) {
       if (activePriests >= maxPriests) break;
 
-      const offsetX = (Math.random() - 0.5) * 40;
-      const offsetY = (Math.random() - 0.5) * 30;
-      const priest = new Priest(this.x + offsetX, this.y + offsetY + 40);
+      const spawnPos = this._getOutsideSpawnPos();
+      const priest = new Priest(spawnPos.x, spawnPos.y);
       gameState.priests.push(priest);
       activePriests++;
       spawned++;

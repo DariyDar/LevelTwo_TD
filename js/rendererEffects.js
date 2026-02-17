@@ -78,6 +78,9 @@ function renderVisualEffects() {
       case 'mine_energy_plus':
         drawMineEnergyPlus(effect);
         break;
+      case 'poof':
+        drawPoof(effect);
+        break;
     }
   }
 }
@@ -254,4 +257,25 @@ function drawMineEnergyPlus(effect) {
   ctx.textAlign = 'center';
   ctx.fillStyle = `rgba(241, 196, 15, ${alpha})`;
   ctx.fillText('+', effect.x, effect.y - yOffset);
+}
+
+function drawPoof(effect) {
+  const sprite = getSprite('fx_poof');
+  const progress = 1 - effect.timer / effect.maxTimer;
+
+  if (sprite) {
+    const frameIdx = Math.min(
+      sprite.frameCount - 1,
+      Math.floor(progress * sprite.frameCount)
+    );
+    const sx = frameIdx * sprite.frameW;
+    const size = 80;
+    const half = size / 2;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - progress * 0.3);
+    ctx.drawImage(sprite.img, sx, 0, sprite.frameW, sprite.frameH,
+      effect.x - half, effect.y - half, size, size);
+    ctx.restore();
+  }
 }

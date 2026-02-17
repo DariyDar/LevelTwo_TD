@@ -52,8 +52,8 @@ export class Boat {
   }
 
   _getBoatSize(count) {
-    if (count <= 50) return 'S';
-    if (count <= 120) return 'M';
+    if (count <= 10) return 'S';
+    if (count <= 24) return 'M';
     return 'L';
   }
 

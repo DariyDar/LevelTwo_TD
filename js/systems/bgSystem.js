@@ -39,6 +39,9 @@ export function calculateBG() {
     count += gameState.liverTower.storage * 0.15;
   }
 
+  // Scale: each peasant unit represents GLUCOSE_PER_UNIT mg/dL
+  count *= CONFIG.GLUCOSE_PER_UNIT;
+
   // Round to integer for display
   count = Math.round(count);
 

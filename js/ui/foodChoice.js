@@ -98,10 +98,11 @@ function drawFoodCard(choice, x, y, w, h, index) {
   const names = foods.map(f => f.name).join(' + ');
   ctx.fillText(names, x + w / 2, y + 80);
 
-  // Total peasant count
+  // Total glucose (display in mg/dL equivalents)
   const totalCount = foods.reduce((sum, f) => sum + f.count, 0);
+  const gpu = CONFIG.GLUCOSE_PER_UNIT;
   ctx.font = 'bold 16px Arial';
-  ctx.fillText(`${totalCount} units`, x + w / 2, y + 110);
+  ctx.fillText(`${totalCount * gpu} mg/dL`, x + w / 2, y + 110);
 
   // Speed indicator
   const speed = foods[0].speed;
@@ -116,7 +117,7 @@ function drawFoodCard(choice, x, y, w, h, index) {
     ctx.fillStyle = '#95A5A6';
     let listY = y + 155;
     for (const f of foods) {
-      ctx.fillText(`${f.emoji} ${f.name} (${f.count})`, x + w / 2, listY);
+      ctx.fillText(`${f.emoji} ${f.name} (${f.count * gpu})`, x + w / 2, listY);
       listY += 14;
     }
   }

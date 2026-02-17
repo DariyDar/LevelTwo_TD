@@ -110,7 +110,7 @@ function drawPeasant(p) {
     ctx.fillStyle = outlineColor;
     ctx.globalAlpha = 0.6;
     ctx.beginPath();
-    ctx.ellipse(drawX, drawY + half * 0.6, half * 0.45, half * 0.18, 0, 0, Math.PI * 2);
+    ctx.ellipse(drawX, drawY + half * 0.3, half * 0.45, half * 0.18, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -339,11 +339,12 @@ function drawBoat(boat) {
     ctx.stroke();
   }
 
-  // Food emoji above
+  // Food emoji on top of boat (close and compact)
   if (boat.emoji) {
-    ctx.font = `${Math.round(boatSize * 0.25)}px serif`;
+    const emojiSize = Math.round(boatSize * 0.18);
+    ctx.font = `${emojiSize}px serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(boat.emoji, boat.x, boat.y - boatSize * 0.35);
+    ctx.fillText(boat.emoji, boat.x, boat.y - boatSize * 0.08);
   }
 
   // Unload progress bar

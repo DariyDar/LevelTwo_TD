@@ -333,6 +333,79 @@ function pushPeasantsFromMines() {
   }
 }
 
+// Push ALL entities out of major buildings (pancreas, kidneys, liver)
+function pushEntitiesFromBuildings() {
+  const buildings = [];
+
+  // Pancreas collider (rectangular)
+  const pPos = CONFIG.PANCREAS_POS;
+  const pSize = CONFIG.PANCREAS_SIZE;
+  const pSprH = pSize.w * (320 / 192); // sprite aspect ratio
+  buildings.push({
+    x: pPos.x, y: pPos.y + 20, // offset matches renderer sprY calc
+    hw: pSize.w / 2 + 8,
+    hh: pSprH / 2 + 8,
+  });
+
+  // Liver collider (rectangular)
+  const lPos = CONFIG.LIVER_POS;
+  const lSize = CONFIG.LIVER_SIZE;
+  const lSprH = lSize.w * (256 / 320);
+  buildings.push({
+    x: lPos.x, y: lPos.y + 10,
+    hw: lSize.w / 2 + 8,
+    hh: lSprH / 2 + 8,
+  });
+
+  // Kidneys collider (circular, approximated as square)
+  const kPos = CONFIG.KIDNEYS_POS;
+  const kR = CONFIG.KIDNEYS_RADIUS;
+  const kSprW = kR * 2 + 20;
+  const kSprH = kSprW * (256 / 128);
+  buildings.push({
+    x: kPos.x, y: kPos.y + 10,
+    hw: kSprW / 2 + 8,
+    hh: kSprH / 2 + 8,
+  });
+
+  // Push peasants
+  for (const p of gameState.peasants) {
+    if (!p.alive) continue;
+    if (p.state === PeasantState.WORKER || p.state === PeasantState.BEING_ESCORTED) continue;
+    _pushEntityFromBuildings(p, buildings);
+  }
+
+  // Push priests
+  for (const pr of gameState.priests) {
+    if (!pr.alive) continue;
+    _pushEntityFromBuildings(pr, buildings);
+  }
+
+  // Push knights (only idle/returning — escorting needs to reach liver)
+  for (const k of gameState.knights) {
+    if (!k.alive) continue;
+    // Don't push escorting knights — they need to deliver to liver
+    if (k.state === 'escorting') continue;
+    _pushEntityFromBuildings(k, buildings);
+  }
+}
+
+function _pushEntityFromBuildings(entity, buildings) {
+  for (const bld of buildings) {
+    const dx = entity.x - bld.x;
+    const dy = entity.y - bld.y;
+    if (Math.abs(dx) < bld.hw && Math.abs(dy) < bld.hh) {
+      const overlapX = bld.hw - Math.abs(dx);
+      const overlapY = bld.hh - Math.abs(dy);
+      if (overlapX < overlapY) {
+        entity.x += (dx > 0 ? overlapX : -overlapX) * 0.6;
+      } else {
+        entity.y += (dy > 0 ? overlapY : -overlapY) * 0.6;
+      }
+    }
+  }
+}
+
 function spawnStartingWorkers() {
   const count = CONFIG.STARTING_WORKERS;
   for (let i = 0; i < count; i++) {
@@ -405,14 +478,14 @@ function gameLoop(timestamp) {
     renderMealPlan();
   } else if (gameState.phase === GamePhase.GAME_OVER) {
     renderEntities();
-    renderMinesOverlay();
+    renderMinesOverlay();  // Buildings rendered ABOVE entities
     renderEffects();
     resetCamera(ctx);
     renderUI();
     renderGameOver();
   } else {
     renderEntities();
-    renderMinesOverlay();
+    renderMinesOverlay();  // Buildings rendered ABOVE entities
     renderEffects();
     resetCamera(ctx);
 
@@ -441,6 +514,7 @@ function update(dt) {
   updatePeasants(dt);
   separatePeasants();
   pushPeasantsFromMines();
+  pushEntitiesFromBuildings();
   updatePriests(dt);
   updatePancreas(dt);
   updateMines(dt);

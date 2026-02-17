@@ -107,7 +107,7 @@ const TUTORIAL_STEPS = {
     {
       id: 'insulin_action',
       phase: 'playing',
-      trigger: (gs) => gs.stats.totalWorkers > 82,
+      trigger: (gs) => gs.stats.totalWorkers > 17,
       spotlight: { x: 370, y: 60, w: 420, h: 600 },
       text: 'Insulin converts free glucose into workers (purple). Workers enter muscle cells and produce energy. This is how your body turns food into fuel!',
       pointer: null,

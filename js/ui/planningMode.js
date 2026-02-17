@@ -262,7 +262,7 @@ function drawTimeline(C, W) {
 
     ctx.font = '8px Arial';
     ctx.fillStyle = '#F1C40F';
-    ctx.fillText(`${totalCount}g`, mx, mealRowY + 26);
+    ctx.fillText(`${totalCount * CONFIG.GLUCOSE_PER_UNIT}g`, mx, mealRowY + 26);
 
     ctx.fillStyle = '#7F8C8D';
     ctx.fillText(formatVirtualTime(meal.hour), mx, mealRowY - 2);
@@ -377,7 +377,7 @@ function drawFoodPalette(C, W) {
       } else {
         ctx.fillStyle = f.speed === 'fast' || f.speed === 'very_fast' ? '#E74C3C' :
                         f.speed === 'slow' ? '#2ECC71' : '#F1C40F';
-        ctx.fillText(`${f.count}g`, cx + FOOD_ITEM_W / 2, curY + 55);
+        ctx.fillText(`${f.count * CONFIG.GLUCOSE_PER_UNIT}g`, cx + FOOD_ITEM_W / 2, curY + 55);
       }
 
       foodItemRects.push({ x: cx, y: curY, w: FOOD_ITEM_W, h: FOOD_ITEM_H, key, used: isUsed });

@@ -134,7 +134,7 @@ function drawMealCard(choice, x, y, w, h, isSelected) {
   const speedInfo = getSpeedInfo(speed);
 
   ctx.font = 'bold 11px Arial';
-  ctx.fillText(`${totalCount} units`, x + w / 2, y + 62);
+  ctx.fillText(`${totalCount * CONFIG.GLUCOSE_PER_UNIT} mg/dL`, x + w / 2, y + 62);
 
   ctx.font = '10px Arial';
   ctx.fillStyle = speedInfo.color;

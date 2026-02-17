@@ -1,7 +1,10 @@
 // GlucoDefense — All constants and balancing numbers
-// Units scaled to mg/dL: 1 peasant ≈ 1 mg/dL glucose
+// Units scaled: 1 peasant = 5 mg/dL glucose (GLUCOSE_PER_UNIT)
 
 export const CONFIG = {
+  // Glucose scaling: each peasant entity represents this many mg/dL
+  GLUCOSE_PER_UNIT: 5,
+
   // Canvas
   CANVAS_WIDTH: 1280,
   CANVAS_HEIGHT: 720,
@@ -11,9 +14,9 @@ export const CONFIG = {
   SHORE_X_END: 300,
   VILLAGE_X_END: 1100,
 
-  // Shore spawn range (glucose spreads along full height)
-  SHORE_SPAWN_Y_MIN: 60,
-  SHORE_SPAWN_Y_MAX: 660,
+  // Shore spawn range (glucose spreads along full height, below graph)
+  SHORE_SPAWN_Y_MIN: 160,
+  SHORE_SPAWN_Y_MAX: 700,
 
   // Colors
   COLORS: {
@@ -41,33 +44,34 @@ export const CONFIG = {
   },
 
   // Building positions — right column layout (pancreas top, kidney mid, liver bottom)
-  PANCREAS_POS: { x: 1050, y: 120 },
+  // Shifted down so buildings don't overlap the BG graph (top UI ends ~y=130 in world space)
+  PANCREAS_POS: { x: 1050, y: 300 },
   PANCREAS_SIZE: { w: 120, h: 100 },
 
-  KIDNEYS_POS: { x: 1050, y: 370 },
-  KIDNEYS_RADIUS: 55,
+  KIDNEYS_POS: { x: 1050, y: 480 },
+  KIDNEYS_RADIUS: 33,
 
-  LIVER_POS: { x: 1050, y: 600 },
-  LIVER_SIZE: { w: 200, h: 160 },
-  CASTLE_ROOF: { x: 970, y: 530, w: 160, h: 50 },
+  LIVER_POS: { x: 1050, y: 640 },
+  LIVER_SIZE: { w: 300, h: 240 },
+  CASTLE_ROOF: { x: 920, y: 555, w: 260, h: 50 },
 
   // Mines grid (3 cols × 5 rows = 15 mines, center-left area)
   MINES_GRID: {
     startX: 430,
-    startY: 100,
+    startY: 180,
     cols: 3,
     rows: 5,
     gapX: 130,
-    gapY: 110,
+    gapY: 100,
   },
   MINE_SIZE: { w: 90, h: 65 },
-  MINE_MAX_WORKERS: 8,
-  MINE_WALK_WORKERS: 15,
+  MINE_MAX_WORKERS: 10,
+  MINE_WALK_WORKERS: 12,
   MINE_EXERCISE_WORKERS: 20,
   MINE_TOTAL_COUNT: 15,
   MINE_HP: 80,
   MINE_REPAIR_TIME: 12,
-  MINE_ENERGY_PER_WORKER: 0.50,
+  MINE_ENERGY_PER_WORKER: 0.75,
 
   // Speeds (px/sec)
   SPEED_VERY_FAST: 120,
@@ -95,7 +99,7 @@ export const CONFIG = {
   // Pancreas (insulin — consumed on successful merge with glucose)
   PANCREAS_HP: 600,
   PANCREAS_AUTO_SPAWN_INTERVAL: [1.5, 2, 3, 5, 10],
-  PANCREAS_MAX_PRIESTS: [35, 20, 12, 6, 3],
+  PANCREAS_MAX_PRIESTS: [12, 8, 5, 3, 2],
   // GSIS: glucose-stimulated insulin secretion (BG zones → spawn speed multiplier)
   PANCREAS_BG_STIM_ZONES: [
     { threshold: 0,   multiplier: 1.0 },
@@ -104,52 +108,52 @@ export const CONFIG = {
     { threshold: 250, multiplier: 2.2 },
   ],
   PANCREAS_BONUS_COST: 20,
-  PANCREAS_BONUS_COUNT: 8,
+  PANCREAS_BONUS_COUNT: 3,
 
   // Liver
-  LIVER_MAX_KNIGHTS: 10,
+  LIVER_MAX_KNIGHTS: 5,
   LIVER_KNIGHT_COST: 20,
   LIVER_AUTO_SPAWN_INTERVAL: 3,
-  LIVER_BONUS_KNIGHT_COUNT: 8,
-  LIVER_STORAGE: [200, 160, 120, 80, 50, 20],
+  LIVER_BONUS_KNIGHT_COUNT: 3,
+  LIVER_STORAGE: [40, 32, 24, 16, 10, 4],
   LIVER_RELEASE_THRESHOLD: 0.4,
-  LIVER_RELEASE_RATE: 2,
+  LIVER_RELEASE_RATE: 1,
   LIVER_OVERFLOW_THRESHOLD: 0.90,
   LIVER_RELEASE_THRESHOLD_BG: 100,
   LIVER_AUTO_RELEASE_INTERVAL: 2,
   LIVER_HGP_SENSITIVITY_CUTOFF: 0.85,  // if _insulinSensitivity < this → hepatic leak
   LIVER_HGP_RELEASE_CHANCE: 0.3,        // 30% chance per tick
 
-  // Knight spawn positions (around liver at bottom-right)
+  // Knight spawn positions (patrol area OUTSIDE liver at bottom-right)
   KNIGHT_POSITIONS: [
-    { x: 950, y: 560 }, { x: 1150, y: 560 },
-    { x: 950, y: 600 }, { x: 1150, y: 600 },
-    { x: 950, y: 640 }, { x: 1150, y: 640 },
-    { x: 1000, y: 540 }, { x: 1100, y: 540 },
-    { x: 1000, y: 660 }, { x: 1100, y: 660 },
-    { x: 1050, y: 520 }, { x: 1050, y: 680 },
-    { x: 920, y: 590 }, { x: 1180, y: 590 },
-    { x: 1050, y: 620 },
+    { x: 900, y: 580 }, { x: 900, y: 640 },
+    { x: 900, y: 700 }, { x: 920, y: 560 },
+    { x: 920, y: 720 }, { x: 880, y: 600 },
+    { x: 880, y: 660 }, { x: 860, y: 640 },
+    { x: 940, y: 550 }, { x: 940, y: 710 },
+    { x: 870, y: 580 }, { x: 870, y: 700 },
+    { x: 850, y: 640 }, { x: 930, y: 640 },
+    { x: 910, y: 620 },
   ],
-  KNIGHT_SPEED: 30,
+  KNIGHT_SPEED: 120,
   KNIGHT_SCAN_RANGE: 500,
   KNIGHT_INTERCEPT_CHANCE: 0.35,
 
   // Kidneys
   KIDNEY_COOLDOWN: 20,
   KIDNEY_COST: 10,
-  KIDNEY_VORTEX_MIN: 15,
-  KIDNEY_VORTEX_MAX: 30,
-  KIDNEY_ACTIVATION_THRESHOLD: 40,
+  KIDNEY_VORTEX_MIN: 3,
+  KIDNEY_VORTEX_MAX: 6,
+  KIDNEY_ACTIVATION_THRESHOLD: 8,
   KIDNEY_CIRCLE_EXPAND_SPEED: 120,
   KIDNEY_CIRCLE_CONTRACT_SPEED: 150,
-  KIDNEY_CIRCLE_ORIGIN: { x: 950, y: 370 },
+  KIDNEY_CIRCLE_ORIGIN: { x: 950, y: 450 },
   KIDNEY_EJECT_SPEED: 400,
 
   // Kidney auto-filtration (game-time based cooldown)
   KIDNEY_AUTO_COOLDOWN_HOURS: 3,         // 3 game hours between auto-flushes
   KIDNEY_AUTO_THRESHOLD: 180,            // BG threshold for auto-flush
-  KIDNEY_MANUAL_FLUSH_COUNT: 10,         // BG units removed per manual click
+  KIDNEY_MANUAL_FLUSH_COUNT: 2,          // peasant units removed per manual click
 
   // Dapagliflozin (SGLT2 inhibitor)
   DAPAGLIFLOZIN_THRESHOLD: 120,          // lowered kidney threshold
@@ -169,7 +173,7 @@ export const CONFIG = {
   CAMERA_START_Y: 50,
 
   // Sprite rendering
-  SPRITE_SIZE_PEASANT: 64,
+  SPRITE_SIZE_PEASANT: 80,
   SPRITE_SIZE_PRIEST: 72,
   SPRITE_FPS_DEFAULT: 8,
   SPRITE_FPS_WORKER: 5,
@@ -179,11 +183,11 @@ export const CONFIG = {
   // Energy
   ENERGY_MAX: 300,
   ENERGY_START: 130,
-  STARTING_WORKERS: 80,
+  STARTING_WORKERS: 16,
 
   // Degradation thresholds
-  REBELS_ATTACK_MINES: 20,
-  REBELS_ATTACK_PANCREAS: 80,
+  REBELS_ATTACK_MINES: 4,
+  REBELS_ATTACK_PANCREAS: 16,
 
   // Basal energy drain
   ENERGY_BASAL_DRAIN: 10,
@@ -191,7 +195,7 @@ export const CONFIG = {
   // Interventions
   FAST_INSULIN_COST: 60,
   FAST_INSULIN_COOLDOWN: 45,
-  FAST_INSULIN_PRIESTS: 15,
+  FAST_INSULIN_PRIESTS: 5,
   FAST_INSULIN_DURATION: 20,
 
   EXERCISE_COST: 70,
@@ -199,15 +203,15 @@ export const CONFIG = {
   EXERCISE_DURATION_HOURS: 1,   // 1 game hour
 
   SEMAGLUTIDE_COST: 30,
-  SEMAGLUTIDE_MINE_COUNT: 18,
+  SEMAGLUTIDE_MINE_COUNT: 6,
   SEMAGLUTIDE_MINE_DURATION: 20,
   SEMAGLUTIDE_MINE_X_MIN: 300,
   SEMAGLUTIDE_MINE_X_MAX: 900,
-  SEMAGLUTIDE_MINE_Y_MIN: 50,
+  SEMAGLUTIDE_MINE_Y_MIN: 160,
   SEMAGLUTIDE_MINE_Y_MAX: 700,
 
   DAPAGLIFLOZIN_COST: 20,
-  DAPAGLIFLOZIN_VORTEX_COUNT: 40,
+  DAPAGLIFLOZIN_VORTEX_COUNT: 8,
 
   METFORMIN_COST: 20,
   METFORMIN_DURATION: 40,
@@ -216,20 +220,20 @@ export const CONFIG = {
   WALK_COST: 20,
   WALK_COOLDOWN: 25,
   WALK_DURATION_HOURS: 2,       // 2 game hours
-  WALK_REBELS_MIN: 15,
-  WALK_REBELS_MAX: 40,
+  WALK_REBELS_MIN: 3,
+  WALK_REBELS_MAX: 8,
 
   // Manual core actions (player-activated)
   MANUAL_PRIEST_COOLDOWN: 4,
   MANUAL_KNIGHT_COOLDOWN: 10,
   MANUAL_VORTEX_COOLDOWN: 20,
   MANUAL_RELEASE_COOLDOWN: 1.5,
-  MANUAL_RELEASE_COUNT: 3,
+  MANUAL_RELEASE_COUNT: 1,
 
   // Snack (replaces juice)
   SNACK_COOLDOWN: 30,
-  SNACK_CHOCOLATE_FAST: 60,
-  SNACK_CHOCOLATE_SLOW: 60,
+  SNACK_CHOCOLATE_FAST: 12,
+  SNACK_CHOCOLATE_SLOW: 12,
 
   // BG zones (real mg/dL thresholds)
   BG_HYPO_DANGER: 54,
@@ -254,7 +258,7 @@ export const CONFIG = {
   UNLOAD_TIME_L: 15,
 
   // Muscle zone (whole green area — priests & knights hunt here)
-  MUSCLE_ZONE: { x1: 300, y1: 50, x2: 900, y2: 700 },
+  MUSCLE_ZONE: { x1: 300, y1: 150, x2: 900, y2: 700 },
 
   // Waypoints (simplified — no road, just shore → advance → muscle)
   WAYPOINTS: {
@@ -263,7 +267,7 @@ export const CONFIG = {
   },
 
   // Boat
-  BOAT_SIZE: 256,
+  BOAT_SIZE: 300,
   BOAT_SPAWN: { x: -80, y: 350 },
   BOAT_DEST: { x: 200, y: 350 },
 };

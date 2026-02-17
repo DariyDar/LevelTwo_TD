@@ -201,12 +201,14 @@ export function activateWalk() {
     }
 
     // Direct conversion — muscle absorbs glucose without insulin
-    peasant.convertToWorker(null);
     const mine = findLeastFilledMine(gameState.mines);
     if (mine) {
+      peasant.convertToWorker(null);
       mine.addWorker(peasant);
+      gameState.stats.totalWorkers++;
+    } else {
+      break; // No more mines available
     }
-    gameState.stats.totalWorkers++;
 
     // Green particle burst (exercise-driven uptake)
     gameState.effects.push({

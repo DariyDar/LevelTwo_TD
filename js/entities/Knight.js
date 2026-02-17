@@ -26,6 +26,11 @@ export class Knight {
     // Track which peasants this knight already evaluated (roll once per peasant)
     this._evaluatedPeasants = new Set();
 
+    // Roaming (idle patrol outside liver)
+    this.roamTargetX = homeX;
+    this.roamTargetY = homeY;
+    this.roamTimer = 0;
+
     // Sprite animation
     this.anim = createAnimState('warrior_idle', CONFIG.SPRITE_FPS_DEFAULT);
   }
@@ -36,6 +41,10 @@ export class Knight {
     switch (this.state) {
       case KnightState.IDLE:
         this._findTarget();
+        // Roam outside liver when idle
+        if (this.state === KnightState.IDLE) {
+          this._roamPatrol(dt);
+        }
         break;
       case KnightState.WALKING_TO_PEASANT:
         this._walkToPeasant(dt);
@@ -46,6 +55,31 @@ export class Knight {
       case KnightState.RETURNING:
         this._updateReturning(dt);
         break;
+    }
+  }
+
+  _roamPatrol(dt) {
+    this.roamTimer -= dt;
+    const dx = this.roamTargetX - this.x;
+    const dy = this.roamTargetY - this.y;
+    if (this.roamTimer <= 0 || (dx * dx + dy * dy) < 100) {
+      // Patrol around home position in a wide area
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 40 + Math.random() * 120;
+      this.roamTargetX = this.homeX + Math.cos(angle) * dist;
+      this.roamTargetY = this.homeY + Math.sin(angle) * dist;
+      // Clamp to canvas
+      this.roamTargetX = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, this.roamTargetX));
+      this.roamTargetY = Math.max(150, Math.min(CONFIG.CANVAS_HEIGHT - 20, this.roamTargetY));
+      this.roamTimer = 1.0 + Math.random() * 2.0;
+    }
+    const rdist = Math.sqrt(dx * dx + dy * dy);
+    if (rdist > 2) {
+      const hypoMult = this._getHypoSpeedMult();
+      const step = this.speed * 0.3 * hypoMult * dt; // slower patrol speed
+      this.x += (dx / rdist) * step;
+      this.y += (dy / rdist) * step;
+      if (this.anim) this.anim.facingRight = dx > 0;
     }
   }
 

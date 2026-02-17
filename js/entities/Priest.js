@@ -28,6 +28,11 @@ export class Priest {
     // Lifetime for enhanced priests
     this.lifetime = enhanced ? CONFIG.FAST_INSULIN_DURATION : Infinity;
 
+    // Roaming (idle patrol)
+    this.roamTargetX = x;
+    this.roamTargetY = y;
+    this.roamTimer = 0;
+
     // Sprite animation
     this.anim = createAnimState('monk_idle', CONFIG.SPRITE_FPS_PRIEST);
   }
@@ -47,10 +52,33 @@ export class Priest {
     switch (this.state) {
       case PriestState.IDLE:
         this._findTarget();
+        // If still idle after searching, roam the muscle zone
+        if (this.state === PriestState.IDLE) {
+          this._roam(dt);
+        }
         break;
       case PriestState.WALKING:
         this._updateWalking(dt);
         break;
+    }
+  }
+
+  _roam(dt) {
+    this.roamTimer -= dt;
+    const dx = this.roamTargetX - this.x;
+    const dy = this.roamTargetY - this.y;
+    if (this.roamTimer <= 0 || (dx * dx + dy * dy) < 100) {
+      const zone = CONFIG.MUSCLE_ZONE;
+      this.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
+      this.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
+      this.roamTimer = 1.0 + Math.random() * 2.0;
+    }
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 2) {
+      const step = this.speed * 0.4 * dt; // slower patrol speed
+      this.x += (dx / dist) * step;
+      this.y += (dy / dist) * step;
+      if (this.anim) this.anim.facingRight = dx > 0;
     }
   }
 
@@ -136,6 +164,15 @@ export class Priest {
 
     const roll = noResistance ? 0 : Math.random();
 
+    // Poof effect at merge point (both success and fail)
+    gameState.effects.push({
+      type: 'poof',
+      x: this.target.x,
+      y: this.target.y,
+      timer: 0.5,
+      maxTimer: 0.5,
+    });
+
     if (roll < successChance) {
       // SUCCESS — insulin merges with glucose, priest consumed
       playCastSuccess();
@@ -157,10 +194,13 @@ export class Priest {
       this.target.attackTarget = null;
 
       // Glucose converts and independently finds a mine
-      this.target.convertToWorker(null);
       const mine = findLeastFilledMine(gameState.mines);
       if (mine) {
+        this.target.convertToWorker(null);
         mine.addWorker(this.target);
+      } else {
+        // No mine available — glucose is consumed (dies)
+        this.target.alive = false;
       }
 
       gameState.stats.totalWorkers++;
