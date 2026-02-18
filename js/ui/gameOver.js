@@ -249,6 +249,47 @@ function drawResultsGraph(gx, gy, gw, gh, C) {
     }
   }
 
+  // Energy graph overlay (gold line, right Y-axis)
+  const energyHistory = gameState.energyHistory;
+  if (energyHistory && energyHistory.length > 1) {
+    const eMax = CONFIG.ENERGY_MAX;
+    const energyToY = (e) => {
+      const clamped = Math.max(0, Math.min(e, eMax));
+      return gy + (1 - clamped / eMax) * gh;
+    };
+
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    for (let i = 0; i < energyHistory.length; i++) {
+      const px = hourToX(energyHistory[i].hour);
+      const py = energyToY(energyHistory[i].energy);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = '#F1C40F';
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Energy scale labels (right side)
+    ctx.font = '9px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#F1C40F';
+    const eScaleValues = [300, 200, 100, 0];
+    for (const v of eScaleValues) {
+      const ly = energyToY(v);
+      if (ly > gy + 5 && ly < gy + gh - 5) {
+        ctx.fillText(`${v}E`, gx + gw + 8, ly + 3);
+      }
+    }
+
+    // Legend
+    ctx.font = '9px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#F1C40F';
+    ctx.fillText('--- Energy (ATP)', gx + gw - 100, gy - 10);
+  }
+
   // Graph border
   ctx.strokeStyle = '#3D5A6E';
   ctx.lineWidth = 1;

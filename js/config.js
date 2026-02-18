@@ -59,7 +59,7 @@ export const CONFIG = {
   // Mines grid (2 cols × 5 rows = 10 mines, center area)
   MINES_GRID: {
     startX: 560,
-    startY: 240,
+    startY: 220,
     cols: 2,
     rows: 5,
     gapX: 130,
@@ -72,7 +72,7 @@ export const CONFIG = {
   MINE_TOTAL_COUNT: 10,
   MINE_HP: 80,
   MINE_REPAIR_TIME: 12,
-  MINE_ENERGY_PER_WORKER: 0.75,
+  MINE_ENERGY_PER_WORKER: 0.5,
 
   // Speeds (px/sec)
   SPEED_VERY_FAST: 120,
@@ -86,7 +86,7 @@ export const CONFIG = {
   REBEL_HP: 80,
   REBEL_HP_DECAY: 1.0,
   REBEL_BUILDING_DPS: 5,
-  WORKER_LIFETIME: 30,
+  WORKER_LIFETIME: 45,
 
   // Priest
   PRIEST_CAST_TIME: 2,

@@ -78,6 +78,9 @@ function renderVisualEffects() {
       case 'mine_energy_plus':
         drawMineEnergyPlus(effect);
         break;
+      case 'energy_drain_minus':
+        drawEnergyDrainMinus(effect);
+        break;
       case 'poof':
         drawPoof(effect);
         break;
@@ -251,12 +254,23 @@ function drawKidneyEject(effect) {
 function drawMineEnergyPlus(effect) {
   const progress = 1 - effect.timer / effect.maxTimer;
   const alpha = 1 - progress;
-  const yOffset = progress * 18;
+  const yOffset = progress * 25;
 
-  ctx.font = 'bold 10px Arial';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
   ctx.fillStyle = `rgba(241, 196, 15, ${alpha})`;
   ctx.fillText('+', effect.x, effect.y - yOffset);
+}
+
+function drawEnergyDrainMinus(effect) {
+  const progress = 1 - effect.timer / effect.maxTimer;
+  const alpha = 1 - progress;
+  const yOffset = progress * 20;
+
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = `rgba(231, 76, 60, ${alpha * 0.8})`;
+  ctx.fillText('-', effect.x, effect.y + yOffset);
 }
 
 function drawPoof(effect) {

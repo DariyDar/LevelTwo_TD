@@ -8,6 +8,7 @@ import { calculateBG } from './systems/bgSystem.js';
 
 let ctx = null;
 let canvas = null;
+let _musclesLabelRect = null;
 
 export function initRenderer(canvasEl) {
   canvas = canvasEl;
@@ -496,25 +497,26 @@ function drawMines() {
         ctx.restore();
       }
 
-      // Entry pulse glow
-      if (mine.pulseTimer > 0) {
-        const t = mine.pulseTimer / 0.4;
-        ctx.save();
-        ctx.shadowColor = '#2ECC71';
-        ctx.shadowBlur = 12 * t;
-        ctx.fillStyle = `rgba(46, 204, 113, ${0.25 * t})`;
-        ctx.fillRect(sprX - 3, sprY - 3, sprW + 6, sprH + 6);
-        ctx.restore();
-      }
-
-      // Mine sprite (active or inactive)
+      // Mine sprite (active or inactive) — with scale pulse on glucose entry
       const mineKey = workerCount > 0 ? 'bld_mine_active' : 'bld_mine_inactive';
+      const hasPulse = mine.pulseTimer > 0;
+      if (hasPulse) {
+        const t = mine.pulseTimer / 0.4;
+        const scale = 1 + 0.15 * t;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.translate(-x, -y);
+      }
       if (!drawStaticSprite(ctx, mineKey, sprX, sprY, sprW, sprH)) {
         ctx.fillStyle = C.ORANGE;
         ctx.strokeStyle = exerciseActive ? '#F39C12' : '#E67E22';
         ctx.lineWidth = exerciseActive ? (1 + Math.sin(Date.now() / 300)) : 1;
         ctx.fillRect(x - hw, y - hh, size.w, size.h);
         ctx.strokeRect(x - hw, y - hh, size.w, size.h);
+      }
+      if (hasPulse) {
+        ctx.restore();
       }
 
       // Under attack flash
@@ -528,6 +530,38 @@ function drawMines() {
       _drawMineSlots(x, y + hh + 6, maxSlots, workerCount, exerciseActive);
     }
   }
+
+  // "Muscles" label below the entire mine grid
+  const grid = CONFIG.MINES_GRID;
+  const labelCenterX = grid.startX + ((grid.cols - 1) * grid.gapX) / 2;
+  const lastRowY = grid.startY + (grid.rows - 1) * grid.gapY;
+  const labelY = lastRowY + size.h / 2 + 30;
+
+  const isHoveredLabel = _musclesLabelRect &&
+    gameState.mouseX >= _musclesLabelRect.x &&
+    gameState.mouseX <= _musclesLabelRect.x + _musclesLabelRect.w &&
+    gameState.mouseY >= _musclesLabelRect.y &&
+    gameState.mouseY <= _musclesLabelRect.y + _musclesLabelRect.h;
+
+  ctx.textAlign = 'center';
+  if (isHoveredLabel) {
+    ctx.font = 'bold 13px Arial';
+    ctx.fillStyle = CONFIG.COLORS.PURPLE;
+    gameState.hoveredBuilding = 'mines';
+  } else {
+    ctx.font = '11px Arial';
+    ctx.fillStyle = CONFIG.COLORS.PURPLE;
+  }
+  ctx.fillText('Muscles', labelCenterX, labelY);
+
+  // Store label rect for hover hit-testing
+  const textW = ctx.measureText('Muscles').width + 10;
+  _musclesLabelRect = {
+    x: labelCenterX - textW / 2,
+    y: labelY - 14,
+    w: textW,
+    h: 18,
+  };
 }
 
 function _drawMineSlots(cx, startY, maxSlots, filledCount, exerciseActive) {
@@ -537,24 +571,24 @@ function _drawMineSlots(cx, startY, maxSlots, filledCount, exerciseActive) {
   const pct = maxSlots > 0 ? filledCount / maxSlots : 0;
 
   // Background
-  ctx.fillStyle = 'rgba(155, 89, 182, 0.2)';
+  ctx.fillStyle = 'rgba(127, 140, 141, 0.25)';
   ctx.fillRect(barX, startY - barH / 2, barW, barH);
 
-  // Filled portion
+  // Filled portion (yellow/gold)
   if (filledCount > 0) {
-    ctx.fillStyle = exerciseActive ? '#F39C12' : CONFIG.COLORS.PURPLE;
+    ctx.fillStyle = exerciseActive ? '#F39C12' : CONFIG.COLORS.GOLD;
     ctx.fillRect(barX, startY - barH / 2, barW * pct, barH);
   }
 
   // Border
-  ctx.strokeStyle = exerciseActive ? '#F39C12' : '#7D3C98';
+  ctx.strokeStyle = exerciseActive ? '#F39C12' : '#D4AC0D';
   ctx.lineWidth = 0.5;
   ctx.strokeRect(barX, startY - barH / 2, barW, barH);
 
   // Count text
   ctx.font = '8px Arial';
   ctx.textAlign = 'center';
-  ctx.fillStyle = filledCount > 0 ? CONFIG.COLORS.PURPLE : '#7F8C8D';
+  ctx.fillStyle = filledCount > 0 ? CONFIG.COLORS.GOLD : '#7F8C8D';
   ctx.fillText(`${filledCount}/${maxSlots}`, cx, startY + barH / 2 + 9);
 }
 

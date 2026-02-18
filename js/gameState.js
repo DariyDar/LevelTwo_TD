@@ -36,6 +36,9 @@ export function createGameState() {
     bgEventLog: [],      // Array of {hour: float, type: string, label: string}
     bgSampleTimer: 0,
 
+    // Energy history for result screen graph
+    energyHistory: [],   // Array of {hour: float, energy: number}
+
     // Semaglutide mines on the road
     semaglutideMines: [],
 

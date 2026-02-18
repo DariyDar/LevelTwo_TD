@@ -10,6 +10,7 @@ const SAMPLE_INTERVAL = 2.0; // real seconds between BG samples (~154 samples fo
 export function initBGHistory() {
   gameState.bgHistory = [];
   gameState.bgEventLog = [];
+  gameState.energyHistory = [];
   gameState.bgSampleTimer = 0;
 }
 
@@ -22,6 +23,7 @@ export function updateBGHistory(dt) {
     const hour = getVirtualHour();
     const bg = calculateBG();
     gameState.bgHistory.push({ hour, bg });
+    gameState.energyHistory.push({ hour, energy: gameState.energy });
   }
 }
 

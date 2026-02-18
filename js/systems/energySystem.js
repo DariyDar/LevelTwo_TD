@@ -9,6 +9,10 @@ import { playBlackout } from '../audio.js';
 let energyParticleTimer = 0;
 const ENERGY_PARTICLE_INTERVAL = 1.5; // seconds between particle spawns
 
+// Timer for spawning energy drain "-" particles near consuming buildings
+let drainParticleTimer = 0;
+const DRAIN_PARTICLE_INTERVAL = 3.0;
+
 export function updateEnergy(dt) {
   if (gameState.phase === GamePhase.GAME_OVER) return;
 
@@ -52,6 +56,26 @@ export function updateEnergy(dt) {
   }
   const patientDrainMult = gameState._energyDrainMultiplier ?? 1.0;
   gameState.energy -= CONFIG.ENERGY_BASAL_DRAIN * drainMult * patientDrainMult * dt;
+
+  // Spawn red "-" drain particles near buildings (real-time rate)
+  drainParticleTimer += realDt;
+  if (drainParticleTimer >= DRAIN_PARTICLE_INTERVAL) {
+    drainParticleTimer -= DRAIN_PARTICLE_INTERVAL;
+    // Spawn near pancreas and kidneys (main energy consumers)
+    const drainSpots = [
+      CONFIG.PANCREAS_POS,
+      CONFIG.KIDNEYS_POS,
+    ];
+    for (const pos of drainSpots) {
+      gameState.effects.push({
+        type: 'energy_drain_minus',
+        x: pos.x + (Math.random() - 0.5) * 30,
+        y: pos.y,
+        timer: 1.2,
+        maxTimer: 1.2,
+      });
+    }
+  }
 
   // Cap energy
   gameState.energy = Math.min(gameState.energy, gameState.energyMax);
