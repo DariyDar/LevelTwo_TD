@@ -136,7 +136,7 @@ export const CONFIG = {
     { x: 750, y: 520 }, { x: 810, y: 520 },
     { x: 790, y: 500 },
   ],
-  KNIGHT_SPEED: 720,
+  KNIGHT_SPEED: 360,
   KNIGHT_SCAN_RANGE: 500,
   KNIGHT_INTERCEPT_CHANCE: 0.35,
 
