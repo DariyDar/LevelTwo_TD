@@ -46,15 +46,15 @@ export const CONFIG = {
   // Building positions — right column layout (pancreas top, kidney mid, liver bottom)
   // Pancreas sprite: 192x320 → sprH = w*(320/192). Kidney tower: 128x256 → sprH = sprW*(256/128)
   // Liver castle: 320x256 → sprH = w*(256/320). All shifted below BG graph (y>150)
-  PANCREAS_POS: { x: 1100, y: 140 },
+  PANCREAS_POS: { x: 1100, y: 190 },
   PANCREAS_SIZE: { w: 96, h: 96 },
 
-  KIDNEYS_POS: { x: 1100, y: 300 },
-  KIDNEYS_RADIUS: 21,
+  KIDNEYS_POS: { x: 1100, y: 350 },
+  KIDNEYS_RADIUS: 27,
 
   LIVER_POS: { x: 1020, y: 540 },
   LIVER_SIZE: { w: 280, h: 224 },
-  CASTLE_ROOF: { x: 880, y: 428, w: 252, h: 50 },
+  CASTLE_ROOF: { x: 880, y: 528, w: 252, h: 50 },
 
   // Mines grid (3 cols × 5 rows = 15 mines, center-left area)
   MINES_GRID: {
@@ -148,7 +148,7 @@ export const CONFIG = {
   KIDNEY_ACTIVATION_THRESHOLD: 8,
   KIDNEY_CIRCLE_EXPAND_SPEED: 120,
   KIDNEY_CIRCLE_CONTRACT_SPEED: 150,
-  KIDNEY_CIRCLE_ORIGIN: { x: 1000, y: 300 },
+  KIDNEY_CIRCLE_ORIGIN: { x: 1000, y: 350 },
   KIDNEY_EJECT_SPEED: 400,
 
   // Kidney auto-filtration (game-time based cooldown)

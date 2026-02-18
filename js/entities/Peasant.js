@@ -53,6 +53,11 @@ export class Peasant {
     this.roamTargetY = 0;
     this.roamTimer = 0;
 
+    // Stuck detection — if position doesn't change for >1s, pick new random vector
+    this._prevX = x;
+    this._prevY = y;
+    this._stuckTimer = 0;
+
     // Sprite animation
     this.anim = createAnimState('pawn_red_run', CONFIG.SPRITE_FPS_DEFAULT);
   }
@@ -109,6 +114,7 @@ export class Peasant {
   }
 
   _updateWalking(dt) {
+    this._checkStuck(dt);
     const arrived = this.moveToward(this.targetX, this.targetY, dt);
 
     if (arrived) {
@@ -174,23 +180,20 @@ export class Peasant {
   }
 
   _roamMuscleZone(dt) {
+    this._checkStuck(dt);
     this.roamTimer -= dt;
     if (this.roamTimer <= 0 || this._reachedRoamTarget()) {
-      const zone = CONFIG.MUSCLE_ZONE;
-      // Pick a random point across the full muscle zone for wide spread
-      this.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
-      this.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
+      this._pickRandomRoamTarget();
       this.roamTimer = 1.5 + Math.random() * 3.0;
     }
     this.moveToward(this.roamTargetX, this.roamTargetY, dt);
   }
 
   _roam(dt) {
+    this._checkStuck(dt);
     this.roamTimer -= dt;
     if (this.roamTimer <= 0 || this._reachedRoamTarget()) {
-      const zone = CONFIG.MUSCLE_ZONE;
-      this.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
-      this.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
+      this._pickRandomRoamTarget();
       this.roamTimer = 0.6 + Math.random() * 1.5;
     }
     this.moveToward(this.roamTargetX, this.roamTargetY, dt);
@@ -200,6 +203,35 @@ export class Peasant {
     const dx = this.roamTargetX - this.x;
     const dy = this.roamTargetY - this.y;
     return dx * dx + dy * dy < 100; // within 10px
+  }
+
+  _pickRandomRoamTarget() {
+    const zone = CONFIG.MUSCLE_ZONE;
+    this.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
+    this.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
+  }
+
+  _checkStuck(dt) {
+    const dx = this.x - this._prevX;
+    const dy = this.y - this._prevY;
+    const moved = dx * dx + dy * dy;
+    // If moved less than 4px since last check, accumulate stuck time
+    if (moved < 16) {
+      this._stuckTimer += dt;
+    } else {
+      this._stuckTimer = 0;
+    }
+    this._prevX = this.x;
+    this._prevY = this.y;
+    // If stuck for >1s, pick a new random target far away
+    if (this._stuckTimer > 1.0) {
+      this._pickRandomRoamTarget();
+      // Also override current waypoint target so walking peasants unstick
+      this.targetX = this.roamTargetX;
+      this.targetY = this.roamTargetY;
+      this.roamTimer = 1.5 + Math.random() * 2.0;
+      this._stuckTimer = 0;
+    }
   }
 
   moveToward(tx, ty, dt) {

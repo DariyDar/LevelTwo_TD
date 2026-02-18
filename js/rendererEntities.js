@@ -347,7 +347,7 @@ function drawBoat(boat) {
     ctx.font = `${emojiSize}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(boat.emoji, boat.x, boat.y + boatSize * 0.02);
+    ctx.fillText(boat.emoji, boat.x, boat.y + boatSize * 0.02 - 20);
     ctx.textBaseline = 'alphabetic';
   }
 
