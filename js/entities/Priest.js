@@ -169,8 +169,8 @@ export class Priest {
       type: 'poof',
       x: this.target.x,
       y: this.target.y,
-      timer: 0.5,
-      maxTimer: 0.5,
+      timer: 0.8,
+      maxTimer: 0.8,
     });
 
     if (roll < successChance) {

@@ -269,13 +269,22 @@ function drawPoof(effect) {
       Math.floor(progress * sprite.frameCount)
     );
     const sx = frameIdx * sprite.frameW;
-    const size = 80;
+    const size = 120;
     const half = size / 2;
 
     ctx.save();
-    ctx.globalAlpha = Math.max(0, 1 - progress * 0.3);
+    ctx.globalAlpha = Math.max(0, 1 - progress * 0.5);
     ctx.drawImage(sprite.img, sx, 0, sprite.frameW, sprite.frameH,
       effect.x - half, effect.y - half, size, size);
     ctx.restore();
+  } else {
+    // Fallback: white expanding ring
+    const radius = 10 + 40 * progress;
+    const alpha = 1 - progress;
+    ctx.beginPath();
+    ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
   }
 }

@@ -303,31 +303,47 @@ function separatePeasants() {
   }
 }
 
-function pushPeasantsFromMines() {
+function pushEntitiesFromMines() {
   const mineSize = CONFIG.MINE_SIZE;
-  const hw = mineSize.w / 2 + 4;
-  const hh = mineSize.h / 2 + 4;
+  const hw = mineSize.w / 2 + 6;
+  const hh = mineSize.h / 2 + 6;
 
+  // Push peasants
   for (const p of gameState.peasants) {
     if (!p.alive) continue;
     // Workers and those walking to mine are allowed inside
     if (p.state === PeasantState.WORKER ||
         p.state === PeasantState.WALKING_TO_MINE ||
         p.state === PeasantState.BEING_ESCORTED) continue;
+    _pushFromMines(p, hw, hh);
+  }
 
-    for (const mine of gameState.mines) {
-      if (mine.destroyed) continue;
-      const dx = p.x - mine.x;
-      const dy = p.y - mine.y;
-      if (Math.abs(dx) < hw && Math.abs(dy) < hh) {
-        // Push out in the direction of least overlap
-        const overlapX = hw - Math.abs(dx);
-        const overlapY = hh - Math.abs(dy);
-        if (overlapX < overlapY) {
-          p.x += (dx > 0 ? overlapX : -overlapX) * 0.5;
-        } else {
-          p.y += (dy > 0 ? overlapY : -overlapY) * 0.5;
-        }
+  // Push priests away from mines
+  for (const pr of gameState.priests) {
+    if (!pr.alive) continue;
+    _pushFromMines(pr, hw, hh);
+  }
+
+  // Push idle/returning knights away from mines
+  for (const k of gameState.knights) {
+    if (!k.alive) continue;
+    if (k.state === 'escorting' || k.state === 'walking_to_peasant') continue;
+    _pushFromMines(k, hw, hh);
+  }
+}
+
+function _pushFromMines(entity, hw, hh) {
+  for (const mine of gameState.mines) {
+    if (mine.destroyed) continue;
+    const dx = entity.x - mine.x;
+    const dy = entity.y - mine.y;
+    if (Math.abs(dx) < hw && Math.abs(dy) < hh) {
+      const overlapX = hw - Math.abs(dx);
+      const overlapY = hh - Math.abs(dy);
+      if (overlapX < overlapY) {
+        entity.x += (dx > 0 ? overlapX : -overlapX) * 0.6;
+      } else {
+        entity.y += (dy > 0 ? overlapY : -overlapY) * 0.6;
       }
     }
   }
@@ -398,9 +414,9 @@ function _pushEntityFromBuildings(entity, buildings) {
       const overlapX = bld.hw - Math.abs(dx);
       const overlapY = bld.hh - Math.abs(dy);
       if (overlapX < overlapY) {
-        entity.x += (dx > 0 ? overlapX : -overlapX) * 0.6;
+        entity.x += (dx > 0 ? overlapX : -overlapX) * 0.9;
       } else {
-        entity.y += (dy > 0 ? overlapY : -overlapY) * 0.6;
+        entity.y += (dy > 0 ? overlapY : -overlapY) * 0.9;
       }
     }
   }
@@ -513,7 +529,7 @@ function update(dt) {
   updateBoats(dt);
   updatePeasants(dt);
   separatePeasants();
-  pushPeasantsFromMines();
+  pushEntitiesFromMines();
   pushEntitiesFromBuildings();
   updatePriests(dt);
   updatePancreas(dt);
@@ -714,12 +730,13 @@ function handleCanvasClick(e) {
     }
   }
 
-  // Kidney building click — manual flush when ready
+  // Kidney building click — manual flush when ready (larger hit area for small tower)
   const kidPos = CONFIG.KIDNEYS_POS;
-  const kidR = CONFIG.KIDNEYS_RADIUS;
+  const kidSprW = CONFIG.KIDNEYS_RADIUS * 2 + 20;
+  const kidSprH = kidSprW * (256 / 128);
   const kdx = wx - kidPos.x;
-  const kdy = wy - kidPos.y;
-  if (kdx * kdx + kdy * kdy <= (kidR + 10) * (kidR + 10)) {
+  const kdy = wy - (kidPos.y + 10);
+  if (Math.abs(kdx) <= kidSprW / 2 + 10 && Math.abs(kdy) <= kidSprH / 2 + 10) {
     if (gameState.kidneys && gameState.kidneys.manualFlush()) {
       return;
     }
@@ -780,10 +797,10 @@ function handleCanvasMouseMove(e) {
   }
 
   const kid = CONFIG.KIDNEYS_POS;
-  const kidR = CONFIG.KIDNEYS_RADIUS;
-  const kdx = wx - kid.x;
-  const kdy = wy - kid.y;
-  if (kdx * kdx + kdy * kdy <= kidR * kidR) {
+  const kidHoverSprW = CONFIG.KIDNEYS_RADIUS * 2 + 20;
+  const kidHoverSprH = kidHoverSprW * (256 / 128);
+  if (Math.abs(wx - kid.x) <= kidHoverSprW / 2 + 5 &&
+      Math.abs(wy - (kid.y + 10)) <= kidHoverSprH / 2 + 5) {
     gameState.hoveredBuilding = 'kidneys';
     return;
   }

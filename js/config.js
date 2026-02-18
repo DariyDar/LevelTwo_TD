@@ -45,24 +45,24 @@ export const CONFIG = {
 
   // Building positions — right column layout (pancreas top, kidney mid, liver bottom)
   // Shifted down so buildings don't overlap the BG graph (top UI ends ~y=130 in world space)
-  PANCREAS_POS: { x: 1050, y: 300 },
+  PANCREAS_POS: { x: 1050, y: 380 },
   PANCREAS_SIZE: { w: 120, h: 100 },
 
-  KIDNEYS_POS: { x: 1050, y: 480 },
-  KIDNEYS_RADIUS: 33,
+  KIDNEYS_POS: { x: 1050, y: 550 },
+  KIDNEYS_RADIUS: 16,
 
-  LIVER_POS: { x: 1050, y: 640 },
-  LIVER_SIZE: { w: 300, h: 240 },
-  CASTLE_ROOF: { x: 920, y: 555, w: 260, h: 50 },
+  LIVER_POS: { x: 1000, y: 500 },
+  LIVER_SIZE: { w: 500, h: 400 },
+  CASTLE_ROOF: { x: 780, y: 400, w: 440, h: 80 },
 
   // Mines grid (3 cols × 5 rows = 15 mines, center-left area)
   MINES_GRID: {
     startX: 430,
-    startY: 180,
+    startY: 240,
     cols: 3,
     rows: 5,
     gapX: 130,
-    gapY: 100,
+    gapY: 95,
   },
   MINE_SIZE: { w: 90, h: 65 },
   MINE_MAX_WORKERS: 10,
@@ -124,18 +124,18 @@ export const CONFIG = {
   LIVER_HGP_SENSITIVITY_CUTOFF: 0.85,  // if _insulinSensitivity < this → hepatic leak
   LIVER_HGP_RELEASE_CHANCE: 0.3,        // 30% chance per tick
 
-  // Knight spawn positions (patrol area OUTSIDE liver at bottom-right)
+  // Knight spawn positions (patrol area OUTSIDE liver castle)
   KNIGHT_POSITIONS: [
-    { x: 900, y: 580 }, { x: 900, y: 640 },
-    { x: 900, y: 700 }, { x: 920, y: 560 },
-    { x: 920, y: 720 }, { x: 880, y: 600 },
-    { x: 880, y: 660 }, { x: 860, y: 640 },
-    { x: 940, y: 550 }, { x: 940, y: 710 },
-    { x: 870, y: 580 }, { x: 870, y: 700 },
-    { x: 850, y: 640 }, { x: 930, y: 640 },
-    { x: 910, y: 620 },
+    { x: 720, y: 400 }, { x: 720, y: 480 },
+    { x: 720, y: 560 }, { x: 740, y: 440 },
+    { x: 740, y: 520 }, { x: 700, y: 460 },
+    { x: 700, y: 540 }, { x: 680, y: 500 },
+    { x: 760, y: 380 }, { x: 760, y: 580 },
+    { x: 690, y: 420 }, { x: 690, y: 560 },
+    { x: 670, y: 500 }, { x: 750, y: 500 },
+    { x: 730, y: 470 },
   ],
-  KNIGHT_SPEED: 120,
+  KNIGHT_SPEED: 360,
   KNIGHT_SCAN_RANGE: 500,
   KNIGHT_INTERCEPT_CHANCE: 0.35,
 
@@ -147,7 +147,7 @@ export const CONFIG = {
   KIDNEY_ACTIVATION_THRESHOLD: 8,
   KIDNEY_CIRCLE_EXPAND_SPEED: 120,
   KIDNEY_CIRCLE_CONTRACT_SPEED: 150,
-  KIDNEY_CIRCLE_ORIGIN: { x: 950, y: 450 },
+  KIDNEY_CIRCLE_ORIGIN: { x: 950, y: 550 },
   KIDNEY_EJECT_SPEED: 400,
 
   // Kidney auto-filtration (game-time based cooldown)
@@ -258,7 +258,7 @@ export const CONFIG = {
   UNLOAD_TIME_L: 15,
 
   // Muscle zone (whole green area — priests & knights hunt here)
-  MUSCLE_ZONE: { x1: 300, y1: 150, x2: 900, y2: 700 },
+  MUSCLE_ZONE: { x1: 300, y1: 180, x2: 900, y2: 700 },
 
   // Waypoints (simplified — no road, just shore → advance → muscle)
   WAYPOINTS: {

@@ -16,9 +16,9 @@ export function initEntityRenderer(context) {
 
 export function renderEntities() {
   renderBoats();
-  renderPeasants();
-  renderPriests();
   renderKnights();
+  renderPriests();
+  renderPeasants();
 }
 
 function renderBoats() {
@@ -315,7 +315,9 @@ function drawKnightFallback(k) {
 
 function drawBoat(boat) {
   const C = CONFIG.COLORS;
-  const boatSize = CONFIG.BOAT_SIZE || 256;
+  // Boat size scales with food count: 1 food = small, 2 = medium, 3+ = large
+  const foodCount = boat.foods ? boat.foods.length : 1;
+  const boatSize = foodCount <= 1 ? 180 : foodCount <= 2 ? 240 : 300;
 
   // Try animated sprite
   const spriteDrawn = boat.anim && drawSprite(ctx, boat.anim, boat.x, boat.y, boatSize);
@@ -339,12 +341,14 @@ function drawBoat(boat) {
     ctx.stroke();
   }
 
-  // Food emoji on top of boat (close and compact)
+  // Food emoji sitting ON the boat deck (center of boat sprite)
   if (boat.emoji) {
-    const emojiSize = Math.round(boatSize * 0.18);
+    const emojiSize = Math.round(boatSize * 0.14);
     ctx.font = `${emojiSize}px serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(boat.emoji, boat.x, boat.y - boatSize * 0.08);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(boat.emoji, boat.x, boat.y + boatSize * 0.02);
+    ctx.textBaseline = 'alphabetic';
   }
 
   // Unload progress bar

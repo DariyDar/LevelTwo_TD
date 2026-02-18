@@ -158,7 +158,7 @@ function drawCastle() {
     // Label below
     ctx.fillStyle = C.WHITE;
     ctx.font = 'bold 13px Arial';
-    ctx.fillText('Liver', pos.x, sprY + sprH + 16);
+    ctx.fillText('Liver', pos.x, sprY + sprH + 8);
     return;
   }
 
@@ -180,7 +180,7 @@ function drawCastle() {
   // Roof glucose sprites (visible on top of castle)
   if (liver && liver.roofGlucose.length > 0) {
     const roof = CONFIG.CASTLE_ROOF;
-    const roofSpriteSize = 20;
+    const roofSpriteSize = 40;
     for (const g of liver.roofGlucose) {
       const sprKey = g.speedCategory === 'slow' ? 'pawn_yellow_run' : 'pawn_red_run';
       if (!drawStaticSprite(ctx, sprKey, g.x - roofSpriteSize / 2, g.y - roofSpriteSize / 2, roofSpriteSize, roofSpriteSize)) {
@@ -218,14 +218,14 @@ function drawCastle() {
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Liver', pos.x, sprY + sprH + 16);
+  ctx.fillText('Liver', pos.x, sprY + sprH + 8);
 
   // Storage counter (display in mg/dL equivalents)
   const storage = liver ? liver.storage : 0;
   const maxStorage = liver ? liver.maxStorage : 100;
   const gpu = CONFIG.GLUCOSE_PER_UNIT;
   ctx.font = '11px Arial';
-  ctx.fillText(`${storage * gpu}/${maxStorage * gpu}`, pos.x, sprY + sprH + 30);
+  ctx.fillText(`${storage * gpu}/${maxStorage * gpu}`, pos.x, sprY + sprH + 22);
 }
 
 // --- Pancreas ---
@@ -282,7 +282,7 @@ function drawPancreas() {
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Pancreas', pos.x + shakeX, sprY + sprH + 16 + shakeY);
+  ctx.fillText('Pancreas', pos.x + shakeX, sprY + sprH + 8 + shakeY);
 
   // Degradation level with descriptive label
   const degLabels = [
@@ -294,7 +294,7 @@ function drawPancreas() {
   ];
   ctx.font = '10px Arial';
   ctx.fillStyle = deg >= 3 ? C.RED : deg >= 1 ? '#F39C12' : '#2ECC71';
-  ctx.fillText(degLabels[Math.min(deg, 4)], pos.x + shakeX, sprY + sprH + 30 + shakeY);
+  ctx.fillText(degLabels[Math.min(deg, 4)], pos.x + shakeX, sprY + sprH + 22 + shakeY);
 }
 
 // --- Kidneys ---
@@ -339,7 +339,7 @@ function drawKidneys() {
     // Label BELOW
     ctx.fillStyle = C.WHITE;
     ctx.font = 'bold 13px Arial';
-    ctx.fillText('Kidneys', pos.x, sprY + sprH + 16);
+    ctx.fillText('Kidneys', pos.x, sprY + sprH + 8);
     return;
   }
 
@@ -372,7 +372,7 @@ function drawKidneys() {
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Kidneys', pos.x, sprY + sprH + 16);
+  ctx.fillText('Kidneys', pos.x, sprY + sprH + 8);
 
   // Kidney status plaque ON the building
   if (kidneys && !kidneys.destroyed) {
@@ -385,7 +385,7 @@ function drawKidneys() {
       ctx.strokeStyle = `rgba(46, 204, 113, ${pulse})`;
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, r + 14, 0, Math.PI * 2);
+      ctx.arc(pos.x, pos.y, sprW / 2 + 8, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
@@ -595,14 +595,16 @@ function drawBuildingHighlights() {
   if (hovered === 'kidneyVortex' || hovered === 'dapagliflozin') {
     const pos = CONFIG.KIDNEYS_POS;
     const r = CONFIG.KIDNEYS_RADIUS;
+    const kSprW = r * 2 + 20;
+    const kSprH = kSprW * (256 / 128);
     ctx.fillStyle = `rgba(241, 196, 15, ${pulse * 0.35})`;
     ctx.strokeStyle = `rgba(241, 196, 15, ${pulse})`;
     ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r + 10, 0, Math.PI * 2);
+    ctx.roundRect(pos.x - kSprW / 2 - 8, pos.y + 10 - kSprH / 2 - 8, kSprW + 16, kSprH + 16, 12);
     ctx.fill();
     ctx.stroke();
-    _drawHighlightLabel(pos.x, pos.y - r - 18,
+    _drawHighlightLabel(pos.x, pos.y + 10 - kSprH / 2 - 18,
       'Nephrons (Filtration)',
       hovered === 'dapagliflozin' ? 'SGLT2 inhibitor blocks glucose reabsorption' : 'Increases glomerular filtration rate');
   }

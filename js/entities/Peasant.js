@@ -61,9 +61,9 @@ export class Peasant {
     const wp = CONFIG.WAYPOINTS;
     const zone = CONFIG.MUSCLE_ZONE;
 
-    // Spread glucose across the ENTIRE map with varied paths
-    // Each peasant picks a random intermediate point then a random final destination
-    const midX = wp.ADVANCE_X + Math.random() * (zone.x2 - wp.ADVANCE_X);
+    // Spread glucose widely across the map — avoid clustering near mines
+    // Three waypoints: advance into zone, spread wide, final random destination
+    const midX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
     const midY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
     const finalX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
     const finalY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
@@ -180,7 +180,7 @@ export class Peasant {
       // Pick a random point across the full muscle zone for wide spread
       this.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
       this.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
-      this.roamTimer = 0.8 + Math.random() * 1.5;
+      this.roamTimer = 1.5 + Math.random() * 3.0;
     }
     this.moveToward(this.roamTargetX, this.roamTargetY, dt);
   }

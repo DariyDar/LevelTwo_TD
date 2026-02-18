@@ -161,9 +161,9 @@ export class LiverTower {
     this.storage--;
     if (isSlow) this.slowStorage = Math.max(0, this.slowStorage - 1);
 
-    // Released glucose spawns from behind the castle (right side)
-    const spawnX = CONFIG.LIVER_POS.x + CONFIG.LIVER_SIZE.w / 2 + 20;
-    const spawnY = this.y + (Math.random() - 0.5) * 30;
+    // Released glucose spawns from in front of the castle (left side)
+    const spawnX = CONFIG.LIVER_POS.x - CONFIG.LIVER_SIZE.w / 2 - 20;
+    const spawnY = this.y + (Math.random() - 0.5) * 60;
     const zone = CONFIG.MUSCLE_ZONE;
     const peasant = new Peasant(spawnX, spawnY, CONFIG.SPEED_MEDIUM);
     peasant.color = 'red';
