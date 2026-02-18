@@ -15,7 +15,7 @@ export const PATIENTS = [
       degradationEnabled: false,
       liverStorageMultiplier: 1.5,
       energyStartMultiplier: 1.8,
-      energyDrainMultiplier: 0.7,
+      energyDrainMultiplier: 1.0,
       rebelDamageMultiplier: 0.1,
       priestWaitMultiplier: 15.0,
       kidneyAutoFilterRate: 3.0,

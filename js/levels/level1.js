@@ -10,7 +10,7 @@ export const level1 = {
 
   interventions: {
     exercise: false,
-    semaglutide: { charges: 1 },
+    semaglutide: { charges: 0 },
     dapagliflozin: { charges: 0 },
     metformin: { charges: 0 },
   },

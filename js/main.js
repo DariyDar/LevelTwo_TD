@@ -765,40 +765,9 @@ function handleCanvasMouseMove(e) {
   gameState.mouseX = wx;
   gameState.mouseY = wy;
 
-  // Detect building hover (world coords)
+  // Building hover is now detected via label rects in renderer.js
+  // (hoveredBuilding is set there when mouse is over building label text)
   gameState.hoveredBuilding = null;
-
-  if (gameState.phase !== GamePhase.PLAYING && gameState.phase !== GamePhase.BETWEEN_WAVES) return;
-
-  const liver = CONFIG.LIVER_POS;
-  const liverS = CONFIG.LIVER_SIZE;
-  if (wx >= liver.x - liverS.w / 2 && wx <= liver.x + liverS.w / 2 &&
-      wy >= liver.y - liverS.h / 2 && wy <= liver.y + liverS.h / 2) {
-    gameState.hoveredBuilding = 'liver';
-    return;
-  }
-
-  const panc = CONFIG.PANCREAS_POS;
-  const pancS = CONFIG.PANCREAS_SIZE;
-  if (wx >= panc.x - pancS.w / 2 && wx <= panc.x + pancS.w / 2 &&
-      wy >= panc.y - pancS.h / 2 && wy <= panc.y + pancS.h / 2) {
-    gameState.hoveredBuilding = 'pancreas';
-    return;
-  }
-
-  const kid = CONFIG.KIDNEYS_POS;
-  const kidHoverSprW = CONFIG.KIDNEYS_RADIUS * 2 + 20;
-  const kidHoverSprH = kidHoverSprW * (256 / 128);
-  if (Math.abs(wx - kid.x) <= kidHoverSprW / 2 + 5 &&
-      Math.abs(wy - (kid.y + 10)) <= kidHoverSprH / 2 + 5) {
-    gameState.hoveredBuilding = 'kidneys';
-    return;
-  }
-
-  const zone = CONFIG.MUSCLE_ZONE;
-  if (wx >= zone.x1 && wx <= zone.x2 && wy >= zone.y1 && wy <= zone.y2) {
-    gameState.hoveredBuilding = 'mines';
-  }
 }
 
 // Boot

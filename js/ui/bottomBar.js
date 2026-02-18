@@ -53,9 +53,7 @@ export function renderBottomBar() {
   const barY = 625;
   const barH = 95;
 
-  // Background
-  ctx.fillStyle = C.DARK_BG2;
-  ctx.fillRect(0, barY, CONFIG.CANVAS_WIDTH, barH);
+  // Background — fully transparent (no gray bar)
 
   const actions = getInterventionStatus();
   const btnH = 75;

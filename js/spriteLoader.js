@@ -53,8 +53,10 @@ const SPRITE_MANIFEST = [
   { key: 'terrain_foam',   src: 'assets/sprites/terrain/Water_Foam.png',       frameW: 192, frameH: 192, frameCount: 16 },
 
   // Effects
-  { key: 'fx_poof',      src: 'assets/sprites/effects/Puf_effect.png',  frameW: 64,  frameH: 64,  frameCount: 10 },
-  { key: 'fx_explosion', src: 'assets/sprites/effects/Explosions.png',  frameW: 192, frameH: 192, frameCount: 9 },
+  { key: 'fx_poof',       src: 'assets/sprites/effects/Puf_effect.png',   frameW: 64,  frameH: 64,  frameCount: 10 },
+  { key: 'fx_explosion',  src: 'assets/sprites/effects/Explosions.png',  frameW: 192, frameH: 192, frameCount: 9 },
+  { key: 'fx_rock',       src: 'assets/sprites/effects/Rock1.png',       frameW: 64,  frameH: 64,  frameCount: 1 },
+  { key: 'fx_explosion2', src: 'assets/sprites/effects/Explosion_02.png', frameW: 192, frameH: 192, frameCount: 10 },
 ];
 
 function loadImage(src) {

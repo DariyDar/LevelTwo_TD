@@ -3,7 +3,7 @@
 import { CONFIG } from '../config.js';
 import { gameState, GamePhase } from '../gameState.js';
 import { Boat } from '../entities/Boat.js';
-import { PeasantState } from '../entities/Peasant.js';
+
 import { getLevel } from '../levels/index.js';
 import { playWaveStart, playFoodSelect, playVictory } from '../audio.js';
 import { food } from '../levels/foodData.js';
@@ -62,10 +62,12 @@ export function updateWaveManager(dt) {
     }
   }
 
-  // Victory check: day ended (24:00) AND battlefield clear
+  // Victory check: day ended (24:00) — end immediately
   const hour = getVirtualHour();
   if (hour >= CONFIG.DAY_END_HOUR && gameState.allWavesSent) {
-    checkVictory();
+    playVictory();
+    gameState.phase = GamePhase.GAME_OVER;
+    gameState.gameOverReason = 'victory';
   }
 }
 
@@ -117,18 +119,7 @@ export function triggerEarlyWave() {
   return true;
 }
 
-function checkVictory() {
-  const activeNonWorkers = gameState.peasants.filter(
-    p => p.alive && p.state !== PeasantState.WORKER
-  ).length;
-  const activeBoats = gameState.boats.filter(b => b.alive).length;
-
-  if (activeNonWorkers === 0 && activeBoats === 0) {
-    playVictory();
-    gameState.phase = GamePhase.GAME_OVER;
-    gameState.gameOverReason = 'victory';
-  }
-}
+// checkVictory removed — victory triggers immediately at 24:00
 
 export function startBetweenWaves(delay) {
   gameState.phase = GamePhase.BETWEEN_WAVES;

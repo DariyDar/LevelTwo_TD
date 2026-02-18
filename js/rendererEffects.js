@@ -146,17 +146,16 @@ function drawPriestConvert(effect) {
 }
 
 function drawSemaglutideExplosion(effect) {
-  const sprite = getSprite('fx_explosion');
+  const sprite = getSprite('fx_explosion2') || getSprite('fx_explosion');
   const progress = 1 - effect.timer / effect.maxTimer;
 
   if (sprite) {
-    // Play through all 9 frames over the effect duration
     const frameIdx = Math.min(
       sprite.frameCount - 1,
       Math.floor(progress * sprite.frameCount)
     );
     const sx = frameIdx * sprite.frameW;
-    const size = 64;
+    const size = 72;
     const half = size / 2;
 
     ctx.save();
@@ -181,37 +180,39 @@ function drawSemaglutideExplosion(effect) {
 }
 
 function renderSemaglutideMines() {
-  const sprite = getSprite('fx_poof');
+  const rockSprite = getSprite('fx_rock');
 
   for (const mine of gameState.semaglutideMines) {
     const fadeAlpha = Math.min(1, mine.timer / 3);
-    const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 300 + mine.x);
+    const size = 36;
+    const half = size / 2;
 
-    if (sprite) {
-      // Draw poof sprite idle frame (pulsing between frames 0-2)
-      const frameIdx = Math.floor((Date.now() / 200 + mine.x) % 3);
-      const sx = frameIdx * sprite.frameW;
-      const size = 32;
-      const half = size / 2;
-
+    if (rockSprite) {
       ctx.save();
-      ctx.globalAlpha = fadeAlpha * pulse;
-      ctx.drawImage(sprite.img, sx, 0, sprite.frameW, sprite.frameH,
+      ctx.globalAlpha = fadeAlpha;
+      ctx.drawImage(rockSprite.img, 0, 0, rockSprite.frameW, rockSprite.frameH,
         mine.x - half, mine.y - half, size, size);
       ctx.restore();
     } else {
-      // Fallback: orange circles
-      ctx.beginPath();
-      ctx.arc(mine.x, mine.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(230, 126, 34, ${fadeAlpha * pulse})`;
-      ctx.fill();
-
+      // Fallback: gray rock circle
       ctx.beginPath();
       ctx.arc(mine.x, mine.y, 8, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(243, 156, 18, ${fadeAlpha * 0.3})`;
+      ctx.fillStyle = `rgba(120, 120, 120, ${fadeAlpha})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(80, 80, 80, ${fadeAlpha})`;
       ctx.lineWidth = 1;
       ctx.stroke();
     }
+
+    // Subtle danger radius indicator
+    const pulse = 0.15 + 0.1 * Math.sin(Date.now() / 400 + mine.x);
+    ctx.beginPath();
+    ctx.arc(mine.x, mine.y, 15, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(230, 126, 34, ${fadeAlpha * pulse})`;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 }
 

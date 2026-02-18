@@ -52,14 +52,14 @@ export const CONFIG = {
   KIDNEYS_POS: { x: 1100, y: 325 },
   KIDNEYS_RADIUS: 27,
 
-  LIVER_POS: { x: 1020, y: 515 },
+  LIVER_POS: { x: 1020, y: 505 },
   LIVER_SIZE: { w: 280, h: 224 },
-  CASTLE_ROOF: { x: 920, y: 485, w: 180, h: 40 },
+  CASTLE_ROOF: { x: 920, y: 475, w: 180, h: 40 },
 
   // Mines grid (2 cols × 5 rows = 10 mines, center area)
   MINES_GRID: {
     startX: 560,
-    startY: 195,
+    startY: 180,
     cols: 2,
     rows: 5,
     gapX: 130,
@@ -127,14 +127,14 @@ export const CONFIG = {
 
   // Knight spawn positions (patrol area left of liver castle)
   KNIGHT_POSITIONS: [
-    { x: 800, y: 435 }, { x: 800, y: 495 },
-    { x: 800, y: 555 }, { x: 820, y: 455 },
-    { x: 820, y: 525 }, { x: 780, y: 465 },
-    { x: 780, y: 535 }, { x: 760, y: 495 },
-    { x: 830, y: 415 }, { x: 830, y: 575 },
-    { x: 770, y: 445 }, { x: 770, y: 555 },
-    { x: 750, y: 495 }, { x: 810, y: 495 },
-    { x: 790, y: 475 },
+    { x: 800, y: 425 }, { x: 800, y: 485 },
+    { x: 800, y: 545 }, { x: 820, y: 445 },
+    { x: 820, y: 515 }, { x: 780, y: 455 },
+    { x: 780, y: 525 }, { x: 760, y: 485 },
+    { x: 830, y: 405 }, { x: 830, y: 565 },
+    { x: 770, y: 435 }, { x: 770, y: 545 },
+    { x: 750, y: 485 }, { x: 810, y: 485 },
+    { x: 790, y: 465 },
   ],
   KNIGHT_SPEED: 360,
   KNIGHT_SCAN_RANGE: 500,
@@ -192,7 +192,7 @@ export const CONFIG = {
   REBELS_ATTACK_PANCREAS: 16,
 
   // Basal energy drain
-  ENERGY_BASAL_DRAIN: 10,
+  ENERGY_BASAL_DRAIN: 14,
 
   // Interventions
   FAST_INSULIN_COST: 60,
@@ -207,8 +207,8 @@ export const CONFIG = {
   SEMAGLUTIDE_COST: 30,
   SEMAGLUTIDE_MINE_COUNT: 6,
   SEMAGLUTIDE_MINE_DURATION: 20,
-  SEMAGLUTIDE_MINE_X_MIN: 300,
-  SEMAGLUTIDE_MINE_X_MAX: 900,
+  SEMAGLUTIDE_MINE_X_MIN: 200,
+  SEMAGLUTIDE_MINE_X_MAX: 310,
   SEMAGLUTIDE_MINE_Y_MIN: 135,
   SEMAGLUTIDE_MINE_Y_MAX: 675,
 

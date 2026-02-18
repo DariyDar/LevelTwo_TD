@@ -42,7 +42,7 @@ export function renderGameOver() {
   // Unlock on victory (per-patient progress) — save only once
   if (reason === 'victory' && gameState.currentPatientId && !progressSaved) {
     progressSaved = true;
-    const stars = getStarRating(gameState.degradation);
+    const stars = getStarRating();
     unlockNextDay(gameState.currentPatientId, gameState.currentDay, stars);
   }
 
@@ -88,7 +88,7 @@ function drawHeader(reason, C, W, y) {
   ctx.textAlign = 'center';
 
   if (reason === 'victory') {
-    const stars = getStarRating(gameState.degradation);
+    const stars = getStarRating();
 
     ctx.fillStyle = '#2ECC71';
     ctx.font = 'bold 36px Arial';
@@ -99,7 +99,7 @@ function drawHeader(reason, C, W, y) {
     const starStr = '\u2B50'.repeat(stars) + '\u2606'.repeat(3 - stars);
     ctx.fillText(starStr, W / 2, y + 40);
 
-    const ratingTexts = ['', 'Decent', 'Good', 'Excellent!'];
+    const ratingTexts = ['Poor control', 'Needs improvement', 'Good control', 'Excellent!'];
     ctx.font = '16px Arial';
     ctx.fillStyle = C.GOLD;
     ctx.fillText(ratingTexts[stars] || '', W / 2, y + 62);
@@ -356,10 +356,14 @@ function drawButton(label, x, y, w, h, action) {
   buttonRects.push({ x, y, w, h, action });
 }
 
-function getStarRating(degradation) {
-  if (degradation === 0) return 3;
-  if (degradation === 1) return 2;
-  if (degradation <= 3) return 1;
+function getStarRating() {
+  const hasData = gameState.bgHistory.length >= 5;
+  if (!hasData) return 1; // fallback if not enough data
+
+  const tir = getTimeInRange();
+  if (tir.normal >= 70) return 3;
+  if (tir.normal >= 50) return 2;
+  if (tir.normal >= 30) return 1;
   return 0;
 }
 
@@ -372,7 +376,7 @@ function getRecommendations(reason) {
   const tir = hasData ? getTimeInRange() : null;
 
   if (reason === 'victory') {
-    const stars = getStarRating(gameState.degradation);
+    const stars = getStarRating();
     if (stars === 3) {
       recs.push('Excellent glucose control! You kept blood sugar in the healthy range.');
     } else if (stars >= 2) {

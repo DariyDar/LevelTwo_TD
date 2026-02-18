@@ -4,18 +4,18 @@ import { PATIENTS } from '../patients/index.js';
 
 // Adjustable patient physiology parameters
 export const PATIENT_PARAMS = [
-  { key: 'insulinProductionRate', label: 'Insulin Production Rate', min: 0, max: 2, step: 0.05 },
-  { key: 'insulinSensitivity', label: 'Insulin Sensitivity', min: 0.1, max: 1.5, step: 0.05 },
-  { key: 'startingDegradation', label: 'Starting IR Level', min: 0, max: 5, step: 1 },
-  { key: 'degradationEnabled', label: 'Degradation On (1) / Off (0)', min: 0, max: 1, step: 1 },
-  { key: 'liverStorageMultiplier', label: 'Liver Storage Multiplier', min: 0.5, max: 2.0, step: 0.1 },
-  { key: 'energyStartMultiplier', label: 'Starting Energy Multiplier', min: 0.5, max: 2.0, step: 0.1 },
-  { key: 'energyDrainMultiplier', label: 'Energy Drain Multiplier', min: 0.1, max: 2.0, step: 0.1 },
-  { key: 'rebelDamageMultiplier', label: 'Rebel Damage Multiplier', min: 0, max: 3.0, step: 0.1 },
-  { key: 'kidneyAutoFilterRate', label: 'Kidney Auto-Filter Rate (%/s)', min: 0, max: 5.0, step: 0.1 },
-  { key: 'liverReleaseRate', label: 'Liver Glucose Release Speed', min: 0.1, max: 3.0, step: 0.1 },
-  { key: 'liverInitialStorage', label: 'Liver Initial Glucose Reserve', min: 0, max: 200, step: 10 },
-  { key: 'insulinCharges', label: 'Insulin Injection Charges (0=unlimited)', min: 0, max: 30, step: 1 },
+  { key: 'insulinProductionRate', label: 'Insulin Production Rate (priest spawn speed)', min: 0, max: 2, step: 0.05 },
+  { key: 'insulinSensitivity', label: 'Insulin Sensitivity (priest convert chance)', min: 0.1, max: 1.5, step: 0.05 },
+  { key: 'startingDegradation', label: 'Starting IR Level (0=healthy, 4=severe)', min: 0, max: 5, step: 1 },
+  { key: 'degradationEnabled', label: 'Degradation On/Off (IR progression)', min: 0, max: 1, step: 1 },
+  { key: 'liverStorageMultiplier', label: 'Liver Storage (glycogen capacity)', min: 0.5, max: 2.0, step: 0.1 },
+  { key: 'energyStartMultiplier', label: 'Starting Energy (initial ATP)', min: 0.5, max: 2.0, step: 0.1 },
+  { key: 'energyDrainMultiplier', label: 'Energy Drain (basal metabolism)', min: 0.1, max: 2.0, step: 0.1 },
+  { key: 'rebelDamageMultiplier', label: 'Rebel Damage (building DPS)', min: 0, max: 3.0, step: 0.1 },
+  { key: 'kidneyAutoFilterRate', label: 'Kidney Filter Rate (auto-flush speed)', min: 0, max: 5.0, step: 0.1 },
+  { key: 'liverReleaseRate', label: 'Liver Release Speed (glycogenolysis)', min: 0.1, max: 3.0, step: 0.1 },
+  { key: 'liverInitialStorage', label: 'Liver Initial Reserve (starting glycogen)', min: 0, max: 200, step: 10 },
+  { key: 'insulinCharges', label: 'Insulin Charges (0=unlimited, T1D injections)', min: 0, max: 30, step: 1 },
 ];
 
 const STORAGE_PREFIX = 'glucodefense_balance_patient_';

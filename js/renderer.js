@@ -9,6 +9,9 @@ import { calculateBG } from './systems/bgSystem.js';
 let ctx = null;
 let canvas = null;
 let _musclesLabelRect = null;
+let _liverLabelRect = null;
+let _pancreasLabelRect = null;
+let _kidneysLabelRect = null;
 
 export function initRenderer(canvasEl) {
   canvas = canvasEl;
@@ -156,10 +159,19 @@ function drawCastle() {
       ctx.fillRect(x, sprY - 8, size.w * repairPct, 4);
     }
 
-    // Label below
+    // Label below (still tracks hover for consistency)
+    const destLiverLabelY = sprY + sprH + 8;
     ctx.fillStyle = C.WHITE;
     ctx.font = 'bold 13px Arial';
-    ctx.fillText('Liver', pos.x, sprY + sprH + 8);
+    ctx.textAlign = 'center';
+    ctx.fillText('Liver', pos.x, destLiverLabelY);
+    const destLiverTextW = ctx.measureText('Liver').width + 10;
+    _liverLabelRect = {
+      x: pos.x - destLiverTextW / 2,
+      y: destLiverLabelY - 14,
+      w: destLiverTextW,
+      h: 18,
+    };
     return;
   }
 
@@ -171,11 +183,29 @@ function drawCastle() {
     roundRect(x, y, size.w, size.h, 8);
   }
 
-  // Under attack flash
-  if (liver && liver.hp < liver.maxHp) {
-    const flash = 0.2 + 0.3 * Math.sin(Date.now() / 120);
-    ctx.fillStyle = `rgba(231, 76, 60, ${flash})`;
-    ctx.fillRect(sprX + 4, sprY + 4, sprW - 8, sprH - 8);
+  // Liver storage plaque ON the building (like kidneys)
+  if (liver) {
+    const gpu = CONFIG.GLUCOSE_PER_UNIT;
+    const storage = liver.storage;
+    const maxStorage = liver.maxStorage;
+    const pct = maxStorage > 0 ? storage / maxStorage : 0;
+
+    const plaqueW = sprW * 0.45;
+    const plaqueH = 28;
+    const plaqueX = pos.x - plaqueW / 2;
+    const plaqueY = pos.y - plaqueH / 2 + 10;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(plaqueX, plaqueY, plaqueW, plaqueH);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(plaqueX, plaqueY, plaqueW, plaqueH);
+
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 11px Arial';
+    ctx.fillStyle = pct >= CONFIG.LIVER_OVERFLOW_THRESHOLD ? '#E74C3C'
+      : pct >= 0.5 ? '#F39C12' : '#2ECC71';
+    ctx.fillText(`${storage * gpu}/${maxStorage * gpu}`, pos.x, plaqueY + 18);
   }
 
   // Roof glucose sprites (visible on top of castle)
@@ -193,17 +223,7 @@ function drawCastle() {
       }
     }
 
-    // Overflow flash
-    const storage = liver.storage;
-    const maxStorage = liver.maxStorage;
-    if (storage / maxStorage >= 0.85) {
-      const flash = 0.3 + 0.4 * Math.sin(Date.now() / 200);
-      ctx.strokeStyle = `rgba(231, 76, 60, ${flash})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.roundRect(sprX, sprY, sprW, sprH, 4);
-      ctx.stroke();
-    }
+    // Overflow indicator removed — storage counter is sufficient
   }
 
   // HP bar ABOVE
@@ -215,18 +235,33 @@ function drawCastle() {
     ctx.fillRect(x, sprY - 8, size.w * hpPct, 4);
   }
 
-  // Label BELOW
-  ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 13px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('Liver', pos.x, sprY + sprH + 8);
+  // Label BELOW (with hover detection)
+  const liverLabelY = sprY + sprH + 8;
+  const isLiverHovered = _liverLabelRect &&
+    gameState.mouseX >= _liverLabelRect.x &&
+    gameState.mouseX <= _liverLabelRect.x + _liverLabelRect.w &&
+    gameState.mouseY >= _liverLabelRect.y &&
+    gameState.mouseY <= _liverLabelRect.y + _liverLabelRect.h;
 
-  // Storage counter (display in mg/dL equivalents)
-  const storage = liver ? liver.storage : 0;
-  const maxStorage = liver ? liver.maxStorage : 100;
-  const gpu = CONFIG.GLUCOSE_PER_UNIT;
-  ctx.font = '11px Arial';
-  ctx.fillText(`${storage * gpu}/${maxStorage * gpu}`, pos.x, sprY + sprH + 22);
+  ctx.textAlign = 'center';
+  if (isLiverHovered) {
+    ctx.font = 'bold 15px Arial';
+    ctx.fillStyle = C.GOLD;
+    gameState.hoveredBuilding = 'liver';
+  } else {
+    ctx.font = 'bold 13px Arial';
+    ctx.fillStyle = C.WHITE;
+  }
+  ctx.fillText('Liver', pos.x, liverLabelY);
+  const liverTextW = ctx.measureText('Liver').width + 10;
+  _liverLabelRect = {
+    x: pos.x - liverTextW / 2,
+    y: liverLabelY - 14,
+    w: liverTextW,
+    h: 18,
+  };
+
+  // Storage counter moved to plaque ON the building
 }
 
 // --- Pancreas ---
@@ -279,11 +314,31 @@ function drawPancreas() {
     ctx.fillRect(sprX + shakeX + 4, sprY + shakeY + 4, sprW - 8, sprH - 8);
   }
 
-  // Label BELOW
-  ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 13px Arial';
+  // Label BELOW (with hover detection)
+  const pancLabelY = sprY + sprH + 8 + shakeY;
+  const isPancHovered = _pancreasLabelRect &&
+    gameState.mouseX >= _pancreasLabelRect.x &&
+    gameState.mouseX <= _pancreasLabelRect.x + _pancreasLabelRect.w &&
+    gameState.mouseY >= _pancreasLabelRect.y &&
+    gameState.mouseY <= _pancreasLabelRect.y + _pancreasLabelRect.h;
+
   ctx.textAlign = 'center';
-  ctx.fillText('Pancreas', pos.x + shakeX, sprY + sprH + 8 + shakeY);
+  if (isPancHovered) {
+    ctx.font = 'bold 15px Arial';
+    ctx.fillStyle = C.GOLD;
+    gameState.hoveredBuilding = 'pancreas';
+  } else {
+    ctx.font = 'bold 13px Arial';
+    ctx.fillStyle = C.WHITE;
+  }
+  ctx.fillText('Pancreas', pos.x + shakeX, pancLabelY);
+  const pancTextW = ctx.measureText('Pancreas').width + 10;
+  _pancreasLabelRect = {
+    x: pos.x + shakeX - pancTextW / 2,
+    y: pancLabelY - 14,
+    w: pancTextW,
+    h: 18,
+  };
 
   // Degradation level with descriptive label
   const degLabels = [
@@ -338,9 +393,7 @@ function drawKidneys() {
     }
 
     // Label BELOW
-    ctx.fillStyle = C.WHITE;
-    ctx.font = 'bold 13px Arial';
-    ctx.fillText('Kidneys', pos.x, sprY + sprH + 8);
+    _drawKidneyLabel(pos, sprY + sprH + 8, C);
     return;
   }
 
@@ -369,11 +422,8 @@ function drawKidneys() {
     ctx.fillRect(pos.x - r, sprY - 8, r * 2 * hpPct, 4);
   }
 
-  // Label BELOW
-  ctx.fillStyle = C.WHITE;
-  ctx.font = 'bold 13px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('Kidneys', pos.x, sprY + sprH + 8);
+  // Label BELOW (with hover detection)
+  _drawKidneyLabel(pos, sprY + sprH + 8, C);
 
   // Kidney status plaque ON the building
   if (kidneys && !kidneys.destroyed) {
@@ -438,6 +488,32 @@ function drawKidneys() {
   }
 }
 
+function _drawKidneyLabel(pos, labelY, C) {
+  const isKidHovered = _kidneysLabelRect &&
+    gameState.mouseX >= _kidneysLabelRect.x &&
+    gameState.mouseX <= _kidneysLabelRect.x + _kidneysLabelRect.w &&
+    gameState.mouseY >= _kidneysLabelRect.y &&
+    gameState.mouseY <= _kidneysLabelRect.y + _kidneysLabelRect.h;
+
+  ctx.textAlign = 'center';
+  if (isKidHovered) {
+    ctx.font = 'bold 15px Arial';
+    ctx.fillStyle = C.GOLD;
+    gameState.hoveredBuilding = 'kidneys';
+  } else {
+    ctx.font = 'bold 13px Arial';
+    ctx.fillStyle = C.WHITE;
+  }
+  ctx.fillText('Kidneys', pos.x, labelY);
+  const kidTextW = ctx.measureText('Kidneys').width + 10;
+  _kidneysLabelRect = {
+    x: pos.x - kidTextW / 2,
+    y: labelY - 14,
+    w: kidTextW,
+    h: 18,
+  };
+}
+
 // --- Mines (9 mines with visual slots) ---
 
 function drawMines() {
@@ -486,7 +562,7 @@ function drawMines() {
         ctx.fillRect(x - hw, y - hh - 4, size.w * repairPct, 3);
       }
     } else {
-      // Activity glow (exercise or walk)
+      // Activity icon + glow (exercise or walk)
       if ((exerciseActive || walkActive) && workerCount > 0) {
         const pulse = 6 + 3 * Math.sin(Date.now() / 300);
         ctx.save();
@@ -495,14 +571,25 @@ function drawMines() {
         ctx.fillStyle = 'rgba(243, 156, 18, 0.15)';
         ctx.fillRect(sprX - 2, sprY - 2, sprW + 4, sprH + 4);
         ctx.restore();
+
+        // Pulsing activity icon above mine
+        const iconPulse = 0.7 + 0.3 * Math.sin(Date.now() / 250);
+        const iconScale = 0.9 + 0.2 * Math.sin(Date.now() / 350);
+        ctx.save();
+        ctx.globalAlpha = iconPulse;
+        ctx.font = `bold ${Math.round(18 * iconScale)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#F39C12';
+        ctx.fillText(exerciseActive ? '\u{1F3CB}' : '\u{1F6B6}', x, y - hh - 6);
+        ctx.restore();
       }
 
       // Mine sprite (active or inactive) — with scale pulse on glucose entry
       const mineKey = workerCount > 0 ? 'bld_mine_active' : 'bld_mine_inactive';
       const hasPulse = mine.pulseTimer > 0;
       if (hasPulse) {
-        const t = mine.pulseTimer / 0.4;
-        const scale = 1 + 0.15 * t;
+        const t = mine.pulseTimer / 0.6;
+        const scale = 1 + 0.25 * t;
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(scale, scale);
@@ -526,8 +613,8 @@ function drawMines() {
         ctx.fillRect(sprX, sprY, sprW, sprH);
       }
 
-      // Visual slots (circles below mine)
-      _drawMineSlots(x, y + hh + 6, maxSlots, workerCount, exerciseActive);
+      // Visual slots (progress bar below mine)
+      _drawMineSlots(x, y + hh + 1, maxSlots, workerCount, exerciseActive);
     }
   }
 
