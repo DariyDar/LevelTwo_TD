@@ -324,14 +324,7 @@ function pushEntitiesFromMines() {
     _pushFromMines(pr, hw, hh);
   }
 
-  // Push idle/returning knights away from mines (smaller collider — peasant-sized)
-  const kHw = CONFIG.PEASANT_RADIUS + 2;
-  const kHh = CONFIG.PEASANT_RADIUS + 2;
-  for (const k of gameState.knights) {
-    if (!k.alive) continue;
-    if (k.state === 'escorting' || k.state === 'walking_to_peasant') continue;
-    _pushFromMines(k, kHw, kHh);
-  }
+  // Knights are not pushed from mines — they need free movement across the map
 }
 
 function _pushFromMines(entity, hw, hh) {
