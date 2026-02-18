@@ -7,7 +7,7 @@ import { findLeastFilledMine } from './buildings/Mine.js';
 import { initRenderer, render as renderMap, renderMinesOverlay, nextMealBtnRect } from './renderer.js';
 import { initEntityRenderer, renderEntities } from './rendererEntities.js';
 import { initUIRenderer, renderUI, renderPausedOverlay, restartButtonRect, speedButtonRects, menuButtonRect } from './rendererUI.js';
-import { initEffectsRenderer, renderEffects } from './rendererEffects.js';
+import { initEffectsRenderer, renderEffects, renderFlyIcons } from './rendererEffects.js';
 import { updateWaveManager, loadLevel, triggerNextWave, triggerEarlyWave, formatVirtualTime } from './systems/waveManager.js';
 import { updateEnergy } from './systems/energySystem.js';
 import { calculateBG } from './systems/bgSystem.js';
@@ -101,6 +101,7 @@ export function startDay(patientId, dayId, levelRef) {
   }
 
   resetGameState();
+  initCamera();
 
   // Store patient and day info
   gameState.currentPatientId = patientId;
@@ -492,6 +493,7 @@ function gameLoop(timestamp) {
     renderMinesOverlay();  // Buildings rendered ABOVE entities
     renderEffects();
     resetCamera(ctx);
+    renderFlyIcons();
     renderUI();
     renderGameOver();
   } else {
@@ -499,6 +501,7 @@ function gameLoop(timestamp) {
     renderMinesOverlay();  // Buildings rendered ABOVE entities
     renderEffects();
     resetCamera(ctx);
+    renderFlyIcons();
 
     // UI rendering (screen space — no camera)
     renderUI();

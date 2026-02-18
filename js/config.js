@@ -72,7 +72,7 @@ export const CONFIG = {
   MINE_TOTAL_COUNT: 10,
   MINE_HP: 80,
   MINE_REPAIR_TIME: 12,
-  MINE_ENERGY_PER_WORKER: 0.65,
+  MINE_ENERGY_PER_WORKER: 0.75,
 
   // Speeds (px/sec)
   SPEED_VERY_FAST: 120,
@@ -86,7 +86,7 @@ export const CONFIG = {
   REBEL_HP: 80,
   REBEL_HP_DECAY: 1.0,
   REBEL_BUILDING_DPS: 5,
-  WORKER_LIFETIME: 45,
+  WORKER_LIFETIME: 30,
 
   // Priest
   PRIEST_CAST_TIME: 2,
@@ -192,7 +192,7 @@ export const CONFIG = {
   REBELS_ATTACK_PANCREAS: 16,
 
   // Basal energy drain
-  ENERGY_BASAL_DRAIN: 14,
+  ENERGY_BASAL_DRAIN: 10,
 
   // Interventions
   FAST_INSULIN_COST: 60,

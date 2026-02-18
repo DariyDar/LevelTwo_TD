@@ -211,6 +211,20 @@ export class Knight {
     // Absorb when at liver — knight survives and returns home
     if (dist <= 10) {
       liver.addToRoof(this.target.speedCategory);
+
+      // Explosion effect (same as semaglutide)
+      gameState.effects.push({
+        type: 'semaglutide_explosion',
+        x: this.target.x,
+        y: this.target.y,
+        timer: 0.5,
+        maxTimer: 0.5,
+        particles: Array.from({ length: 8 }, () => ({
+          dx: (Math.random() - 0.5) * 120,
+          dy: (Math.random() - 0.5) * 120,
+        })),
+      });
+
       this.target.alive = false;
       this.target.assignedKnight = null;
       this.target = null;
