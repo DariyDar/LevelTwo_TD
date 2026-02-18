@@ -317,79 +317,101 @@ function drawFoodPalette(C, W) {
 
   let curY = FOOD_PALETTE_Y;
 
-  for (const category of FOOD_CATEGORIES) {
-    // Category label
+  // Build list of food keys to display — use level's availableFoods if defined
+  const levelFoods = gameState.levelConfig && gameState.levelConfig.availableFoods;
+  const foodKeysToShow = levelFoods || FOOD_CATEGORIES.flatMap(c => c.keys);
+
+  if (levelFoods) {
+    // Flat list — no category headers
     ctx.font = 'bold 12px Arial';
-    ctx.fillStyle = category.color;
+    ctx.fillStyle = '#BDC3C7';
     ctx.textAlign = 'left';
-    ctx.fillText(category.label, 20, curY);
+    ctx.fillText('Available Food:', 20, curY);
     curY += 6;
 
     let col = 0;
-    for (const key of category.keys) {
+    for (const key of foodKeysToShow) {
       const f = FOODS[key];
       if (!f) continue;
-
-      const cx = 20 + col * (FOOD_ITEM_W + FOOD_GAP);
-      const isUsed = usedKeys.has(key);
-      const isSelected = selectedItem && selectedItem.type === 'food' && selectedItem.key === key;
-
-      // Item background
-      if (isUsed) {
-        ctx.fillStyle = 'rgba(30, 30, 40, 0.5)';
-        ctx.strokeStyle = '#2C3E50';
-      } else if (isSelected) {
-        ctx.fillStyle = 'rgba(241, 196, 15, 0.3)';
-        ctx.strokeStyle = '#F1C40F';
-      } else {
-        ctx.fillStyle = 'rgba(40, 50, 70, 0.8)';
-        ctx.strokeStyle = '#3D5A6E';
-      }
-      ctx.lineWidth = isSelected ? 2 : 1;
-      ctx.beginPath();
-      ctx.roundRect(cx, curY, FOOD_ITEM_W, FOOD_ITEM_H, 5);
-      ctx.fill();
-      ctx.stroke();
-
-      // Emoji
-      ctx.font = '22px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = isUsed ? 'rgba(255,255,255,0.3)' : C.WHITE;
-      ctx.fillText(f.emoji, cx + FOOD_ITEM_W / 2, curY + 25);
-
-      // Name
-      ctx.font = '9px Arial';
-      ctx.fillStyle = isUsed ? '#4A5568' : '#BDC3C7';
-      const shortName = f.name.length > 11 ? f.name.substring(0, 10) + '\u2026' : f.name;
-      ctx.fillText(shortName, cx + FOOD_ITEM_W / 2, curY + 40);
-
-      // Count + speed indicator
-      ctx.font = '10px Arial';
-      if (isUsed) {
-        ctx.fillStyle = '#5D6D7E';
-        ctx.fillText('Used', cx + FOOD_ITEM_W / 2, curY + 55);
-      } else {
-        ctx.fillStyle = f.speed === 'fast' || f.speed === 'very_fast' ? '#E74C3C' :
-                        f.speed === 'slow' ? '#2ECC71' : '#F1C40F';
-        ctx.fillText(`${f.count * CONFIG.GLUCOSE_PER_UNIT}g`, cx + FOOD_ITEM_W / 2, curY + 55);
-      }
-
-      foodItemRects.push({ x: cx, y: curY, w: FOOD_ITEM_W, h: FOOD_ITEM_H, key, used: isUsed });
-
+      _drawFoodItem(C, key, f, usedKeys, col, curY);
       col++;
       if (col >= FOOD_COLS) {
         col = 0;
         curY += FOOD_ITEM_H + FOOD_GAP;
       }
     }
+  } else {
+    // Full categorized display (fallback)
+    for (const category of FOOD_CATEGORIES) {
+      ctx.font = 'bold 12px Arial';
+      ctx.fillStyle = category.color;
+      ctx.textAlign = 'left';
+      ctx.fillText(category.label, 20, curY);
+      curY += 6;
 
-    // Move to next row after category
-    if (col > 0) {
-      curY += FOOD_ITEM_H + FOOD_GAP;
-      col = 0;
+      let col = 0;
+      for (const key of category.keys) {
+        const f = FOODS[key];
+        if (!f) continue;
+        _drawFoodItem(C, key, f, usedKeys, col, curY);
+        col++;
+        if (col >= FOOD_COLS) {
+          col = 0;
+          curY += FOOD_ITEM_H + FOOD_GAP;
+        }
+      }
+
+      if (col > 0) {
+        curY += FOOD_ITEM_H + FOOD_GAP;
+        col = 0;
+      }
+      curY += 4;
     }
-    curY += 4; // gap between categories
   }
+}
+
+function _drawFoodItem(C, key, f, usedKeys, col, curY) {
+  const cx = 20 + col * (FOOD_ITEM_W + FOOD_GAP);
+  const isUsed = usedKeys.has(key);
+  const isSelected = selectedItem && selectedItem.type === 'food' && selectedItem.key === key;
+
+  if (isUsed) {
+    ctx.fillStyle = 'rgba(30, 30, 40, 0.5)';
+    ctx.strokeStyle = '#2C3E50';
+  } else if (isSelected) {
+    ctx.fillStyle = 'rgba(241, 196, 15, 0.3)';
+    ctx.strokeStyle = '#F1C40F';
+  } else {
+    ctx.fillStyle = 'rgba(40, 50, 70, 0.8)';
+    ctx.strokeStyle = '#3D5A6E';
+  }
+  ctx.lineWidth = isSelected ? 2 : 1;
+  ctx.beginPath();
+  ctx.roundRect(cx, curY, FOOD_ITEM_W, FOOD_ITEM_H, 5);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.font = '22px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = isUsed ? 'rgba(255,255,255,0.3)' : C.WHITE;
+  ctx.fillText(f.emoji, cx + FOOD_ITEM_W / 2, curY + 25);
+
+  ctx.font = '9px Arial';
+  ctx.fillStyle = isUsed ? '#4A5568' : '#BDC3C7';
+  const shortName = f.name.length > 11 ? f.name.substring(0, 10) + '\u2026' : f.name;
+  ctx.fillText(shortName, cx + FOOD_ITEM_W / 2, curY + 40);
+
+  ctx.font = '10px Arial';
+  if (isUsed) {
+    ctx.fillStyle = '#5D6D7E';
+    ctx.fillText('Used', cx + FOOD_ITEM_W / 2, curY + 55);
+  } else {
+    ctx.fillStyle = f.speed === 'fast' || f.speed === 'very_fast' ? '#E74C3C' :
+                    f.speed === 'slow' ? '#2ECC71' : '#F1C40F';
+    ctx.fillText(`${f.count * CONFIG.GLUCOSE_PER_UNIT}g`, cx + FOOD_ITEM_W / 2, curY + 55);
+  }
+
+  foodItemRects.push({ x: cx, y: curY, w: FOOD_ITEM_W, h: FOOD_ITEM_H, key, used: isUsed });
 }
 
 function drawInterventionPalette(C, W) {

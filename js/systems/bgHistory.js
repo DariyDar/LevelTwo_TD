@@ -12,6 +12,12 @@ export function initBGHistory() {
   gameState.bgEventLog = [];
   gameState.energyHistory = [];
   gameState.bgSampleTimer = 0;
+
+  // Seed initial sample so BG graph is visible from frame 1
+  const hour = getVirtualHour();
+  const bg = calculateBG();
+  gameState.bgHistory.push({ hour, bg });
+  gameState.energyHistory.push({ hour, energy: gameState.energy });
 }
 
 export function updateBGHistory(dt) {

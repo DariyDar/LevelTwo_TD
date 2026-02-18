@@ -8,6 +8,9 @@ export const level4 = {
   description: 'Degradation carries over. Manage stress eating.',
   mineCount: 10,
 
+  // 5 foods available (stress eating — comfort food + some healthy)
+  availableFoods: ['chocolate', 'fries', 'stew', 'yogurt', 'rice'],
+
   interventions: {
     exercise: true,
     semaglutide: { charges: 1 },

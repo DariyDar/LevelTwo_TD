@@ -8,6 +8,9 @@ export const level3 = {
   description: 'Survive the temptations of a birthday celebration.',
   mineCount: 10,
 
+  // 5 foods available (party — cake, sweets, some balance)
+  availableFoods: ['muffin', 'iceCream', 'pizza', 'cheese', 'fish'],
+
   interventions: {
     exercise: true,
     semaglutide: { charges: 1 },

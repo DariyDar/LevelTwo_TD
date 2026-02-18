@@ -8,6 +8,9 @@ export const level2 = {
   description: 'Navigate temptation at work.',
   mineCount: 10,
 
+  // 5 foods available (office — sandwiches, pasta, some temptation)
+  availableFoods: ['sandwich', 'pasta', 'banana', 'salad', 'burger'],
+
   interventions: {
     exercise: false,
     semaglutide: { charges: 1 },

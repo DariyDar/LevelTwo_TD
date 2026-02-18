@@ -8,6 +8,9 @@ export const level5 = {
   description: 'Significant degradation. Use all tools wisely.',
   mineCount: 10,
 
+  // 5 foods available (all tools — mixed difficulty, must choose wisely)
+  availableFoods: ['turkey', 'veggies', 'cereal', 'cola', 'cookie'],
+
   interventions: {
     exercise: true,
     semaglutide: { charges: 2 },

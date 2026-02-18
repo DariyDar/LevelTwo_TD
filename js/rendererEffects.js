@@ -207,19 +207,24 @@ function renderSemaglutideMines() {
   const rockSprite = getSprite('fx_rock');
 
   for (const mine of gameState.semaglutideMines) {
+    // Fade out in last 5 seconds of lifetime
+    const fadeAlpha = Math.min(1, mine.timer / 5);
     const size = 36;
     const half = size / 2;
 
     if (rockSprite) {
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha;
       ctx.drawImage(rockSprite.img, 0, 0, rockSprite.frameW, rockSprite.frameH,
         mine.x - half, mine.y - half, size, size);
+      ctx.restore();
     } else {
       // Fallback: gray rock circle
       ctx.beginPath();
       ctx.arc(mine.x, mine.y, 8, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(120, 120, 120, 1)';
+      ctx.fillStyle = `rgba(120, 120, 120, ${fadeAlpha})`;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(80, 80, 80, 1)';
+      ctx.strokeStyle = `rgba(80, 80, 80, ${fadeAlpha})`;
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -228,7 +233,7 @@ function renderSemaglutideMines() {
     const pulse = 0.15 + 0.1 * Math.sin(Date.now() / 400 + mine.x);
     ctx.beginPath();
     ctx.arc(mine.x, mine.y, 15, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(230, 126, 34, ${pulse})`;
+    ctx.strokeStyle = `rgba(230, 126, 34, ${fadeAlpha * pulse})`;
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
     ctx.stroke();

@@ -75,6 +75,11 @@ function updateSemaglutideMines(dt) {
 
   for (let i = mines.length - 1; i >= 0; i--) {
     const mine = mines[i];
+    mine.timer -= dt;
+    if (mine.timer <= 0) {
+      mines.splice(i, 1);
+      continue;
+    }
 
     // Check collision with glucose peasants (mine persists, glucose dies)
     for (const p of gameState.peasants) {
@@ -277,8 +282,8 @@ export function activateSemaglutide() {
     gameState.semaglutideMines.push({
       x: xMin + Math.random() * (xMax - xMin),
       y: yMin + Math.random() * (yMax - yMin),
-      timer: CONFIG.SEMAGLUTIDE_MINE_DURATION,
-      maxTimer: CONFIG.SEMAGLUTIDE_MINE_DURATION,
+      timer: (CONFIG.SEMAGLUTIDE_MINE_DURATION_HOURS * 60) / CONFIG.DAY_SPEED,
+      maxTimer: (CONFIG.SEMAGLUTIDE_MINE_DURATION_HOURS * 60) / CONFIG.DAY_SPEED,
     });
   }
 

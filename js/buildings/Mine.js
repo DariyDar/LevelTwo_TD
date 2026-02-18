@@ -77,7 +77,6 @@ export class Mine {
     if (this.freeSlots <= 0 || !this.isOperational) return false;
     this.workers.push(peasant);
     peasant.assignToMine(this);
-    this.pulseTimer = 0.6; // scale pulse when glucose enters
     return true;
   }
 

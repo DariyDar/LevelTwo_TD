@@ -171,6 +171,7 @@ export class Peasant {
       this.x = this.assignedMine.x;
       this.y = this.assignedMine.y;
       this.state = PeasantState.WORKER;
+      this.assignedMine.pulseTimer = 0.6; // pulse when glucose physically enters
       return;
     }
     this.moveToward(this.targetX, this.targetY, dt);

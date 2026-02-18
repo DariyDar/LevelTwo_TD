@@ -8,6 +8,9 @@ export const level1 = {
   description: 'Learn the basics of glucose metabolism.',
   mineCount: 10,
 
+  // 5 foods available in planning palette (tutorial — simple healthy choices)
+  availableFoods: ['oatmeal', 'chicken', 'apple', 'eggs', 'bread'],
+
   interventions: {
     exercise: false,
     semaglutide: { charges: 0 },
