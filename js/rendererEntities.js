@@ -262,7 +262,7 @@ function drawPriestFallback(pr) {
 }
 
 function drawKnight(k) {
-  const size = CONFIG.SPRITE_SIZE_PRIEST;
+  const size = CONFIG.SPRITE_SIZE_KNIGHT;
 
   // Determine sprite key based on state
   let targetKey = 'warrior_idle';
