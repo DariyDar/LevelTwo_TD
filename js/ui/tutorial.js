@@ -28,7 +28,7 @@ const TUTORIAL_STEPS = {
       phase: 'planning',
       trigger: () => true,
       spotlight: { x: 50, y: 90, w: 1180, h: 120 },
-      text: 'This is the Planning Screen. Here you can schedule meals and interventions for the day. We\'ll come back to this later — for now, just press Start!',
+      text: 'Meals are pre-set for this day. See them on the timeline above. Each meal will deliver glucose to your bloodstream at the scheduled time.',
       pointer: null,
       pauseGame: false,
     },

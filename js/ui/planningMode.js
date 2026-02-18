@@ -143,15 +143,21 @@ export function renderPlanningMode() {
 
   if (fixedMode) {
     ensureFixedMealsPlan();
+    ctx.font = '12px Arial';
+    ctx.fillStyle = '#7F8C8D';
+    ctx.fillText('Meals are pre-set for this day. You can add interventions below.', W / 2, 90);
+  } else {
+    ctx.font = '12px Arial';
+    ctx.fillStyle = '#95A5A6';
+    ctx.fillText('Click food/intervention, then click timeline to place. Right-click timeline to remove.', W / 2, 90);
   }
-
-  ctx.font = '12px Arial';
-  ctx.fillStyle = '#95A5A6';
-  ctx.fillText('Click food/intervention, then click timeline to place. Right-click timeline to remove.', W / 2, 90);
 
   drawBackButton(C);
   drawTimeline(C, W);
-  drawFoodPalette(C, W);
+
+  if (!fixedMode) {
+    drawFoodPalette(C, W);
+  }
 
   drawInterventionPalette(C, W);
   drawStartButton(C, W, H);
@@ -395,7 +401,8 @@ function drawFoodPalette(C, W) {
 function drawInterventionPalette(C, W) {
   ivItemRects = [];
 
-  const palY = IV_PALETTE_Y;
+  // Move intervention palette up if food palette is hidden (fixed meals mode)
+  const palY = isFixedMealsDay() ? 240 : IV_PALETTE_Y;
 
   ctx.fillStyle = C.WHITE;
   ctx.font = 'bold 12px Arial';
@@ -520,11 +527,16 @@ function handleClick(e) {
     return;
   }
 
+  const fixedMode = isFixedMealsDay();
+
   // Check timeline click (place selected item)
   if (selectedItem && my >= TIMELINE_Y && my <= TIMELINE_Y + TIMELINE_H && mx >= MARGIN_L && mx <= CONFIG.CANVAS_WIDTH - MARGIN_R) {
     const hour = xToHour(mx);
     if (hour >= START_HOUR && hour <= END_HOUR) {
       if (selectedItem.type === 'food') {
+        // Block food placement in fixed meals mode
+        if (fixedMode) return;
+
         // Single-use check: skip if already used in plan
         const usedKeys = getUsedFoodKeys();
         if (usedKeys.has(selectedItem.key)) return;
@@ -540,29 +552,27 @@ function handleClick(e) {
         // Deselect after placing (since it's single-use)
         selectedItem = null;
       } else if (selectedItem.type === 'intervention') {
-        // Prevent overlap: minimum 0.5h gap between interventions
-        const tooClose = plan.interventions.some(iv => Math.abs(iv.hour - hour) < 0.5);
-        if (!tooClose) {
-          plan.interventions.push({
-            type: selectedItem.key,
-            hour,
-            dose: selectedItem.dose,
-            executed: false,
-          });
-          plan.interventions.sort((a, b) => a.hour - b.hour);
-        }
+        plan.interventions.push({
+          type: selectedItem.key,
+          hour,
+          dose: selectedItem.dose,
+          executed: false,
+        });
+        plan.interventions.sort((a, b) => a.hour - b.hour);
         // Keep selected for rapid placement (interventions can repeat)
       }
       return;
     }
   }
 
-  // Check food palette click
-  for (const fr of foodItemRects) {
-    if (fr.used) continue; // Can't select used foods
-    if (mx >= fr.x && mx <= fr.x + fr.w && my >= fr.y && my <= fr.y + fr.h) {
-      selectedItem = { type: 'food', key: fr.key };
-      return;
+  // Check food palette click (hidden in fixed meals mode, but guard anyway)
+  if (!fixedMode) {
+    for (const fr of foodItemRects) {
+      if (fr.used) continue; // Can't select used foods
+      if (mx >= fr.x && mx <= fr.x + fr.w && my >= fr.y && my <= fr.y + fr.h) {
+        selectedItem = { type: 'food', key: fr.key };
+        return;
+      }
     }
   }
 
@@ -616,6 +626,9 @@ function handleRightClick(e) {
     const ivRowY = TIMELINE_Y + 48;
 
     if (my < ivRowY) {
+      // Block meal removal in fixed meals mode
+      if (isFixedMealsDay()) return;
+
       // Remove nearest meal
       let closest = -1;
       let closestDist = Infinity;

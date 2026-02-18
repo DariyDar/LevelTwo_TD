@@ -193,7 +193,7 @@ function drawCastle() {
     const plaqueW = sprW * 0.45;
     const plaqueH = 28;
     const plaqueX = pos.x - plaqueW / 2;
-    const plaqueY = pos.y - plaqueH / 2 + 40;
+    const plaqueY = pos.y - plaqueH / 2 + 10;
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
     ctx.fillRect(plaqueX, plaqueY, plaqueW, plaqueH);
@@ -632,12 +632,12 @@ function drawMines() {
 
   ctx.textAlign = 'center';
   if (isHoveredLabel) {
-    ctx.font = 'bold 15px Arial';
-    ctx.fillStyle = CONFIG.COLORS.GOLD;
+    ctx.font = 'bold 13px Arial';
+    ctx.fillStyle = CONFIG.COLORS.PURPLE;
     gameState.hoveredBuilding = 'mines';
   } else {
-    ctx.font = 'bold 13px Arial';
-    ctx.fillStyle = CONFIG.COLORS.WHITE;
+    ctx.font = '11px Arial';
+    ctx.fillStyle = CONFIG.COLORS.PURPLE;
   }
   ctx.fillText('Muscles', labelCenterX, labelY);
 

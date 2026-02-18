@@ -9,26 +9,6 @@ import { findLeastFilledMine } from '../buildings/Mine.js';
 import { recordEvent } from './bgHistory.js';
 import { calculateBG } from './bgSystem.js';
 import { getPatient } from '../patients/index.js';
-import { getVirtualHour } from './waveManager.js';
-
-// Add a manual intervention to the plan timeline (so it shows up as executed marker)
-function _addManualInterventionToTimeline(type, dose) {
-  const plan = gameState.currentPlan;
-  if (!plan) return;
-  const hour = getVirtualHour();
-  // Skip if planExecutor already marked this intervention (avoid duplicates)
-  const alreadyPlanned = plan.interventions.some(
-    iv => iv.type === type && iv.executed && Math.abs(iv.hour - hour) < 0.25
-  );
-  if (alreadyPlanned) return;
-  plan.interventions.push({
-    type,
-    hour,
-    dose: dose || undefined,
-    executed: true,
-  });
-  plan.interventions.sort((a, b) => a.hour - b.hour);
-}
 
 export function updateInterventions(dt) {
   const iv = gameState.interventions;
@@ -76,8 +56,13 @@ function updateSemaglutideMines(dt) {
 
   for (let i = mines.length - 1; i >= 0; i--) {
     const mine = mines[i];
+    mine.timer -= dt;
+    if (mine.timer <= 0) {
+      mines.splice(i, 1);
+      continue;
+    }
 
-    // Check collision with glucose peasants (mine persists, glucose dies)
+    // Check collision with glucose peasants
     for (const p of gameState.peasants) {
       if (!p.alive) continue;
       if (p.state === PeasantState.WORKER ||
@@ -88,13 +73,14 @@ function updateSemaglutideMines(dt) {
       const dist = dx * dx + dy * dy;
 
       if (dist < 15 * 15) {
-        // Glucose dies, mine stays (permanent barrier)
+        // Mine explodes, glucose dies
         p.alive = false;
+        mines.splice(i, 1);
 
         gameState.effects.push({
           type: 'semaglutide_explosion',
-          x: p.x,
-          y: p.y,
+          x: mine.x,
+          y: mine.y,
           timer: 0.5,
           maxTimer: 0.5,
           particles: Array.from({ length: 8 }, () => ({
@@ -102,6 +88,7 @@ function updateSemaglutideMines(dt) {
             dy: (Math.random() - 0.5) * 120,
           })),
         });
+        break;
       }
     }
   }
@@ -130,7 +117,6 @@ export function activateSpawnPriest(dose = CONFIG.PANCREAS_BONUS_COUNT) {
   }
 
   cd.priest = CONFIG.MANUAL_PRIEST_COOLDOWN;
-  _addManualInterventionToTimeline('insulin', dose);
   return true;
 }
 
@@ -187,7 +173,6 @@ export function activateWalk() {
   iv.active = true;
   iv.timer = (CONFIG.WALK_DURATION_HOURS * 60) / CONFIG.DAY_SPEED;
   recordEvent('intervention', '\u{1F6B6} Walk');
-  _addManualInterventionToTimeline('walk');
 
   // Collect convertible glucose: waiting, rebels, walking
   const targets = gameState.peasants.filter(
@@ -255,7 +240,6 @@ export function activateExercise() {
   iv.timer = (CONFIG.EXERCISE_DURATION_HOURS * 60) / CONFIG.DAY_SPEED;
   iv.cooldown = CONFIG.EXERCISE_COOLDOWN;
   recordEvent('intervention', '\u{1F3CB} Exercise');
-  _addManualInterventionToTimeline('exercise');
 
   return true;
 }
@@ -267,7 +251,6 @@ export function activateSemaglutide() {
 
   iv.charges--;
   recordEvent('intervention', '\u{1F48A} Semaglutide');
-  _addManualInterventionToTimeline('semaglutide');
 
   const xMin = CONFIG.SEMAGLUTIDE_MINE_X_MIN;
   const xMax = CONFIG.SEMAGLUTIDE_MINE_X_MAX;
@@ -293,7 +276,6 @@ export function activateDapagliflozin() {
 
   iv.charges--;
   recordEvent('intervention', '\u{1F9EA} SGLT2');
-  _addManualInterventionToTimeline('dapagliflozin');
 
   if (gameState.kidneys) {
     const kid = gameState.kidneys;
@@ -328,7 +310,6 @@ export function activateMetformin() {
   iv.active = true;
   iv.timer = CONFIG.METFORMIN_DURATION;
   recordEvent('intervention', '\u{1F48A} Metformin');
-  _addManualInterventionToTimeline('metformin');
 
   return true;
 }

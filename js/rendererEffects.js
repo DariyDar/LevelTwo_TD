@@ -88,30 +88,6 @@ function renderVisualEffects() {
   }
 }
 
-// Screen-space fly icons (rendered after resetCamera)
-export function renderFlyIcons() {
-  for (const effect of gameState.effects) {
-    if (effect.type === 'fly_icon') drawFlyIcon(effect);
-  }
-}
-
-function drawFlyIcon(effect) {
-  const progress = 1 - effect.timer / effect.maxTimer;
-  // Ease-out curve for smooth deceleration
-  const t = 1 - (1 - progress) * (1 - progress);
-  const x = effect.startX + (effect.endX - effect.startX) * t;
-  const y = effect.startY + (effect.endY - effect.startY) * t;
-
-  ctx.save();
-  ctx.globalAlpha = 1 - progress * 0.3;
-  const scale = 1 + 0.3 * Math.sin(progress * Math.PI);
-  ctx.font = `${Math.round(20 * scale)}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(effect.emoji, x, y);
-  ctx.restore();
-}
-
 function drawCastFail(effect) {
   // Red "Resistance" text floating upward
   const maxTimer = 0.8;
@@ -207,19 +183,23 @@ function renderSemaglutideMines() {
   const rockSprite = getSprite('fx_rock');
 
   for (const mine of gameState.semaglutideMines) {
+    const fadeAlpha = Math.min(1, mine.timer / 3);
     const size = 36;
     const half = size / 2;
 
     if (rockSprite) {
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha;
       ctx.drawImage(rockSprite.img, 0, 0, rockSprite.frameW, rockSprite.frameH,
         mine.x - half, mine.y - half, size, size);
+      ctx.restore();
     } else {
       // Fallback: gray rock circle
       ctx.beginPath();
       ctx.arc(mine.x, mine.y, 8, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(120, 120, 120, 1)';
+      ctx.fillStyle = `rgba(120, 120, 120, ${fadeAlpha})`;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(80, 80, 80, 1)';
+      ctx.strokeStyle = `rgba(80, 80, 80, ${fadeAlpha})`;
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -228,7 +208,7 @@ function renderSemaglutideMines() {
     const pulse = 0.15 + 0.1 * Math.sin(Date.now() / 400 + mine.x);
     ctx.beginPath();
     ctx.arc(mine.x, mine.y, 15, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(230, 126, 34, ${pulse})`;
+    ctx.strokeStyle = `rgba(230, 126, 34, ${fadeAlpha * pulse})`;
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
     ctx.stroke();
