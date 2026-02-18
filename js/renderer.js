@@ -180,7 +180,7 @@ function drawCastle() {
   // Roof glucose sprites (visible on top of castle)
   if (liver && liver.roofGlucose.length > 0) {
     const roof = CONFIG.CASTLE_ROOF;
-    const roofSpriteSize = 40;
+    const roofSpriteSize = 48;
     for (const g of liver.roofGlucose) {
       const sprKey = g.speedCategory === 'slow' ? 'pawn_yellow_run' : 'pawn_red_run';
       if (!drawStaticSprite(ctx, sprKey, g.x - roofSpriteSize / 2, g.y - roofSpriteSize / 2, roofSpriteSize, roofSpriteSize)) {

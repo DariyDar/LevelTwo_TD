@@ -54,7 +54,7 @@ export const CONFIG = {
 
   LIVER_POS: { x: 1020, y: 540 },
   LIVER_SIZE: { w: 280, h: 224 },
-  CASTLE_ROOF: { x: 880, y: 528, w: 252, h: 50 },
+  CASTLE_ROOF: { x: 920, y: 510, w: 180, h: 40 },
 
   // Mines grid (3 cols × 5 rows = 15 mines, center-left area)
   MINES_GRID: {
@@ -100,7 +100,7 @@ export const CONFIG = {
   // Pancreas (insulin — consumed on successful merge with glucose)
   PANCREAS_HP: 600,
   PANCREAS_AUTO_SPAWN_INTERVAL: [1.5, 2, 3, 5, 10],
-  PANCREAS_MAX_PRIESTS: [12, 8, 5, 3, 2],
+  PANCREAS_MAX_PRIESTS: [6, 4, 3, 2, 1],
   // GSIS: glucose-stimulated insulin secretion (BG zones → spawn speed multiplier)
   PANCREAS_BG_STIM_ZONES: [
     { threshold: 0,   multiplier: 1.0 },
@@ -112,7 +112,7 @@ export const CONFIG = {
   PANCREAS_BONUS_COUNT: 3,
 
   // Liver
-  LIVER_MAX_KNIGHTS: 5,
+  LIVER_MAX_KNIGHTS: 3,
   LIVER_KNIGHT_COST: 20,
   LIVER_AUTO_SPAWN_INTERVAL: 3,
   LIVER_BONUS_KNIGHT_COUNT: 3,
@@ -136,7 +136,7 @@ export const CONFIG = {
     { x: 750, y: 520 }, { x: 810, y: 520 },
     { x: 790, y: 500 },
   ],
-  KNIGHT_SPEED: 360,
+  KNIGHT_SPEED: 720,
   KNIGHT_SCAN_RANGE: 500,
   KNIGHT_INTERCEPT_CHANCE: 0.35,
 
@@ -196,7 +196,7 @@ export const CONFIG = {
   // Interventions
   FAST_INSULIN_COST: 60,
   FAST_INSULIN_COOLDOWN: 45,
-  FAST_INSULIN_PRIESTS: 5,
+  FAST_INSULIN_PRIESTS: 3,
   FAST_INSULIN_DURATION: 20,
 
   EXERCISE_COST: 70,

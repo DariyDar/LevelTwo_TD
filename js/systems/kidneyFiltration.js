@@ -19,6 +19,9 @@ export function updateKidneyFiltration(dt) {
     case 'eject':
       updateEject(circle, dt);
       break;
+    case 'dissolve':
+      updateDissolve(circle, dt);
+      break;
   }
 }
 
@@ -69,7 +72,7 @@ function updateExpand(circle, dt) {
 }
 
 function updateContract(circle, dt) {
-  // Move circle center toward kidneys
+  // Move circle center toward kidney tower
   const kidneyX = CONFIG.KIDNEYS_POS.x;
   const kidneyY = CONFIG.KIDNEYS_POS.y;
   const dx = kidneyX - circle.cx;
@@ -85,12 +88,12 @@ function updateContract(circle, dt) {
   // Shrink radius
   circle.radius = Math.max(10, circle.radius - CONFIG.KIDNEY_CIRCLE_EXPAND_SPEED * 0.5 * dt);
 
-  // Pull all filtering peasants toward circle center
+  // Pull all filtering peasants toward kidney tower (not circle center)
   for (const p of gameState.peasants) {
     if (!p.alive || p.state !== PeasantState.FILTERING) continue;
 
-    const px = circle.cx - p.x;
-    const py = circle.cy - p.y;
+    const px = kidneyX - p.x;
+    const py = kidneyY - p.y;
     const pDist = Math.sqrt(px * px + py * py);
 
     if (pDist > 3) {
@@ -100,38 +103,52 @@ function updateContract(circle, dt) {
     }
   }
 
-  // When circle reaches kidneys, eject
+  // When circle reaches kidneys, dissolve glucose at tower
   if (dist <= 20) {
-    circle.phase = 'eject';
+    circle.phase = 'dissolve';
+    circle.dissolveTimer = 3.0;
   }
 }
 
 function updateEject(circle, dt) {
-  // Shoot all filtering peasants to the right off-screen
-  let anyAlive = false;
+  // Legacy — redirect to dissolve
+  circle.phase = 'dissolve';
+  circle.dissolveTimer = 3.0;
+}
 
+function updateDissolve(circle, dt) {
+  // Glucose stays at kidney tower and fades out over 3 seconds
+  circle.dissolveTimer -= dt;
+
+  const kidneyX = CONFIG.KIDNEYS_POS.x;
+  const kidneyY = CONFIG.KIDNEYS_POS.y;
+
+  // Keep pulling any stray filtering peasants to the tower
   for (const p of gameState.peasants) {
     if (!p.alive || p.state !== PeasantState.FILTERING) continue;
 
-    p.x += CONFIG.KIDNEY_EJECT_SPEED * dt;
-
-    // Kill once past visible area (village edge + margin)
-    if (p.x > CONFIG.VILLAGE_X_END + 50) {
-      p.alive = false;
-
-      gameState.effects.push({
-        type: 'kidney_eject',
-        x: CONFIG.VILLAGE_X_END,
-        y: p.y,
-        timer: 0.3,
-      });
+    const px = kidneyX - p.x;
+    const py = kidneyY - p.y;
+    const pDist = Math.sqrt(px * px + py * py);
+    if (pDist > 5) {
+      p.x += (px / pDist) * 200 * dt;
+      p.y += (py / pDist) * 200 * dt;
     }
-
-    if (p.alive) anyAlive = true;
   }
 
-  // When all filtering peasants are gone, end circle
-  if (!anyAlive) {
+  // When timer expires, kill all filtering peasants
+  if (circle.dissolveTimer <= 0) {
+    for (const p of gameState.peasants) {
+      if (!p.alive || p.state !== PeasantState.FILTERING) continue;
+      p.alive = false;
+      gameState.effects.push({
+        type: 'poof',
+        x: p.x,
+        y: p.y,
+        timer: 0.6,
+        maxTimer: 0.6,
+      });
+    }
     gameState.kidneyCircle = null;
   }
 }
