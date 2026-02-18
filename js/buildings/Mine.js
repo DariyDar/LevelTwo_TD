@@ -13,6 +13,7 @@ export class Mine {
     this.repairTimer = 0;
     this.destroyed = false;
     this.plusTimer = 0; // timer for energy plus effects
+    this.pulseTimer = 0; // brief glow when glucose enters
   }
 
   get maxSlots() {
@@ -31,6 +32,7 @@ export class Mine {
   }
 
   update(dt) {
+    if (this.pulseTimer > 0) this.pulseTimer -= dt;
     if (this.destroyed) {
       this.repairTimer -= dt;
       if (this.repairTimer <= 0) {
@@ -75,6 +77,7 @@ export class Mine {
     if (this.freeSlots <= 0 || !this.isOperational) return false;
     this.workers.push(peasant);
     peasant.assignToMine(this);
+    this.pulseTimer = 0.4; // brief glow when glucose enters
     return true;
   }
 

@@ -353,7 +353,7 @@ function drawBoat(boat) {
 
   // Unload progress bar
   if (boat.state === 'unloading' && boat.totalPeasants > 0) {
-    const pct = boat.unloadedCount / boat.totalPeasants;
+    const pct = 1 - boat.unloadedCount / boat.totalPeasants;
     const barW = boatSize * 0.5;
     const barX = boat.x - barW / 2;
     const barY = boat.y + boatSize * 0.25;

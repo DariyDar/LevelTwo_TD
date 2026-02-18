@@ -6,7 +6,7 @@ export const level4 = {
   id: 4,
   name: 'Week Under Stress',
   description: 'Degradation carries over. Manage stress eating.',
-  mineCount: 15,
+  mineCount: 10,
 
   interventions: {
     exercise: true,

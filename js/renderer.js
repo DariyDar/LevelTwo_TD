@@ -496,6 +496,17 @@ function drawMines() {
         ctx.restore();
       }
 
+      // Entry pulse glow
+      if (mine.pulseTimer > 0) {
+        const t = mine.pulseTimer / 0.4;
+        ctx.save();
+        ctx.shadowColor = '#2ECC71';
+        ctx.shadowBlur = 12 * t;
+        ctx.fillStyle = `rgba(46, 204, 113, ${0.25 * t})`;
+        ctx.fillRect(sprX - 3, sprY - 3, sprW + 6, sprH + 6);
+        ctx.restore();
+      }
+
       // Mine sprite (active or inactive)
       const mineKey = workerCount > 0 ? 'bld_mine_active' : 'bld_mine_inactive';
       if (!drawStaticSprite(ctx, mineKey, sprX, sprY, sprW, sprH)) {

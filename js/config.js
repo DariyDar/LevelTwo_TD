@@ -56,11 +56,11 @@ export const CONFIG = {
   LIVER_SIZE: { w: 280, h: 224 },
   CASTLE_ROOF: { x: 920, y: 510, w: 180, h: 40 },
 
-  // Mines grid (3 cols × 5 rows = 15 mines, center-left area)
+  // Mines grid (2 cols × 5 rows = 10 mines, center area)
   MINES_GRID: {
-    startX: 430,
+    startX: 560,
     startY: 240,
-    cols: 3,
+    cols: 2,
     rows: 5,
     gapX: 130,
     gapY: 95,
@@ -69,7 +69,7 @@ export const CONFIG = {
   MINE_MAX_WORKERS: 10,
   MINE_WALK_WORKERS: 12,
   MINE_EXERCISE_WORKERS: 20,
-  MINE_TOTAL_COUNT: 15,
+  MINE_TOTAL_COUNT: 10,
   MINE_HP: 80,
   MINE_REPAIR_TIME: 12,
   MINE_ENERGY_PER_WORKER: 0.75,
