@@ -9,10 +9,10 @@ export const level2 = {
   mineCount: 10,
 
   interventions: {
-    exercise: false,
-    semaglutide: { charges: 1 },
-    dapagliflozin: { charges: 0 },
-    metformin: { charges: 0 },
+    exercise: true,
+    semaglutide: { charges: 2 },
+    dapagliflozin: { charges: 1 },
+    metformin: { charges: 1 },
   },
 
   waves: [
