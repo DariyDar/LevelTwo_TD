@@ -93,11 +93,20 @@ export class Mine {
   }
 }
 
-// Find first mine with free slots (sequential: top-left first, row by row)
+// Find the mine with the most free slots; ties broken randomly for even distribution
 export function findLeastFilledMine(mines) {
+  let bestSlots = 0;
+  const candidates = [];
   for (const mine of mines) {
     if (!mine.isOperational || mine.freeSlots <= 0) continue;
-    return mine;
+    if (mine.freeSlots > bestSlots) {
+      bestSlots = mine.freeSlots;
+      candidates.length = 0;
+      candidates.push(mine);
+    } else if (mine.freeSlots === bestSlots) {
+      candidates.push(mine);
+    }
   }
-  return null;
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }

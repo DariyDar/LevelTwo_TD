@@ -163,10 +163,17 @@ export class Peasant {
 
   _updateWalkingToMine(dt) {
     if (!this.assignedMine) return;
-    const arrived = this.moveToward(this.targetX, this.targetY, dt);
-    if (arrived) {
+    // Use generous arrival distance — close enough to mine center counts as entered
+    const dx = this.targetX - this.x;
+    const dy = this.targetY - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 15) {
+      this.x = this.assignedMine.x;
+      this.y = this.assignedMine.y;
       this.state = PeasantState.WORKER;
+      return;
     }
+    this.moveToward(this.targetX, this.targetY, dt);
   }
 
   _updateWorker(dt) {
@@ -292,10 +299,9 @@ export class Peasant {
 
   assignToMine(mine) {
     this.assignedMine = mine;
-    // Walk to bottom of mine sprite (where the door is)
-    const sprH = CONFIG.MINE_SIZE.w * (128 / 192);
-    this.targetX = mine.x;
-    this.targetY = mine.y + sprH / 2 + 4;
+    // Walk to mine center with slight random offset to avoid crowding
+    this.targetX = mine.x + (Math.random() - 0.5) * 20;
+    this.targetY = mine.y + (Math.random() - 0.5) * 20;
   }
 
   die() {
