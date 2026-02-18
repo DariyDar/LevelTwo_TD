@@ -83,15 +83,18 @@ export class Priest {
   }
 
   _findTarget() {
-    // Prioritize waiting glucose, then try rebels (insulin still works on free glucose)
+    // Prioritize waiting glucose, then walking glucose, then rebels
     let nearest = null;
     let nearestDist = Infinity;
+    let nearestWalking = null;
+    let nearestWalkingDist = Infinity;
     let nearestRebel = null;
     let nearestRebelDist = Infinity;
 
     for (const p of gameState.peasants) {
       if (!p.alive) continue;
       if (p.assignedPriest) continue;
+      if (p.assignedKnight) continue;
 
       const dx = p.x - this.x;
       const dy = p.y - this.y;
@@ -102,6 +105,11 @@ export class Priest {
           nearestDist = dist;
           nearest = p;
         }
+      } else if (p.state === PeasantState.WALKING_TO_VILLAGE) {
+        if (dist < nearestWalkingDist) {
+          nearestWalkingDist = dist;
+          nearestWalking = p;
+        }
       } else if (p.state === PeasantState.REBEL) {
         if (dist < nearestRebelDist) {
           nearestRebelDist = dist;
@@ -110,8 +118,8 @@ export class Priest {
       }
     }
 
-    // Prefer waiting glucose; fall back to rebels
-    const chosen = nearest || nearestRebel;
+    // Prefer waiting > walking > rebels
+    const chosen = nearest || nearestWalking || nearestRebel;
     if (chosen) {
       this.target = chosen;
       chosen.assignedPriest = this;
@@ -127,6 +135,7 @@ export class Priest {
 
     // If target was already converted by another priest or walk, find new target
     if (this.target.state !== PeasantState.WAITING_FOR_PRIEST &&
+        this.target.state !== PeasantState.WALKING_TO_VILLAGE &&
         this.target.state !== PeasantState.REBEL) {
       this._resetToIdle();
       return;

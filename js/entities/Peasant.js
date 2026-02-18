@@ -63,20 +63,38 @@ export class Peasant {
   }
 
   _buildWaypoints() {
-    const wp = CONFIG.WAYPOINTS;
     const zone = CONFIG.MUSCLE_ZONE;
-
-    // Spread glucose widely across the map — avoid clustering near mines
-    // Three waypoints: advance into zone, spread wide, final random destination
-    const midX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
-    const midY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
-    const finalX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
-    const finalY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
-
     return [
-      { x: midX, y: midY },
-      { x: finalX, y: finalY },
+      this._randomPointAvoidingMines(zone),
+      this._randomPointAvoidingMines(zone),
     ];
+  }
+
+  // Pick a random point in the muscle zone that avoids the mine grid area
+  _randomPointAvoidingMines(zone) {
+    const grid = CONFIG.MINES_GRID;
+    const mineW = CONFIG.MINE_SIZE.w;
+    const mineH = CONFIG.MINE_SIZE.h;
+    // Mine grid bounding box with padding
+    const mineX1 = grid.startX - mineW;
+    const mineX2 = grid.startX + (grid.cols - 1) * grid.gapX + mineW;
+    const mineY1 = grid.startY - mineH;
+    const mineY2 = grid.startY + (grid.rows - 1) * grid.gapY + mineH;
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const x = zone.x1 + Math.random() * (zone.x2 - zone.x1);
+      const y = zone.y1 + Math.random() * (zone.y2 - zone.y1);
+      // Accept if outside mine bounding box
+      if (x < mineX1 || x > mineX2 || y < mineY1 || y > mineY2) {
+        return { x, y };
+      }
+    }
+    // Fallback: top or bottom edge of zone (guaranteed outside mines)
+    const useTop = Math.random() < 0.5;
+    return {
+      x: zone.x1 + Math.random() * (zone.x2 - zone.x1),
+      y: useTop ? zone.y1 + Math.random() * 20 : zone.y2 - Math.random() * 20,
+    };
   }
 
   update(dt) {
@@ -207,8 +225,9 @@ export class Peasant {
 
   _pickRandomRoamTarget() {
     const zone = CONFIG.MUSCLE_ZONE;
-    this.roamTargetX = zone.x1 + Math.random() * (zone.x2 - zone.x1);
-    this.roamTargetY = zone.y1 + Math.random() * (zone.y2 - zone.y1);
+    const pt = this._randomPointAvoidingMines(zone);
+    this.roamTargetX = pt.x;
+    this.roamTargetY = pt.y;
   }
 
   _checkStuck(dt) {

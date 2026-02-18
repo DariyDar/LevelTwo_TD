@@ -19,7 +19,8 @@ export class KidneyTower {
     this.repairTimer = 0;
 
     // Game-time based auto-filtration cooldown (real seconds)
-    this.cooldownRemaining = 0;
+    // Start on cooldown so kidneys aren't READY at round start
+    this.cooldownRemaining = (CONFIG.KIDNEY_AUTO_COOLDOWN_HOURS * 60) / CONFIG.DAY_SPEED;
 
     // Dapagliflozin state
     this.dapagliflozinTimer = 0;
