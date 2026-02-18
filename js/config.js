@@ -44,16 +44,17 @@ export const CONFIG = {
   },
 
   // Building positions — right column layout (pancreas top, kidney mid, liver bottom)
-  // Shifted down so buildings don't overlap the BG graph (top UI ends ~y=130 in world space)
-  PANCREAS_POS: { x: 1050, y: 380 },
-  PANCREAS_SIZE: { w: 120, h: 100 },
+  // Pancreas sprite: 192x320 → sprH = w*(320/192). Kidney tower: 128x256 → sprH = sprW*(256/128)
+  // Liver castle: 320x256 → sprH = w*(256/320). All shifted below BG graph (y>150)
+  PANCREAS_POS: { x: 1100, y: 240 },
+  PANCREAS_SIZE: { w: 80, h: 80 },
 
-  KIDNEYS_POS: { x: 1050, y: 550 },
+  KIDNEYS_POS: { x: 1100, y: 400 },
   KIDNEYS_RADIUS: 16,
 
-  LIVER_POS: { x: 1000, y: 500 },
-  LIVER_SIZE: { w: 500, h: 400 },
-  CASTLE_ROOF: { x: 780, y: 400, w: 440, h: 80 },
+  LIVER_POS: { x: 1020, y: 620 },
+  LIVER_SIZE: { w: 400, h: 320 },
+  CASTLE_ROOF: { x: 840, y: 540, w: 360, h: 60 },
 
   // Mines grid (3 cols × 5 rows = 15 mines, center-left area)
   MINES_GRID: {
@@ -124,16 +125,16 @@ export const CONFIG = {
   LIVER_HGP_SENSITIVITY_CUTOFF: 0.85,  // if _insulinSensitivity < this → hepatic leak
   LIVER_HGP_RELEASE_CHANCE: 0.3,        // 30% chance per tick
 
-  // Knight spawn positions (patrol area OUTSIDE liver castle)
+  // Knight spawn positions (patrol area left of liver castle)
   KNIGHT_POSITIONS: [
-    { x: 720, y: 400 }, { x: 720, y: 480 },
-    { x: 720, y: 560 }, { x: 740, y: 440 },
-    { x: 740, y: 520 }, { x: 700, y: 460 },
-    { x: 700, y: 540 }, { x: 680, y: 500 },
-    { x: 760, y: 380 }, { x: 760, y: 580 },
-    { x: 690, y: 420 }, { x: 690, y: 560 },
-    { x: 670, y: 500 }, { x: 750, y: 500 },
-    { x: 730, y: 470 },
+    { x: 790, y: 540 }, { x: 790, y: 600 },
+    { x: 790, y: 660 }, { x: 810, y: 560 },
+    { x: 810, y: 630 }, { x: 770, y: 570 },
+    { x: 770, y: 640 }, { x: 750, y: 600 },
+    { x: 820, y: 520 }, { x: 820, y: 680 },
+    { x: 760, y: 550 }, { x: 760, y: 660 },
+    { x: 740, y: 600 }, { x: 800, y: 600 },
+    { x: 780, y: 580 },
   ],
   KNIGHT_SPEED: 360,
   KNIGHT_SCAN_RANGE: 500,
@@ -147,7 +148,7 @@ export const CONFIG = {
   KIDNEY_ACTIVATION_THRESHOLD: 8,
   KIDNEY_CIRCLE_EXPAND_SPEED: 120,
   KIDNEY_CIRCLE_CONTRACT_SPEED: 150,
-  KIDNEY_CIRCLE_ORIGIN: { x: 950, y: 550 },
+  KIDNEY_CIRCLE_ORIGIN: { x: 1000, y: 400 },
   KIDNEY_EJECT_SPEED: 400,
 
   // Kidney auto-filtration (game-time based cooldown)
