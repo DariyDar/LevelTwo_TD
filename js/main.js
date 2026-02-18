@@ -503,12 +503,7 @@ function gameLoop(timestamp) {
     // UI rendering (screen space — no camera)
     renderUI();
 
-    // Hide intervention bottom bar for tutorial (healthy) patient
-    const currentPatient = getPatient(gameState.currentPatientId);
-    const isTutorialDay = currentPatient && currentPatient.isTutorial;
-    if (!isTutorialDay) {
-      renderBottomBar();
-    }
+    renderBottomBar();
 
     renderFoodChoice();
     renderPausedOverlay();
