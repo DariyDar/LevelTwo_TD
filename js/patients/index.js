@@ -15,7 +15,7 @@ export const PATIENTS = [
       degradationEnabled: false,
       liverStorageMultiplier: 1.5,
       energyStartMultiplier: 1.8,
-      energyDrainMultiplier: 0.5,
+      energyDrainMultiplier: 1.0,
       rebelDamageMultiplier: 0.1,
       priestWaitMultiplier: 15.0,
       kidneyAutoFilterRate: 3.0,
@@ -31,21 +31,23 @@ export const PATIENTS = [
         dayId: 1, levelRef: 1, name: 'Day 1: How It Works',
         narrative: 'Your first day. Learn how food arrives as glucose, how insulin converts it to energy, and how your body stays balanced. Only healthy foods today.',
         fixedMeals: [
-          { hour: 8, foodKeys: ['oatmeal', 'eggs', 'bread'] },
-          { hour: 11, foodKeys: ['banana', 'yogurt'] },
-          { hour: 13, foodKeys: ['chicken', 'stew', 'bread'] },
-          { hour: 16, foodKeys: ['apple', 'cheese', 'bread'] },
-          { hour: 19, foodKeys: ['fish', 'stew', 'veggies', 'bread'] },
+          { hour: 8, foodKeys: ['eggs', 'bread'] },
+          { hour: 11, foodKeys: ['banana'] },
+          { hour: 13, foodKeys: ['chicken', 'salad'] },
+          { hour: 16, foodKeys: ['apple'] },
+          { hour: 19, foodKeys: ['fish', 'veggies'] },
         ],
-        fixedInterventions: [],
+        fixedInterventions: [
+          { hour: 10, type: 'walk' },
+        ],
       },
       {
         dayId: 2, levelRef: 2, name: 'Day 2: Fast vs Slow',
         narrative: 'Today you\'ll see the difference between fast and slow glucose. Fast food (red) spikes blood sugar quickly; healthy food (orange/green) is gentler.',
         fixedMeals: [
-          { hour: 9, foodKeys: ['cereal', 'banana'] },
-          { hour: 13, foodKeys: ['burger', 'cola'] },
-          { hour: 19, foodKeys: ['stew', 'bread'] },
+          { hour: 9, foodKeys: ['cereal'] },
+          { hour: 13, foodKeys: ['burger'] },
+          { hour: 19, foodKeys: ['stew', 'salad'] },
         ],
         fixedInterventions: [],
       },
@@ -53,10 +55,10 @@ export const PATIENTS = [
         dayId: 3, levelRef: 3, name: 'Day 3: Sugar Challenge',
         narrative: 'Challenge day! Only unhealthy food. Watch how even a healthy body struggles with sugar overload. Use walking and exercise to help!',
         fixedMeals: [
-          { hour: 9, foodKeys: ['muffin', 'juice'] },
-          { hour: 12, foodKeys: ['pizza', 'cola'] },
-          { hour: 16, foodKeys: ['iceCream', 'cookie'] },
-          { hour: 19, foodKeys: ['burger', 'fries'] },
+          { hour: 9, foodKeys: ['muffin'] },
+          { hour: 12, foodKeys: ['pizza'] },
+          { hour: 16, foodKeys: ['iceCream'] },
+          { hour: 19, foodKeys: ['burger'] },
         ],
         fixedInterventions: [
           { hour: 10, type: 'walk' },
@@ -85,7 +87,7 @@ export const PATIENTS = [
       liverInitialStorage: 50,
       insulinCharges: 15,
     },
-    availableInterventions: ['walk', 'exercise', 'insulin'],
+    availableInterventions: ['walk', 'exercise', 'insulin', 'knight', 'kidney'],
     days: [
       {
         dayId: 1, levelRef: 1, name: 'Day 1: First Injections',
@@ -185,7 +187,7 @@ export const PATIENTS = [
       liverInitialStorage: 40,
       insulinCharges: null,
     },
-    availableInterventions: ['walk', 'exercise', 'semaglutide', 'metformin', 'dapagliflozin'],
+    availableInterventions: ['walk', 'exercise', 'insulin', 'knight', 'kidney', 'semaglutide', 'metformin', 'dapagliflozin'],
     days: [
       {
         dayId: 1, levelRef: 1, name: 'Day 1: Diagnosis',
@@ -285,7 +287,7 @@ export const PATIENTS = [
       liverInitialStorage: 20,
       insulinCharges: null,
     },
-    availableInterventions: ['walk', 'exercise', 'semaglutide', 'metformin', 'dapagliflozin'],
+    availableInterventions: ['walk', 'exercise', 'insulin', 'knight', 'kidney', 'semaglutide', 'metformin', 'dapagliflozin'],
     days: [
       {
         dayId: 1, levelRef: 1, name: 'Day 1: Complications',

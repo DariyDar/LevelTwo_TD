@@ -15,8 +15,8 @@ export const CONFIG = {
   VILLAGE_X_END: 1100,
 
   // Shore spawn range (glucose spreads along full height, below graph)
-  SHORE_SPAWN_Y_MIN: 160,
-  SHORE_SPAWN_Y_MAX: 700,
+  SHORE_SPAWN_Y_MIN: 135,
+  SHORE_SPAWN_Y_MAX: 675,
 
   // Colors
   COLORS: {
@@ -46,20 +46,20 @@ export const CONFIG = {
   // Building positions — right column layout (pancreas top, kidney mid, liver bottom)
   // Pancreas sprite: 192x320 → sprH = w*(320/192). Kidney tower: 128x256 → sprH = sprW*(256/128)
   // Liver castle: 320x256 → sprH = w*(256/320). All shifted below BG graph (y>150)
-  PANCREAS_POS: { x: 1100, y: 190 },
+  PANCREAS_POS: { x: 1100, y: 165 },
   PANCREAS_SIZE: { w: 96, h: 96 },
 
-  KIDNEYS_POS: { x: 1100, y: 350 },
+  KIDNEYS_POS: { x: 1100, y: 325 },
   KIDNEYS_RADIUS: 27,
 
-  LIVER_POS: { x: 1020, y: 540 },
+  LIVER_POS: { x: 1020, y: 515 },
   LIVER_SIZE: { w: 280, h: 224 },
-  CASTLE_ROOF: { x: 920, y: 510, w: 180, h: 40 },
+  CASTLE_ROOF: { x: 920, y: 485, w: 180, h: 40 },
 
   // Mines grid (2 cols × 5 rows = 10 mines, center area)
   MINES_GRID: {
     startX: 560,
-    startY: 220,
+    startY: 195,
     cols: 2,
     rows: 5,
     gapX: 130,
@@ -127,14 +127,14 @@ export const CONFIG = {
 
   // Knight spawn positions (patrol area left of liver castle)
   KNIGHT_POSITIONS: [
-    { x: 800, y: 460 }, { x: 800, y: 520 },
-    { x: 800, y: 580 }, { x: 820, y: 480 },
-    { x: 820, y: 550 }, { x: 780, y: 490 },
-    { x: 780, y: 560 }, { x: 760, y: 520 },
-    { x: 830, y: 440 }, { x: 830, y: 600 },
-    { x: 770, y: 470 }, { x: 770, y: 580 },
-    { x: 750, y: 520 }, { x: 810, y: 520 },
-    { x: 790, y: 500 },
+    { x: 800, y: 435 }, { x: 800, y: 495 },
+    { x: 800, y: 555 }, { x: 820, y: 455 },
+    { x: 820, y: 525 }, { x: 780, y: 465 },
+    { x: 780, y: 535 }, { x: 760, y: 495 },
+    { x: 830, y: 415 }, { x: 830, y: 575 },
+    { x: 770, y: 445 }, { x: 770, y: 555 },
+    { x: 750, y: 495 }, { x: 810, y: 495 },
+    { x: 790, y: 475 },
   ],
   KNIGHT_SPEED: 360,
   KNIGHT_SCAN_RANGE: 500,
@@ -148,7 +148,7 @@ export const CONFIG = {
   KIDNEY_ACTIVATION_THRESHOLD: 8,
   KIDNEY_CIRCLE_EXPAND_SPEED: 120,
   KIDNEY_CIRCLE_CONTRACT_SPEED: 150,
-  KIDNEY_CIRCLE_ORIGIN: { x: 1000, y: 350 },
+  KIDNEY_CIRCLE_ORIGIN: { x: 1000, y: 325 },
   KIDNEY_EJECT_SPEED: 400,
 
   // Kidney auto-filtration (game-time based cooldown)
@@ -209,8 +209,8 @@ export const CONFIG = {
   SEMAGLUTIDE_MINE_DURATION: 20,
   SEMAGLUTIDE_MINE_X_MIN: 300,
   SEMAGLUTIDE_MINE_X_MAX: 900,
-  SEMAGLUTIDE_MINE_Y_MIN: 160,
-  SEMAGLUTIDE_MINE_Y_MAX: 700,
+  SEMAGLUTIDE_MINE_Y_MIN: 135,
+  SEMAGLUTIDE_MINE_Y_MAX: 675,
 
   DAPAGLIFLOZIN_COST: 20,
   DAPAGLIFLOZIN_VORTEX_COUNT: 8,
@@ -260,7 +260,7 @@ export const CONFIG = {
   UNLOAD_TIME_L: 15,
 
   // Muscle zone (whole green area — priests & knights hunt here)
-  MUSCLE_ZONE: { x1: 300, y1: 180, x2: 900, y2: 700 },
+  MUSCLE_ZONE: { x1: 300, y1: 155, x2: 900, y2: 675 },
 
   // Waypoints (simplified — no road, just shore → advance → muscle)
   WAYPOINTS: {
@@ -270,6 +270,6 @@ export const CONFIG = {
 
   // Boat
   BOAT_SIZE: 300,
-  BOAT_SPAWN: { x: -80, y: 350 },
-  BOAT_DEST: { x: 200, y: 350 },
+  BOAT_SPAWN: { x: -80, y: 325 },
+  BOAT_DEST: { x: 200, y: 325 },
 };

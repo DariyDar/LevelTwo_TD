@@ -8,6 +8,7 @@ import { spendEnergy } from './energySystem.js';
 import { findLeastFilledMine } from '../buildings/Mine.js';
 import { recordEvent } from './bgHistory.js';
 import { calculateBG } from './bgSystem.js';
+import { getPatient } from '../patients/index.js';
 
 export function updateInterventions(dt) {
   const iv = gameState.interventions;
@@ -393,6 +394,26 @@ export function getInterventionStatus() {
     },
   ];
 
+  // Filter core actions by patient's availableInterventions
+  const patient = getPatient(gameState.currentPatientId);
+  const avail = patient ? patient.availableInterventions : null;
+
+  // Mapping: coreAction key → required intervention key(s)
+  const coreRequirements = {
+    spawnKnight: 'knight',
+    physicalActivity: ['walk', 'exercise'],
+    spawnPriest: 'insulin',
+    kidneyVortex: 'kidney',
+    snack: null, // always available
+  };
+
+  const filteredCore = avail ? coreActions.filter(a => {
+    const req = coreRequirements[a.key];
+    if (req === null) return true; // always show
+    if (Array.isArray(req)) return req.some(r => avail.includes(r));
+    return avail.includes(req);
+  }) : coreActions;
+
   // Level interventions — medications only (exercise moved to Physical Activity sub-menu)
   const levelInterventions = [
     {
@@ -446,5 +467,5 @@ export function getInterventionStatus() {
   }
 
   // Level interventions (medications) first, then core actions
-  return [...filtered, ...coreActions];
+  return [...filtered, ...filteredCore];
 }
